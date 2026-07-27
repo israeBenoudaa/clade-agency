@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Supabase Connection Test</title>
+  <style>
+    body { font-family: monospace; background: #0d0d0d; color: #e0e0e0; padding: 2rem; }
+    h2 { color: #a0c4ff; margin-bottom: 1.5rem; }
+    .test { margin: 0.75rem 0; padding: 0.75rem 1rem; border-radius: 6px; background: #1a1a1a; display: flex; align-items: center; gap: 12px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .pending { background: #555; }
+    .ok      { background: #4caf50; }
+    .err     { background: #f44336; }
+    .label   { color: #ccc; font-size: 14px; }
+    .detail  { color: #888; font-size: 12px; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <h2>🔌 Supabase — Test de connexion</h2>
+  <div id="results"></div>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+    const URL = 'https://zzasvmzcpctvwwywjhgw.supabase.co'
+    const KEY = 'sb_publishable_WIo0C_kw3eLTz8cPjKhD3A_wyLHCrEX'
+    const supabase = createClient(URL, KEY)
+
+    const container = document.getElementById('results')
+
+    function row(label, status = 'pending', detail = '') {
+      const div = document.createElement('div')
+      div.className = 'test'
+      div.id = `test-${label.replace(/\s/g, '-')}`
+      div.innerHTML = `
+        <div class="dot ${status}"></div>
+        <div>
+          <div class="label">${label}</div>
+          ${detail ? `<div class="detail">${detail}</div>` : ''}
+        </div>`
+      container.appendChild(div)
+      return (s, d) => {
+        div.querySelector('.dot').className = `dot ${s}`
+        if (d) div.querySelector('.detail')?.remove(), div.insertAdjacentHTML('beforeend', `<div class="detail">${d}</div>`)
+      }
+    }
+
+    // ── Test 1 : connexion basique ────────────────────────────
+    const t1 = row('Connexion au projet Supabase', 'pending')
+    try {
+      const { data, error } = await supabase.from('agence_settings').select('id').limit(1)
+      if (error) throw error
+      t1('ok', `✓ Projet accessible — agence_settings répond`)
+    } catch (e) {
+      t1('err', `✗ ${e.message}`)
+    }
+
+    // ── Test 2 : table profiles ───────────────────────────────
+    const t2 = row('Table profiles', 'pending')
+    try {
+      const { error } = await supabase.from('profiles').select('id').limit(1)
+      if (error) throw error
+      t2('ok', '✓ Table profiles accessible')
+    } catch (e) {
+      t2('err', `✗ ${e.message}`)
+    }
+
+    // ── Test 3 : table employes ───────────────────────────────
+    const t3 = row('Table employes', 'pending')
+    try {
+      const { error } = await supabase.from('employes').select('id').limit(1)
+      if (error) throw error
+      t3('ok', '✓ Table employes accessible')
+    } catch (e) {
+      t3('err', `✗ ${e.message}`)
+    }
+
+    // ── Test 4 : table prospects ──────────────────────────────
+    const t4 = row('Table prospects', 'pending')
+    try {
+      const { error } = await supabase.from('prospects').select('id').limit(1)
+      if (error) throw error
+      t4('ok', '✓ Table prospects accessible')
+    } catch (e) {
+      t4('err', `✗ ${e.message}`)
+    }
+
+    // ── Test 5 : table projects ───────────────────────────────
+    const t5 = row('Table projects', 'pending')
+    try {
+      const { error } = await supabase.from('projects').select('id').limit(1)
+      if (error) throw error
+      t5('ok', '✓ Table projects accessible')
+    } catch (e) {
+      t5('err', `✗ ${e.message}`)
+    }
+
+    // ── Test 6 : insert + delete (round-trip) ─────────────────
+    const t6 = row('Écriture / Suppression (round-trip)', 'pending')
+    try {
+      const testId = `test_${Date.now()}`
+      const { error: insErr } = await supabase
+        .from('jours_ferier')
+        .insert({ id: testId, date: '2099-01-01', nom: '__test__' })
+      if (insErr) throw insErr
+      const { error: delErr } = await supabase
+        .from('jours_ferier')
+        .delete().eq('id', testId)
+      if (delErr) throw delErr
+      t6('ok', '✓ INSERT + DELETE OK')
+    } catch (e) {
+      t6('err', `✗ ${e.message}`)
+    }
+
+    // ── Test 7 : auth (session anonyme) ──────────────────────
+    const t7 = row('Auth Supabase (session)', 'pending')
+    try {
+      const { data, error } = await supabase.auth.getSession()
+      if (error) throw error
+      t7('ok', data.session ? '✓ Session active' : '✓ Auth OK — aucune session (normal)')
+    } catch (e) {
+      t7('err', `✗ ${e.message}`)
+    }
+  </script>
+</body>
+</html>

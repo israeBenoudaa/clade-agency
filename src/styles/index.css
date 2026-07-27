@@ -1,0 +1,147 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-paper text-ink font-sans;
+    margin: 0;
+    min-height: 100vh;
+  }
+
+  ::selection {
+    background: rgba(6, 182, 212, 0.3);
+    color: #0A1E3F;
+  }
+
+  /* Scrollbar custom */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #E4E8F0;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #6B7A99;
+  }
+
+  input, button, textarea, select {
+    font-family: inherit;
+  }
+
+  /* Hide placeholder example text app-wide — fields appear clean/empty */
+  input::placeholder,
+  textarea::placeholder {
+    color: transparent;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-2xl border border-border;
+  }
+
+  .card-hover {
+    @apply transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5;
+  }
+
+  .btn-primary {
+    @apply bg-ink text-white px-4 py-2.5 rounded-xl font-medium text-sm
+           hover:bg-ink-soft transition-colors flex items-center gap-2;
+  }
+
+  .btn-accent {
+    @apply bg-electric text-ink px-4 py-2.5 rounded-xl font-semibold text-sm
+           hover:opacity-90 transition-opacity flex items-center gap-2;
+  }
+
+  .btn-ghost {
+    @apply bg-white border border-border text-ink px-4 py-2.5 rounded-xl font-medium text-sm
+           hover:bg-paper-warm transition-colors flex items-center gap-2;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3 rounded-xl border border-border bg-white
+           focus:outline-none focus:ring-2 focus:ring-electric/30 focus:border-electric
+           transition-all text-sm;
+  }
+
+  .label-text {
+    @apply text-xs uppercase tracking-widest text-muted font-medium;
+  }
+
+  .heading-display {
+    @apply font-display font-normal tracking-tight text-ink leading-none;
+  }
+
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+}
+
+@layer utilities {
+  .bg-grid {
+    background-image: radial-gradient(#E4E8F0 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  .bg-noise {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Animations spéciales login */
+@keyframes drawLine {
+  from { stroke-dashoffset: 1000; }
+  to { stroke-dashoffset: 0; }
+}
+
+.draw-line {
+  stroke-dasharray: 1000;
+  animation: drawLine 3s ease-out forwards;
+}
+
+@keyframes meshMove {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  33% { transform: translate(30px, -50px) rotate(120deg); }
+  66% { transform: translate(-20px, 20px) rotate(240deg); }
+  100% { transform: translate(0, 0) rotate(360deg); }
+}
+
+.mesh-blob {
+  animation: meshMove 20s ease-in-out infinite;
+}
+
+/* Tiptap rich text editor */
+.prose-editor p { font-size: 13px; line-height: 1.85; color: #374151; margin: 0 0 8px; }
+.prose-editor p:last-child { margin-bottom: 0; }
+.prose-editor strong { font-weight: 700; color: #1F2937; }
+.prose-editor em { font-style: italic; }
+.prose-editor h2 { font-size: 17px; font-weight: 800; color: #0A1E3F; margin: 16px 0 6px; line-height: 1.3; }
+.prose-editor h3 { font-size: 14px; font-weight: 700; color: #1F2937; margin: 12px 0 4px; line-height: 1.3; }
+.prose-editor ul, .prose-editor ol { margin: 6px 0 8px; padding-left: 20px; }
+.prose-editor ul li { list-style-type: disc; font-size: 13px; line-height: 1.75; color: #374151; margin-bottom: 2px; }
+.prose-editor ol li { list-style-type: decimal; font-size: 13px; line-height: 1.75; color: #374151; margin-bottom: 2px; }
+.prose-editor p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: #9CA3AF; pointer-events: none; float: left; height: 0; }
