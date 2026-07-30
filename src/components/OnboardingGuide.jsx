@@ -790,10 +790,11 @@ export default function OnboardingGuide() {
                   <button
                     onClick={next}
                     style={{
-                      padding: '0 22px', height: 38, borderRadius: 10,
+                      padding: isLast ? '0 22px' : '0', width: isLast ? 'auto' : 38,
+                      height: 38, borderRadius: 10,
                       background: '#0A1E3F', border: 'none', cursor: 'pointer',
                       fontFamily: 'Inter Tight, sans-serif', fontSize: 13, fontWeight: 600,
-                      color: 'white', display: 'flex', alignItems: 'center', gap: 6,
+                      color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                       transition: 'background 0.2s, transform 0.15s',
                     }}
                     onMouseEnter={e => e.currentTarget.style.background = '#1B3260'}
@@ -802,7 +803,7 @@ export default function OnboardingGuide() {
                     {isLast ? (
                       <>Commencer <Sparkles size={13} /></>
                     ) : (
-                      <>Suivant <ChevronRight size={14} /></>
+                      <ChevronRight size={16} />
                     )}
                   </button>
                 </div>

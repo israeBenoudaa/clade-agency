@@ -747,7 +747,7 @@ function Sidebar({ mobile, onClose, onSignOut, isDirector, profile, initials, na
   }
 
   return (
-    <div className="h-screen w-72 lg:w-64 bg-ink-deep text-paper flex flex-col py-7 px-4 lg:sticky lg:top-0 overflow-y-auto">
+    <div className="h-screen w-72 lg:w-64 bg-ink-deep text-paper flex flex-col py-7 px-4 lg:sticky lg:top-0">
       {/* Branding */}
       <div className="flex items-center justify-between mb-8 px-2 flex-shrink-0">
         <div className="flex items-center">
@@ -761,7 +761,8 @@ function Sidebar({ mobile, onClose, onSignOut, isDirector, profile, initials, na
       </div>
 
       {/* Nav Staff */}
-      <nav className="flex flex-col gap-1 flex-shrink-0">
+      <div className="flex-1 overflow-y-auto min-h-0 flex flex-col">
+      <nav className="flex flex-col gap-1">
 
         {/* ── Mon espace ── */}
         <div className="text-[10px] uppercase tracking-[0.15em] text-paper/40 px-3 pb-3">
@@ -823,6 +824,7 @@ function Sidebar({ mobile, onClose, onSignOut, isDirector, profile, initials, na
 
       <div className="flex-1" />
 
+
       {/* Sélecteur de profil démo */}
       {isDemoMode && (
         <div className="mt-4 flex-shrink-0">
@@ -870,6 +872,8 @@ function Sidebar({ mobile, onClose, onSignOut, isDirector, profile, initials, na
           </AnimatePresence>
         </div>
       )}
+
+      </div>{/* end scrollable nav area */}
 
       {/* Profil */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-3 mt-3 flex-shrink-0">
