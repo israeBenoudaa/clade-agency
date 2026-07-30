@@ -13,6 +13,7 @@ import {
   HeadingLevel,
 } from 'docx'
 import { useData } from '../../context/DataContext'
+import { verifyDirectorPassword } from '../../lib/supabaseAuth'
 import SelectField from '../../components/SelectField'
 import { useAuth } from '../../context/AuthContext'
 
@@ -319,7 +320,8 @@ export default function GestionWorkflowPage() {
   }
 
   const handleExport = async () => {
-    if (exportPwd !== import.meta.env.VITE_DIRECTOR_PWD) {
+    const ok = await verifyDirectorPassword(profile.email, exportPwd)
+    if (!ok) {
       setPwdError('Mot de passe incorrect')
       return
     }

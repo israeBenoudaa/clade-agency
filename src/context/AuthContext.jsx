@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabase'
 const AuthContext = createContext(null)
 
 // PIN directeur (second facteur après le mot de passe Supabase) — défini dans .env
-const DIRECTOR_PIN = import.meta.env.VITE_DIRECTOR_PIN
 
 // ── Demo helpers (mode démo local, pas de vraie session Supabase) ─────────────
 const DEMO_NAMES = {
@@ -93,16 +92,6 @@ export function AuthProvider({ children }) {
 
   // ── signIn ────────────────────────────────────────────────────────────────
   const signIn = async (usernameOrEmail, password) => {
-    // Compte démo
-    if (usernameOrEmail === 'demo@clade.ma' && password === 'demo123') {
-      localStorage.setItem('clade_demo', 'true')
-      localStorage.setItem('clade_demo_role', 'directeur')
-      setSession(DEMO_SESSION)
-      setProfile(makeDemoProfile('directeur'))
-      setIsDemoMode(true)
-      return { user: DEMO_SESSION.user }
-    }
-
     // Résolution username → email (si l'utilisateur n'a pas entré un email)
     let email = usernameOrEmail
     if (!usernameOrEmail.includes('@')) {
@@ -136,8 +125,8 @@ export function AuthProvider({ children }) {
 
   // ── Vérification du PIN directeur ─────────────────────────────────────────
   const verifyDirectorPin = async (pin) => {
-    if (String(pin) !== DIRECTOR_PIN) throw new Error('PIN incorrect')
-    // Charger le profil maintenant que le PIN est validé
+    const { data: pinOk, error } = await supabase.rpc('verify_director_pin', { input_pin: String(pin) })
+    if (error || !pinOk) throw new Error('PIN incorrect')
     const prof = await loadProfile(session.user.id)
     if (!prof) throw new Error('Profil directeur introuvable.')
     sessionStorage.setItem('clade_pin_ok', 'true')

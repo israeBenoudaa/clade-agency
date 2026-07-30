@@ -9,6 +9,8 @@ import {
 } from 'lucide-react'
 import { useData } from '../../context/DataContext'
 import { useAuth } from '../../context/AuthContext'
+import { supabase } from '../../lib/supabase'
+import { verifyDirectorPassword } from '../../lib/supabaseAuth'
 import { computeCongesBalance } from '../../utils/conges'
 import toast from 'react-hot-toast'
 import SelectField from '../../components/SelectField'
@@ -213,6 +215,7 @@ function AddEventModal({ date, onClose, onAdd }) {
 
 // ── DirectorPinGate ───────────────────────────────────────────────────────────
 function DirectorPinGate({ onUnlock }) {
+  const { profile } = useAuth()
   const [step, setStep] = useState('password') // 'password' | 'pin'
   const [pwd, setPwd] = useState('')
   const [showPwd, setShowPwd] = useState(false)
@@ -220,9 +223,10 @@ function DirectorPinGate({ onUnlock }) {
   const [error, setError] = useState('')
   const pinRefs = useRef([])
 
-  const submitPassword = (e) => {
+  const submitPassword = async (e) => {
     e.preventDefault()
-    if (pwd === import.meta.env.VITE_DIRECTOR_PWD) {
+    const ok = await verifyDirectorPassword(profile.email, pwd)
+    if (ok) {
       setError('')
       setStep('pin')
       setTimeout(() => pinRefs.current[0]?.focus(), 100)
@@ -240,14 +244,16 @@ function DirectorPinGate({ onUnlock }) {
     if (digit && i < 5) pinRefs.current[i + 1]?.focus()
     if (i === 5 && digit) {
       const code = [...next].join('')
-      if (code === import.meta.env.VITE_DIRECTOR_PIN) {
-        setError('')
-        onUnlock()
-      } else {
-        setError('PIN incorrect')
-        setPins(['', '', '', '', '', ''])
-        setTimeout(() => pinRefs.current[0]?.focus(), 100)
-      }
+      supabase.rpc('verify_director_pin', { input_pin: code }).then(({ data }) => {
+        if (data) {
+          setError('')
+          onUnlock()
+        } else {
+          setError('PIN incorrect')
+          setPins(['', '', '', '', '', ''])
+          setTimeout(() => pinRefs.current[0]?.focus(), 100)
+        }
+      })
     }
   }
 

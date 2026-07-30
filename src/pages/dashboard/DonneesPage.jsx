@@ -10,6 +10,8 @@ import {
 import toast from 'react-hot-toast'
 import { useData } from '../../context/DataContext'
 import { useAuth } from '../../context/AuthContext'
+import { supabase } from '../../lib/supabase'
+import { verifyDirectorPassword } from '../../lib/supabaseAuth'
 
 const getExportKeys = () =>
   Object.keys(localStorage).filter(k => k.startsWith('clade_') && k !== 'clade_checkpoints')
@@ -25,8 +27,9 @@ function PinModal({ title, subtitle, onConfirm, onClose }) {
   const [pin, setPin] = useState('')
   const [err, setErr] = useState('')
 
-  const handleConfirm = () => {
-    if (pin === import.meta.env.VITE_DIRECTOR_PIN) { onConfirm(); onClose() }
+  const handleConfirm = async () => {
+    const { data } = await supabase.rpc('verify_director_pin', { input_pin: pin })
+    if (data) { onConfirm(); onClose() }
     else { setErr('Code PIN incorrect'); setPin('') }
   }
 
@@ -106,6 +109,7 @@ function ConfirmDeleteModal({ label, onConfirm, onClose }) {
 }
 
 function DataActionsModal({ action, onClose }) {
+  const { profile } = useAuth()
   const [step, setStep] = useState('auth')
   const [pwd, setPwd] = useState('')
   const [pin, setPin] = useState('')
@@ -118,8 +122,12 @@ function DataActionsModal({ action, onClose }) {
   const meta = ACTION_META[action]
   const Icon = meta.icon
 
-  const handleAuth = () => {
-    if (pwd === import.meta.env.VITE_DIRECTOR_PWD && pin === import.meta.env.VITE_DIRECTOR_PIN) { setStep('action') }
+  const handleAuth = async () => {
+    const [pwdOk, { data: pinOk }] = await Promise.all([
+      verifyDirectorPassword(profile.email, pwd),
+      supabase.rpc('verify_director_pin', { input_pin: pin }),
+    ])
+    if (pwdOk && pinOk) { setStep('action') }
     else { setAuthErr('Mot de passe ou PIN incorrect') }
   }
 
