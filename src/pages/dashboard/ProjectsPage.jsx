@@ -61,7 +61,7 @@ function StatutDropdown({ statut, projectId, onUpdate }) {
         {ALL_STATUTS.map(sv => {
           const ss = STATUT_STYLES[sv]
           return (
-            <button key={sv} onClick={() => { onUpdate(projectId, { projetStatut: sv }); setOpen(false) }}
+            <button key={sv} onClick={() => { onUpdate(projectId, { statut: sv }); setOpen(false) }}
               className={`w-full flex items-center gap-2 px-3 py-2.5 text-xs hover:bg-paper-warm transition-colors text-left ${statut === sv ? 'font-semibold bg-paper-warm' : ''}`}>
               <span className={`w-2 h-2 rounded-full flex-shrink-0 ${ss.dot}`} />
               <span className={ss.text}>{sv}</span>
@@ -112,7 +112,7 @@ function NouveauProjetInterneModal({ onClose }) {
       description: form.description.trim(),
       objectif: form.objectif.trim(),
       typeProjet: 'interne',
-      projetStatut: 'En cours',
+      statut: 'En cours',
       missions: [],
       tasks: [],
       avancement: 0,
@@ -231,11 +231,11 @@ export default function ProjectsPage() {
 
   const externalProjects = projects.filter(p => p.typeProjet !== 'interne')
   const filteredExternal = externalProjects
-    .filter(p => statusFilter === 'Tous' || (p.projetStatut || 'En cours') === statusFilter)
+    .filter(p => statusFilter === 'Tous' || (p.statut || 'En cours') === statusFilter)
     .filter(p => !search.trim() || p.nom?.toLowerCase().includes(search.toLowerCase()) || p.client?.toLowerCase().includes(search.toLowerCase()))
   const internalProjects = projects.filter(p => p.typeProjet === 'interne')
   const filteredInternal = internalProjects
-    .filter(p => statusFilterInterne === 'Tous' || (p.projetStatut || 'En cours') === statusFilterInterne)
+    .filter(p => statusFilterInterne === 'Tous' || (p.statut || 'En cours') === statusFilterInterne)
     .filter(p => !searchInterne.trim() || p.nom?.toLowerCase().includes(searchInterne.toLowerCase()))
 
   const handleDelete = (e, p) => {
@@ -340,7 +340,7 @@ export default function ProjectsPage() {
                             <span className="flex-1 text-left">{s}</span>
                             {s !== 'Tous' && (
                               <span className="text-[10px] text-muted">
-                                {externalProjects.filter(p => (p.projetStatut || 'En cours') === s).length}
+                                {externalProjects.filter(p => (p.statut || 'En cours') === s).length}
                               </span>
                             )}
                           </button>
@@ -383,7 +383,7 @@ export default function ProjectsPage() {
                     {s}
                     {s !== 'Tous' && (
                       <span className="text-[10px] opacity-70">
-                        {externalProjects.filter(p => (p.projetStatut || 'En cours') === s).length}
+                        {externalProjects.filter(p => (p.statut || 'En cours') === s).length}
                       </span>
                     )}
                   </button>
@@ -454,7 +454,7 @@ export default function ProjectsPage() {
                     </div>
                     <ProgressBar value={p.avancement} />
                   </div>
-                  <StatutDropdown statut={p.projetStatut || 'En cours'} projectId={p.id} onUpdate={updateProject} />
+                  <StatutDropdown statut={p.statut || 'En cours'} projectId={p.id} onUpdate={updateProject} />
                   <div className="text-xs text-ink font-semibold whitespace-nowrap">
                     {totalTasks === 0 ? (
                       <span className="text-muted font-normal">—</span>
@@ -513,7 +513,7 @@ export default function ProjectsPage() {
                       </div>
                       <div className="text-xs text-muted mt-0.5">{p.client}</div>
                     </div>
-                    <StatutDropdown statut={p.projetStatut || 'En cours'} projectId={p.id} onUpdate={updateProject} />
+                    <StatutDropdown statut={p.statut || 'En cours'} projectId={p.id} onUpdate={updateProject} />
                   </div>
                   <div className="mb-3">
                     <div className="flex justify-between text-xs mb-1.5">
@@ -600,7 +600,7 @@ export default function ProjectsPage() {
                             <span className="flex-1 text-left">{s}</span>
                             {s !== 'Tous' && (
                               <span className="text-[10px] text-muted">
-                                {internalProjects.filter(p => (p.projetStatut || 'En cours') === s).length}
+                                {internalProjects.filter(p => (p.statut || 'En cours') === s).length}
                               </span>
                             )}
                           </button>
@@ -645,7 +645,7 @@ export default function ProjectsPage() {
                     {s}
                     {s !== 'Tous' && (
                       <span className="text-[10px] opacity-70">
-                        {internalProjects.filter(p => (p.projetStatut || 'En cours') === s).length}
+                        {internalProjects.filter(p => (p.statut || 'En cours') === s).length}
                       </span>
                     )}
                   </button>
@@ -720,7 +720,7 @@ export default function ProjectsPage() {
                         </div>
                         <ProgressBar value={p.avancement} color="#7C3AED" />
                       </div>
-                      <StatutDropdown statut={p.projetStatut || 'En cours'} projectId={p.id} onUpdate={updateProject} />
+                      <StatutDropdown statut={p.statut || 'En cours'} projectId={p.id} onUpdate={updateProject} />
                       <div className="text-xs text-ink font-semibold whitespace-nowrap">
                         {taskCount === 0 ? (
                           <span className="text-muted font-normal">—</span>
@@ -770,7 +770,7 @@ export default function ProjectsPage() {
                             {p.objectif && <div className="text-xs text-muted truncate mt-0.5">{p.objectif}</div>}
                           </div>
                         </div>
-                        <StatutDropdown statut={p.projetStatut || 'En cours'} projectId={p.id} onUpdate={updateProject} />
+                        <StatutDropdown statut={p.statut || 'En cours'} projectId={p.id} onUpdate={updateProject} />
                       </div>
                       <div className="mb-3">
                         <div className="flex justify-between text-xs mb-1.5">

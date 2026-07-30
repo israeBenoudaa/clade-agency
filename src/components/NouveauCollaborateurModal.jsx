@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Building2, CheckCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useData } from '../context/DataContext'
+import SelectField from './SelectField'
 
 export const VILLES_MAROC = [
   'Agadir', 'Al Hoceïma', 'Asilah', 'Béni Mellal', 'Berkane', 'Berrechid',
@@ -91,13 +92,13 @@ export default function NouveauCollaborateurModal({ onClose, existing = null }) 
 
             <div>
               <label className="label-text mb-1.5 block">Catégorie *</label>
-              <select className={`input-field ${errors.categorieId ? 'border-rose-400' : ''}`}
-                value={form.categorieId} onChange={set('categorieId')}>
-                <option value="">Choisir une catégorie…</option>
-                {categoriesCollab.map(c => (
-                  <option key={c.id} value={c.id}>{c.nom}</option>
-                ))}
-              </select>
+              <SelectField
+                value={form.categorieId}
+                onChange={v => { setForm(f => ({ ...f, categorieId: v })); setErrors(e => ({ ...e, categorieId: null })) }}
+                options={categoriesCollab.map(c => ({ value: c.id, label: c.nom }))}
+                placeholder="Choisir une catégorie…"
+                error={!!errors.categorieId}
+              />
               {errors.categorieId && <p className="text-xs text-rose-500 mt-1">{errors.categorieId}</p>}
             </div>
 
@@ -119,10 +120,12 @@ export default function NouveauCollaborateurModal({ onClose, existing = null }) 
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="label-text mb-1.5 block">Ville</label>
-                <select className="input-field" value={form.ville} onChange={set('ville')}>
-                  <option value="">Sélectionner…</option>
-                  {VILLES_MAROC.map(v => <option key={v} value={v}>{v}</option>)}
-                </select>
+                <SelectField
+                  value={form.ville}
+                  onChange={v => setForm(f => ({ ...f, ville: v }))}
+                  options={VILLES_MAROC}
+                  placeholder="Sélectionner…"
+                />
               </div>
               <div>
                 <label className="label-text mb-1.5 block">Adresse</label>

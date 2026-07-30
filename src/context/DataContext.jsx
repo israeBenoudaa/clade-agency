@@ -7,19 +7,9 @@ const DataContext = createContext(null)
 
 // ── CONSTANTS ────────────────────────────────────────────────────────────────
 
-const MOCK_PROSPECTS = [
-  {
-    id: 'demo_prospect_1',
-    prenom: 'Ahmed', nom: 'Benali',
-    email: 'a.benali@clade.ma', telephone: '+212 6 61 23 45 67',
-    statut: 'contrat_signe', createdAt: '2025-01-15',
-    typeProjet: 'Villa résidentielle', budget: '2 500 000 DH',
-    sim: { typeProjet: '1.2', coutM2: 12000, complexite: '1.1', risque: '1.30', tjh: 250, marge: 30 },
-    devisMissions: [], clientExpenses: [],
-  },
-]
+const MOCK_PROSPECTS = []
 
-const MOCK_PROSPECT_LINKS = { 1: 'p4', 2: 'p6', 1001: 'demo_prospect_1' }
+const MOCK_PROSPECT_LINKS = { 1: 'p4', 2: 'p6' }
 
 export const DIRECTOR_EMP_DEFAULT = {
   id: 'director-achraf',
@@ -29,7 +19,7 @@ export const DIRECTOR_EMP_DEFAULT = {
   contrat: 'CDI', salaireNet: '', salaireBrut: '',
   statut: 'actif', isDirecteur: true,
   planning: [], conges: { solde: 30, history: [] }, workSessions: [],
-  credentials: { username: 'a.benouda', password: 'Achraf@123' },
+  credentials: { username: 'a.benouda', password: null },
 }
 
 // ── HELPERS ──────────────────────────────────────────────────────────────────
@@ -89,13 +79,15 @@ const enrichMock = (p) => ({
   prospectId: p.prospectId || MOCK_PROSPECT_LINKS[p.id] || null,
 })
 
+const uid = (prefix = '') => `${prefix}${Date.now()}${Math.random().toString(36).slice(2, 6)}`
+
 // ── MAPPERS (JS camelCase ↔ SQL snake_case) ──────────────────────────────────
 
 const toDbClient = (c) => ({ id: c.id, nom: c.nom, email: c.email || null, telephone: c.telephone || null, secteur: c.secteur || null, ville: c.ville || null, pays: c.pays || null, sante: c.sante ?? 85, projets: c.projets ?? 0, depuis: c.depuis || null, ca: c.ca || null, contact: c.contact || null, notes: c.notes || null, prospect_id: c.prospectId || null })
 const fromDbClient = (r) => ({ id: r.id, nom: r.nom, email: r.email, telephone: r.telephone, secteur: r.secteur, ville: r.ville, pays: r.pays, sante: r.sante ?? 85, projets: r.projets ?? 0, depuis: r.depuis, ca: r.ca, contact: r.contact, notes: r.notes, prospectId: r.prospect_id })
 
-const toDbProspect = (p) => ({ id: p.id, prenom: p.prenom || null, nom: p.nom || null, email: p.email || null, telephone: p.telephone || null, statut: p.statut || null, type_projet: p.typeProjet || null, budget: p.budget || null, created_at: p.createdAt || null, sim: p.sim || {}, devis_missions: p.devisMissions || [], client_expenses: p.clientExpenses || [], client_credentials: p.clientCredentials || null, rdvs: p.rdvs || [], notes: p.notes || null })
-const fromDbProspect = (r) => ({ id: r.id, prenom: r.prenom, nom: r.nom, email: r.email, telephone: r.telephone, statut: r.statut, typeProjet: r.type_projet, budget: r.budget, createdAt: r.created_at, sim: r.sim || {}, devisMissions: r.devis_missions || [], clientExpenses: r.client_expenses || [], clientCredentials: r.client_credentials, rdvs: r.rdvs || [], notes: r.notes })
+const toDbProspect = (p) => ({ id: p.id, prenom: p.prenom || null, nom: p.nom || null, email: p.email || null, telephone: p.telephone || null, statut: p.statut || null, type_projet: p.typeProjet || null, budget: p.budget || null, created_at: p.createdAt || null, sim: p.sim || {}, devis_missions: p.devisMissions || [], client_expenses: p.clientExpenses || [], client_credentials: p.clientCredentials || null, rdvs: p.rdvs || [], notes: p.notes || null, localisation: p.localisation || null, surface: p.surface || null, source: p.source || null, portal_blocked: p.portalBlocked ?? false })
+const fromDbProspect = (r) => ({ id: r.id, prenom: r.prenom, nom: r.nom, email: r.email, telephone: r.telephone, statut: r.statut, typeProjet: r.type_projet, budget: r.budget, createdAt: r.created_at, sim: r.sim || {}, devisMissions: r.devis_missions || [], clientExpenses: r.client_expenses || [], clientCredentials: r.client_credentials, rdvs: r.rdvs || [], notes: r.notes, localisation: r.localisation || null, surface: r.surface || null, source: r.source || null, portalBlocked: r.portal_blocked ?? false })
 
 const toDbEmploye = (e) => ({ id: String(e.id), nom: e.nom, prenom: e.prenom || null, nom_famille: e.nomFamille || null, poste: e.poste || null, dept: e.dept || null, email: e.email || null, telephone: e.telephone || null, cin: e.cin || null, adresse: e.adresse || null, contrat: e.contrat || null, salaire_net: Number(e.salaireNet) || 0, salaire_brut: Number(e.salaireBrut) || 0, statut: e.statut || 'actif', is_directeur: e.isDirecteur || false, manager_id: e.managerId ? String(e.managerId) : null, avatar: e.avatar || null, planning: e.planning || [], conges: e.conges || { solde: 25, history: [] }, work_sessions: e.workSessions || [], credentials: e.credentials || null, evaluations: e.evaluations || [], heures_sup_manual: e.heuresSupManual || [], from_recruitment: e.fromRecruitment || null })
 const fromDbEmploye = (r) => ({ id: r.id, nom: r.nom, prenom: r.prenom, nomFamille: r.nom_famille, poste: r.poste, dept: r.dept, email: r.email, telephone: r.telephone, cin: r.cin, adresse: r.adresse, contrat: r.contrat, salaireNet: r.salaire_net, salaireBrut: r.salaire_brut, statut: r.statut, isDirecteur: r.is_directeur, managerId: r.manager_id, avatar: r.avatar, planning: r.planning || [], conges: r.conges || { solde: 25, history: [] }, workSessions: r.work_sessions || [], credentials: r.credentials, evaluations: r.evaluations || [], heuresSupManual: r.heures_sup_manual || [], fromRecruitment: r.from_recruitment })
@@ -115,14 +107,14 @@ const fromDbMessage = (r) => ({ id: r.id, conversationId: r.conversation_id, sen
 const toDbDemandeRH = (d) => ({ id: d.id, employe_id: String(d.employeId), employe_nom: d.employeNom || null, type: d.type, statut: d.statut || 'en_attente', manager_approval: d.managerApproval || 'non_requis', rh_approval: d.rhApproval || 'en_attente', manager_id: d.managerId ? String(d.managerId) : null, date_debut: d.dateDebut || null, date_fin: d.dateFin || null, commentaire: d.commentaire || null, commentaire_rh: d.commentaireRH || null, commentaire_manager: d.commentaireManager || null, archived_by_managers: d.archivedByManagers || [], created_at: d.createdAt || new Date().toISOString(), processed_at: d.processedAt || null })
 const fromDbDemandeRH = (r) => ({ id: r.id, employeId: r.employe_id, employeNom: r.employe_nom, type: r.type, statut: r.statut, managerApproval: r.manager_approval, rhApproval: r.rh_approval, managerId: r.manager_id, dateDebut: r.date_debut, dateFin: r.date_fin, commentaire: r.commentaire, commentaireRH: r.commentaire_rh, commentaireManager: r.commentaire_manager, archivedByManagers: r.archived_by_managers || [], createdAt: r.created_at, processedAt: r.processed_at })
 
-const toDbRecrutement = (r) => ({ id: r.id, intitule: r.intitule, dept: r.dept || null, type_contrat: r.typeContrat || null, description: r.description || null, statut: r.statut || 'ouvert', candidats: r.candidats || [], created_at: r.createdAt || null })
-const fromDbRecrutement = (r) => ({ id: r.id, intitule: r.intitule, dept: r.dept, typeContrat: r.type_contrat, description: r.description, statut: r.statut, candidats: r.candidats || [], createdAt: r.created_at })
+const toDbRecrutement = (r) => ({ id: r.id, intitule: r.intitule, dept: r.dept || null, type_contrat: r.typeContrat || null, description: r.description || null, missions: r.missions || null, salaire_min: r.salaireMin ? Number(r.salaireMin) : null, salaire_max: r.salaireMax ? Number(r.salaireMax) : null, statut: r.statut || 'ouvert', candidats: r.candidats || [], created_at: r.createdAt || null })
+const fromDbRecrutement = (r) => ({ id: r.id, intitule: r.intitule, dept: r.dept, typeContrat: r.type_contrat, description: r.description, missions: r.missions, salaireMin: r.salaire_min, salaireMax: r.salaire_max, statut: r.statut, candidats: r.candidats || [], createdAt: r.created_at })
 
-const toDbCandidatureSpont = (c) => ({ id: c.id, prenom: c.prenom || null, nom: c.nom || null, email: c.email || null, telephone: c.telephone || null, poste_vise: c.posteVise || null, message: c.message || null, cv_url: c.cvUrl || null, statut: c.statut || 'nouveau', date_reception: c.dateReception || null, notes: c.notes || null })
-const fromDbCandidatureSpont = (r) => ({ id: r.id, prenom: r.prenom, nom: r.nom, email: r.email, telephone: r.telephone, posteVise: r.poste_vise, message: r.message, cvUrl: r.cv_url, statut: r.statut, dateReception: r.date_reception, notes: r.notes })
+const toDbCandidatureSpont = (c) => ({ id: c.id, prenom: c.prenom || null, nom: c.nom || null, email: c.email || null, telephone: c.telephone || null, poste_vise: c.posteVise || c.posteSouhaite || null, message: c.message || null, cv_url: c.cvUrl || null, statut: c.statut || 'nouveau', date_reception: c.dateReception || null, notes: c.notes || null, offre_id: c.offreId || null, departement: c.departement || null, portfolio_url: c.portfolioUrl || null })
+const fromDbCandidatureSpont = (r) => ({ id: r.id, prenom: r.prenom, nom: r.nom, email: r.email, telephone: r.telephone, posteVise: r.poste_vise, posteSouhaite: r.poste_vise, message: r.message, cvUrl: r.cv_url, statut: r.statut, dateReception: r.date_reception, notes: r.notes, offreId: r.offre_id || null, departement: r.departement || null, portfolioUrl: r.portfolio_url || null })
 
-const toDbFormation = (f) => ({ id: f.id, nom: f.nom, date: f.date || null, duree: f.duree || null, formateur: f.formateur || null, participants: f.participants || [], budget: Number(f.budget) || null, statut: f.statut || null, description: f.description || null })
-const fromDbFormation = (r) => ({ id: r.id, nom: r.nom, date: r.date, duree: r.duree, formateur: r.formateur, participants: r.participants || [], budget: r.budget, statut: r.statut, description: r.description })
+const toDbFormation = (f) => ({ id: f.id, nom: f.nom, date: f.date || null, duree: f.duree || null, formateur: f.formateur || null, participants: f.personnes || f.participants || [], confirmed_by: f.confirmedBy || [], heure_debut: f.heureDebut || null, heure_fin: f.heureFin || null, budget: Number(f.budget) || null, statut: f.statut || null, description: f.description || null })
+const fromDbFormation = (r) => ({ id: r.id, nom: r.nom, date: r.date, duree: r.duree, formateur: r.formateur, personnes: r.participants || [], participants: r.participants || [], confirmedBy: r.confirmed_by || [], heureDebut: r.heure_debut || null, heureFin: r.heure_fin || null, budget: r.budget, statut: r.statut, description: r.description })
 
 const toDbCollaborateur = (c) => ({ id: c.id, nom: c.nom, specialite: c.specialite || null, categorie_id: c.categorieId || null, email: c.email || null, telephone: c.telephone || null, tarif: Number(c.tarif) || null, notes: c.notes || null })
 const fromDbCollaborateur = (r) => ({ id: r.id, nom: r.nom, specialite: r.specialite, categorieId: r.categorie_id, email: r.email, telephone: r.telephone, tarif: r.tarif, notes: r.notes })
@@ -304,6 +296,8 @@ export function DataProvider({ children }) {
 
   // ── Refs ──────────────────────────────────────────────────────────────────
   const stateRef = useRef({})
+  // Prevents debounced mass-upsert effects from firing right after the initial DB load
+  const syncReadyRef = useRef(false)
   useEffect(() => {
     stateRef.current = { projects, employes, clients, prospects, transactions, chargesFixe, messages, formations, recrutements, collaborateurs, categoriesCollab, demandesRH, candidaturesSpont, joursFerier, workflows, agenceSettings, tauxImpot, hiddenMessages, hiddenConvs, msgReadState, notifications }
   }, [projects, employes, clients, prospects, transactions, chargesFixe, messages, formations, recrutements, collaborateurs, categoriesCollab, demandesRH, candidaturesSpont, joursFerier, workflows, agenceSettings, tauxImpot, hiddenMessages, hiddenConvs, msgReadState, notifications])
@@ -375,7 +369,8 @@ export function DataProvider({ children }) {
           const arr = dbEmployes.map(fromDbEmploye)
           setEmployes(arr.find(e => e.id === 'director-achraf') ? arr : [DIRECTOR_EMP_DEFAULT, ...arr])
         } else {
-          supabase.from('employes').upsert([DIRECTOR_EMP_DEFAULT, ...mockEmployes].map(toDbEmploye), { onConflict: 'id' })
+          const dirSafe = { ...DIRECTOR_EMP_DEFAULT, credentials: null }
+          supabase.from('employes').upsert([dirSafe, ...mockEmployes].map(toDbEmploye), { onConflict: 'id' })
         }
 
         if (dbProjects?.length) {
@@ -414,113 +409,143 @@ export function DataProvider({ children }) {
     load()
   }, []) // eslint-disable-line
 
+  // Activate debounced sync only 3s after initial DB load to avoid re-uploading freshly-read data
+  useEffect(() => {
+    if (!supaLoaded) return
+    const t = setTimeout(() => { syncReadyRef.current = true }, 3000)
+    return () => clearTimeout(t)
+  }, [supaLoaded])
+
   // ── SUPABASE SYNC (debounced, 1.5s) ───────────────────────────────────────
   // Upsert collections vers Supabase dès qu'elles changent (après le chargement initial)
 
   useEffect(() => {
-    if (!supaLoaded || !supabase) return
+    if (!supaLoaded || !supabase || !syncReadyRef.current) return
     const t = setTimeout(() => { if (projects.length) supabase.from('projects').upsert(projects.map(toDbProject), { onConflict: 'id' }) }, 1500)
     return () => clearTimeout(t)
   }, [projects, supaLoaded])
 
   useEffect(() => {
-    if (!supaLoaded || !supabase) return
+    if (!supaLoaded || !supabase || !syncReadyRef.current) return
     const t = setTimeout(() => { if (employes.length) supabase.from('employes').upsert(employes.map(toDbEmploye), { onConflict: 'id' }) }, 1500)
     return () => clearTimeout(t)
   }, [employes, supaLoaded])
 
   useEffect(() => {
-    if (!supaLoaded || !supabase) return
+    if (!supaLoaded || !supabase || !syncReadyRef.current) return
     const t = setTimeout(() => { if (clients.length) supabase.from('clients').upsert(clients.map(toDbClient), { onConflict: 'id' }) }, 1500)
     return () => clearTimeout(t)
   }, [clients, supaLoaded])
 
   useEffect(() => {
-    if (!supaLoaded || !supabase) return
+    if (!supaLoaded || !supabase || !syncReadyRef.current) return
     const t = setTimeout(() => { if (prospects.length) supabase.from('prospects').upsert(prospects.map(toDbProspect), { onConflict: 'id' }) }, 1500)
     return () => clearTimeout(t)
   }, [prospects, supaLoaded])
 
   useEffect(() => {
-    if (!supaLoaded || !supabase) return
+    if (!supaLoaded || !supabase || !syncReadyRef.current) return
     const t = setTimeout(() => { supabase.from('transactions').upsert(transactions.map(toDbTransaction), { onConflict: 'id' }) }, 1500)
     return () => clearTimeout(t)
   }, [transactions, supaLoaded])
 
   useEffect(() => {
-    if (!supaLoaded || !supabase) return
+    if (!supaLoaded || !supabase || !syncReadyRef.current) return
     const t = setTimeout(() => { supabase.from('charges_fixes').upsert(chargesFixe.map(toDbChargeFixe), { onConflict: 'id' }) }, 1500)
     return () => clearTimeout(t)
   }, [chargesFixe, supaLoaded])
 
   useEffect(() => {
-    if (!supaLoaded || !supabase) return
+    if (!supaLoaded || !supabase || !syncReadyRef.current) return
     const t = setTimeout(() => { if (recrutements.length) supabase.from('recrutements').upsert(recrutements.map(toDbRecrutement), { onConflict: 'id' }) }, 1500)
     return () => clearTimeout(t)
   }, [recrutements, supaLoaded])
 
   useEffect(() => {
-    if (!supaLoaded || !supabase) return
+    if (!supaLoaded || !supabase || !syncReadyRef.current) return
     const t = setTimeout(() => { if (formations.length) supabase.from('formations').upsert(formations.map(toDbFormation), { onConflict: 'id' }) }, 1500)
     return () => clearTimeout(t)
   }, [formations, supaLoaded])
 
   useEffect(() => {
-    if (!supaLoaded || !supabase) return
+    if (!supaLoaded || !supabase || !syncReadyRef.current) return
     const t = setTimeout(() => { if (collaborateurs.length) supabase.from('collaborateurs').upsert(collaborateurs.map(toDbCollaborateur), { onConflict: 'id' }) }, 1500)
     return () => clearTimeout(t)
   }, [collaborateurs, supaLoaded])
 
   useEffect(() => {
-    if (!supaLoaded || !supabase) return
+    if (!supaLoaded || !supabase || !syncReadyRef.current) return
     const t = setTimeout(() => { if (categoriesCollab.length) supabase.from('categories_collab').upsert(categoriesCollab, { onConflict: 'id' }) }, 1500)
     return () => clearTimeout(t)
   }, [categoriesCollab, supaLoaded])
 
   useEffect(() => {
-    if (!supaLoaded || !supabase) return
+    if (!supaLoaded || !supabase || !syncReadyRef.current) return
     const t = setTimeout(() => { if (joursFerier.length) supabase.from('jours_ferier').upsert(joursFerier.map(toDbJourFerie), { onConflict: 'id' }) }, 1500)
     return () => clearTimeout(t)
   }, [joursFerier, supaLoaded])
 
   useEffect(() => {
-    if (!supaLoaded || !supabase) return
+    if (!supaLoaded || !supabase || !syncReadyRef.current) return
     const t = setTimeout(() => { if (workflows.length) supabase.from('workflows').upsert(workflows.map(toDbWorkflow), { onConflict: 'id' }) }, 1500)
     return () => clearTimeout(t)
   }, [workflows, supaLoaded])
 
   useEffect(() => {
-    if (!supaLoaded || !supabase) return
+    if (!supaLoaded || !supabase || !syncReadyRef.current) return
     const t = setTimeout(() => { if (demandesRH.length) supabase.from('demandes_rh').upsert(demandesRH.map(toDbDemandeRH), { onConflict: 'id' }) }, 1500)
     return () => clearTimeout(t)
   }, [demandesRH, supaLoaded])
 
   useEffect(() => {
-    if (!supaLoaded || !supabase) return
+    if (!supaLoaded || !supabase || !syncReadyRef.current) return
     const t = setTimeout(() => { if (candidaturesSpont.length) supabase.from('candidatures_spont').upsert(candidaturesSpont.map(toDbCandidatureSpont), { onConflict: 'id' }) }, 1500)
     return () => clearTimeout(t)
   }, [candidaturesSpont, supaLoaded])
 
   useEffect(() => {
-    if (!supaLoaded || !supabase) return
+    if (!supaLoaded || !supabase || !syncReadyRef.current) return
     const t = setTimeout(() => { if (messages.length) supabase.from('messages').upsert(messages.map(toDbMessage), { onConflict: 'id' }) }, 1500)
     return () => clearTimeout(t)
   }, [messages, supaLoaded])
 
   useEffect(() => {
-    if (!supaLoaded || !supabase) return
+    if (!supaLoaded || !supabase || !syncReadyRef.current) return
     const t = setTimeout(() => { if (notifications.length) supabase.from('notifications').upsert(notifications.map(toDbNotification), { onConflict: 'id' }) }, 1500)
     return () => clearTimeout(t)
   }, [notifications, supaLoaded])
 
   // agence_settings : ligne unique
   useEffect(() => {
-    if (!supaLoaded || !supabase) return
+    if (!supaLoaded || !supabase || !syncReadyRef.current) return
     const t = setTimeout(() => {
       supabase.from('agence_settings').upsert({ id: 1, nb_collaborateurs: agenceSettings.nbCollaborateurs, heures_par_an: agenceSettings.heuresParAn, tjh: agenceSettings.tjh, taux_impot: tauxImpot, updated_at: new Date().toISOString() }, { onConflict: 'id' })
     }, 1500)
     return () => clearTimeout(t)
   }, [agenceSettings, tauxImpot, supaLoaded])
+
+  // ── Realtime : prospects & candidatures insérés depuis le portfolio ──────────
+  useEffect(() => {
+    if (!supaLoaded || !supabase) return
+    const channel = supabase
+      .channel('portfolio-inserts')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'prospects' }, ({ new: row }) => {
+        setProspects(prev => prev.some(p => p.id === row.id) ? prev : [fromDbProspect(row), ...prev])
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'candidatures_spont' }, ({ new: row }) => {
+        setCandidaturesSpont(prev => prev.some(c => c.id === row.id) ? prev : [fromDbCandidatureSpont(row), ...prev])
+        const name = [row.prenom, row.nom].filter(Boolean).join(' ') || 'Un candidat'
+        const isSpontaneous = !row.offre_id
+        const message = isSpontaneous
+          ? `Nouvelle candidature spontanée de ${name}${row.poste_vise ? ` — ${row.poste_vise}` : ''}`
+          : `${name} a postulé pour un poste ouvert`
+        const notif = { id: uid('notif'), type: 'new_candidature', message, forHR: true, read: false, createdAt: new Date().toISOString(), link: isSpontaneous ? '/app/hr' : '/app/recrutement' }
+        setNotifications(prev => [notif, ...prev])
+        sbUpsert('notifications', toDbNotification(notif))
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [supaLoaded]) // eslint-disable-line
 
   // ── Migration : créer les entrées clients manquantes pour les prospects contrat_signe ──
   useEffect(() => {
@@ -599,6 +624,14 @@ export function DataProvider({ children }) {
   const clearActivityLog = useCallback(() => {
     setActivityLog([])
     if (supabase) supabase.from('activity_log').delete().neq('id', '')
+  }, [])
+
+  const clearActivityLogBefore = useCallback((cutoffMs) => {
+    setActivityLog(prev => prev.filter(e => Date.now() - new Date(e.timestamp).getTime() < cutoffMs))
+    if (supabase) {
+      const cutoffIso = new Date(Date.now() - cutoffMs).toISOString()
+      supabase.from('activity_log').delete().lte('timestamp', cutoffIso)
+    }
   }, [])
 
   // ── Checkpoint system ─────────────────────────────────────────────────────
@@ -721,7 +754,7 @@ export function DataProvider({ children }) {
   }
 
   const addProspect = (data) => {
-    const prospect = { id: `p${Date.now()}`, statut: 'premier_appel', createdAt: new Date().toISOString().slice(0, 10), sim: { typeProjet: '1.2', coutM2: 12000, complexite: '1.1', risque: '1.30', tjh: 250, marge: 30 }, devisMissions: [], ...data }
+    const prospect = { id: uid('p'), statut: 'premier_appel', createdAt: new Date().toISOString().slice(0, 10), sim: { typeProjet: '1.0', coutM2: 12000, complexite: '1.1', risque: '1.30', tjh: 250, marge: 30 }, devisMissions: [], ...data }
     setProspects(prev => [prospect, ...prev])
     sbUpsert('prospects', toDbProspect(prospect))
     if (prospect.statut === 'contrat_signe') {
@@ -810,7 +843,7 @@ export function DataProvider({ children }) {
   }
 
   const addProject = (data, by = '') => {
-    const project = { id: Date.now(), avancement: 0, statut: 'En cours', equipe: 0, equipeProjet: [], missions: [], tasks: [], ...data }
+    const project = { id: uid('prj'), avancement: 0, statut: 'En cours', equipe: 0, equipeProjet: [], missions: [], tasks: [], ...data }
     setProjects(prev => [project, ...prev])
     sbUpsert('projects', toDbProject(project))
     if (data.clientId) setClients(prev => prev.map(c => c.id === data.clientId ? { ...c, projets: c.projets + 1 } : c))
@@ -820,7 +853,7 @@ export function DataProvider({ children }) {
   }
 
   const addClient = (data) => {
-    const client = { id: Date.now(), sante: 85, projets: 0, depuis: new Date().getFullYear().toString(), ca: '€0', ...data }
+    const client = { id: uid('cli'), sante: 85, projets: 0, depuis: new Date().getFullYear().toString(), ca: '€0', ...data }
     setClients(prev => [client, ...prev])
     sbUpsert('clients', toDbClient(client))
     return client
@@ -839,11 +872,12 @@ export function DataProvider({ children }) {
   }
 
   const validateMission = (projectId, missionId) => {
-    let missionNom = '', projectNom = ''
+    let missionNom = '', projectNom = '', equipeIds = []
     setProjects(prev => prev.map(p => {
       if (p.id !== projectId) return p
       const mission = p.missions.find(m => m.id === missionId)
       missionNom = mission?.nom || ''; projectNom = p.nom || ''
+      equipeIds = (p.equipeProjet || []).map(String)
       const missions = p.missions.map(m => m.id === missionId ? { ...m, statut: 'valide', validatedAt: new Date().toISOString() } : m)
       const avancement = calcAvancement(missions) ?? p.avancement
       const updated = { ...p, missions, avancement }
@@ -851,7 +885,11 @@ export function DataProvider({ children }) {
       return updated
     }))
     if (missionNom) {
-      setNotifications(prev => [{ id: `notif${Date.now()}`, read: false, createdAt: new Date().toISOString(), type: 'mission_validated', message: `Mission "${missionNom}" validée sur le projet "${projectNom}"`, projectId, missionId }, ...prev])
+      const base = { read: false, createdAt: new Date().toISOString(), type: 'mission_validated', message: `Mission "${missionNom}" validée sur le projet "${projectNom}"`, projectId, missionId }
+      const targets = ['director-achraf', ...equipeIds.filter(id => id !== 'director-achraf')]
+      const notifs = targets.map(targetUserId => ({ ...base, id: uid('notif'), targetUserId }))
+      notifs.forEach(n => sbUpsert('notifications', toDbNotification(n)))
+      setNotifications(prev => [...notifs, ...prev])
     }
   }
 
@@ -877,7 +915,7 @@ export function DataProvider({ children }) {
       return updated
     }))
     if (taskData.personnelId) {
-      setNotifications(prev => [{ id: `notif${Date.now()}`, read: false, createdAt: new Date().toISOString(), type: 'new_task', message: `Nouvelle tâche assignée : "${taskData.nom}"`, targetUserId: String(taskData.personnelId), link: '/app' }, ...prev])
+      setNotifications(prev => [{ id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'new_task', message: `Nouvelle tâche assignée : "${taskData.nom}"`, targetUserId: String(taskData.personnelId), link: '/app' }, ...prev])
     }
     return task
   }
@@ -893,10 +931,10 @@ export function DataProvider({ children }) {
     }))
     if (task) {
       if (updates.statut === 'Done' && task.statut !== 'Done') {
-        setNotifications(prev => [{ id: `notif${Date.now()}`, read: false, createdAt: new Date().toISOString(), type: 'task_done', targetUserId: 'director-achraf', message: `✅ Tâche terminée par ${task.personnelNom} : "${task.nom}"`, link: `/app/projects/${projectId}` }, ...prev])
+        setNotifications(prev => [{ id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'task_done', targetUserId: 'director-achraf', message: `✅ Tâche terminée par ${task.personnelNom} : "${task.nom}"`, link: `/app/projects/${projectId}` }, ...prev])
       }
       if (updates.statut === 'Stuck' && task.statut !== 'Stuck') {
-        setNotifications(prev => [{ id: `notif${Date.now()+1}`, read: false, createdAt: new Date().toISOString(), type: 'task_stuck', targetUserId: 'director-achraf', message: `🚨 Tâche bloquée — ${task.personnelNom} : "${task.nom}"`, link: `/app/projects/${projectId}` }, ...prev])
+        setNotifications(prev => [{ id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'task_stuck', targetUserId: 'director-achraf', message: `🚨 Tâche bloquée — ${task.personnelNom} : "${task.nom}"`, link: `/app/projects/${projectId}` }, ...prev])
       }
     }
   }
@@ -918,7 +956,7 @@ export function DataProvider({ children }) {
       sbUpsert('projects', toDbProject(updated))
       return updated
     }))
-    setNotifications(prev => [{ id: `notif${Date.now()}`, read: false, createdAt: new Date().toISOString(), type: 'client_feedback', targetUserId: 'director-achraf', message: `💬 Nouveau message client sur le projet`, link: `/app/projects/${projectId}` }, ...prev])
+    setNotifications(prev => [{ id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'client_feedback', targetUserId: 'director-achraf', message: `💬 Nouveau message client sur le projet`, link: `/app/projects/${projectId}` }, ...prev])
   }
 
   const markClientFeedbackRead = (projectId) => {
@@ -941,7 +979,7 @@ export function DataProvider({ children }) {
       return updated
     }))
     if (task?.personnelId && String(comment.authorId) !== String(task.personnelId)) {
-      setNotifications(prev => [{ id: `notif${Date.now()}`, read: false, createdAt: new Date().toISOString(), type: 'task_comment', message: `${comment.authorName} a commenté votre tâche "${task.nom}"`, targetUserId: String(task.personnelId), link: '/app' }, ...prev])
+      setNotifications(prev => [{ id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'task_comment', message: `${comment.authorName} a commenté votre tâche "${task.nom}"`, targetUserId: String(task.personnelId), link: '/app' }, ...prev])
     }
     return newComment
   }
@@ -969,7 +1007,12 @@ export function DataProvider({ children }) {
   }
 
   const updateProject = (id, updates) => {
-    setProjects(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p))
+    setProjects(prev => {
+      const next = prev.map(p => p.id === id ? { ...p, ...updates } : p)
+      const updated = next.find(p => p.id === id)
+      if (updated) sbUpsert('projects', toDbProject(updated))
+      return next
+    })
   }
 
   const deleteProject = (id, by = '') => {
@@ -1017,10 +1060,18 @@ export function DataProvider({ children }) {
     }))
   }
 
+  const syncDept = (dept) => {
+    if (dept?.trim() && supabase) {
+      supabase.from('departements').upsert({ nom: dept.trim() }, { onConflict: 'nom', ignoreDuplicates: true })
+        .then(({ error }) => { if (error) console.warn('[syncDept]', error.message) })
+    }
+  }
+
   const addEmploye = async (data, by = '') => {
-    const employe = { id: Date.now(), statut: 'actif', credentials: null, planning: [], conges: { solde: 25, history: [] }, ...data }
+    const employe = { id: uid('emp'), statut: 'actif', credentials: null, planning: [], conges: { solde: 25, history: [] }, ...data }
     setEmployes(prev => [employe, ...prev])
     sbUpsert('employes', toDbEmploye(employe))
+    syncDept(data.dept)
     logActivity({ action: 'Employé ajouté', details: `${data.nom}${data.poste ? ` — ${data.poste}` : ''}`, category: 'employe', by })
     // Créer le compte Supabase Auth si des credentials sont fournis
     if (data.credentials?.password && data.email) {
@@ -1042,6 +1093,7 @@ export function DataProvider({ children }) {
 
   const updateEmploye = (id, updates) => {
     const emp = (stateRef.current.employes || []).find(e => e.id === id)
+    if (updates.dept) syncDept(updates.dept)
     setEmployes(prev => {
       const next = prev.map(e => e.id === id ? { ...e, ...updates } : e)
       const updated = next.find(e => e.id === id)
@@ -1201,7 +1253,7 @@ export function DataProvider({ children }) {
   }
 
   const addMessage = (data) => {
-    const msg = { id: `msg${Date.now()}`, timestamp: new Date().toISOString(), ...data }
+    const msg = { id: uid('msg'), timestamp: new Date().toISOString(), ...data }
     setMessages(prev => [...prev, msg])
     sbUpsert('messages', toDbMessage(msg))
     const convId = data.conversationId
@@ -1230,7 +1282,13 @@ export function DataProvider({ children }) {
       const prospectId = convId.replace('client_', '')
       if (data.senderRole === 'staff') setNotifications(prev => [makeNotif(`client:${prospectId}`, `Nouveau message de ${data.senderName || "l'équipe"}`, `/client/messages?conv=${convId}`), ...prev])
       else if (data.senderRole === 'client') {
-        const newNotifs = employes.filter(e => String(e.id) !== senderStr).map(e => makeNotif(String(e.id), `Nouveau message de ${data.senderName || 'Client'}`, '/app/messages'))
+        const prospectId = convId.replace('client_', '')
+        const linkedProject = projects.find(p => String(p.prospectId) === prospectId || String(p.clientId) === prospectId)
+        const teamIds = new Set((linkedProject?.equipeProjet || []).map(String))
+        const director = employes.find(e => e.id === 'director-achraf' || e.role === 'directeur')
+        if (director) teamIds.add(String(director.id))
+        teamIds.delete(senderStr)
+        const newNotifs = [...teamIds].map(id => makeNotif(id, `Nouveau message de ${data.senderName || 'Client'}`, `/app/messages?conv=${convId}`))
         if (newNotifs.length > 0) setNotifications(prev => [...newNotifs, ...prev])
       }
     }
@@ -1240,6 +1298,7 @@ export function DataProvider({ children }) {
   const editMessage = (messageId, newContent) => {
     setMessages(prev => prev.map(m => m.id === messageId ? { ...m, content: newContent, editedAt: new Date().toISOString() } : m))
     if (supabase) supabase.from('messages').update({ content: newContent, edited_at: new Date().toISOString() }).eq('id', messageId)
+      .then(({ error }) => { if (error) console.warn('[editMessage] Supabase sync failed:', error.message) })
   }
 
   const deleteMessage = (messageId, deleteForAll, userId) => {
@@ -1265,7 +1324,7 @@ export function DataProvider({ children }) {
     }
   }
 
-  const DEMANDE_LABELS = { conge: 'congé', absence: 'absence', arret_maladie: 'arrêt maladie', attestation: 'attestation de travail', autre: 'demande', demission: 'démission' }
+  const DEMANDE_LABELS = { conge: 'congé', absence: 'absence', arret_maladie: 'arrêt maladie', attestation: 'attestation de travail', attestation_salaire: 'attestation de salaire', autre: 'demande', demission: 'démission' }
   const MANAGER_VISIBLE_TYPES = ['conge', 'absence', 'arret_maladie', 'demission']
 
   const addDemandeRH = (data) => {
@@ -1276,13 +1335,16 @@ export function DataProvider({ children }) {
     setDemandesRH(prev => [dem, ...prev])
     sbUpsert('demandes_rh', toDbDemandeRH(dem))
     const notifs = []
-    const managerIsDir = String(managerId) === 'director-achraf'
-    if (!managerIsDir || !MANAGER_VISIBLE_TYPES.includes(data.type)) notifs.push({ id: `notif${Date.now()}`, read: false, createdAt: new Date().toISOString(), type: 'new_request', message: `Demande de ${data.employeNom} : ${DEMANDE_LABELS[data.type] || data.type}`, targetUserId: 'director-achraf', link: '/app/hr' })
-    if (MANAGER_VISIBLE_TYPES.includes(data.type) && managerId) {
+    const isLeaveType = MANAGER_VISIBLE_TYPES.includes(data.type)
+    // Notify the manager if there's one and the request is a leave type
+    if (isLeaveType && managerId) {
       const label = data.type === 'demission' ? `Démission de ${data.employeNom}` : `Demande de congé de ${data.employeNom} — approbation requise`
-      notifs.push({ id: `notif${Date.now()+1}`, read: false, createdAt: new Date().toISOString(), type: 'new_request', message: label, targetUserId: String(managerId), link: '/app/my-team' })
+      notifs.push({ id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'new_request', message: label, targetUserId: String(managerId), link: '/app/my-team' })
     }
-    if (!MANAGER_VISIBLE_TYPES.includes(data.type) || !managerId) notifs.push({ id: `notif${Date.now()+2}`, read: false, createdAt: new Date().toISOString(), type: 'new_request', message: `Demande de ${data.employeNom} : ${DEMANDE_LABELS[data.type] || data.type}`, targetUserId: 'director-achraf', link: '/app/hr' })
+    // Notify director for non-leave types, or when there's no manager
+    if (!isLeaveType || !managerId) {
+      notifs.push({ id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'new_request', message: `Demande de ${data.employeNom} : ${DEMANDE_LABELS[data.type] || data.type}`, targetUserId: 'director-achraf', link: '/app/hr' })
+    }
     if (notifs.length > 0) setNotifications(prev => [...notifs, ...prev])
     return dem
   }
@@ -1301,8 +1363,8 @@ export function DataProvider({ children }) {
     })
     if (newStatut === 'approuve') _finalizeApprovedLeave(dem)
     let label = decision === 'approuve' ? (rhDone ? 'approuvée définitivement ✓' : 'approuvée par votre responsable — en attente de validation RH finale') : 'refusée par votre responsable'
-    setNotifications(prev => [{ id: `notif${Date.now()}`, read: false, createdAt: new Date().toISOString(), type: 'request_processed', message: `Votre demande de ${DEMANDE_LABELS[dem.type] || 'demande'} a été ${label}`, targetUserId: String(dem.employeId), link: '/app' }, ...prev])
-    if (decision === 'approuve' && !rhDone) setNotifications(prev => [{ id: `notif${Date.now()+1}`, read: false, createdAt: new Date().toISOString(), type: 'new_request', message: `Demande de ${dem.employeNom} approuvée par responsable — en attente RH`, forHR: true, link: '/app/hr' }, ...prev])
+    setNotifications(prev => [{ id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'request_processed', message: `Votre demande de ${DEMANDE_LABELS[dem.type] || 'demande'} a été ${label}`, targetUserId: String(dem.employeId), link: '/app' }, ...prev])
+    if (decision === 'approuve' && !rhDone) setNotifications(prev => [{ id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'new_request', message: `Demande de ${dem.employeNom} approuvée par responsable — en attente RH`, forHR: true, link: '/app/hr' }, ...prev])
   }
 
   const _finalizeApprovedLeave = (dem) => {
@@ -1316,7 +1378,8 @@ export function DataProvider({ children }) {
     setEmployes(prev => prev.map(e => {
       if (String(e.id) !== String(dem.employeId)) return e
       const alreadyInHistory = (e.conges?.history || []).some(c => c.fromDemande === dem.id)
-      const updated = { ...e, planning: [...(e.planning || []), planningEvent], statut: dem.type === 'conge' ? 'conge' : e.statut, conges: { ...e.conges, history: alreadyInHistory ? (e.conges?.history || []) : [...(e.conges?.history || []), congeEntry] } }
+      const leaveStartsToday = dem.dateDebut <= new Date().toISOString().slice(0, 10)
+      const updated = { ...e, planning: [...(e.planning || []), planningEvent], statut: (dem.type === 'conge' && leaveStartsToday) ? 'conge' : e.statut, conges: { ...e.conges, history: alreadyInHistory ? (e.conges?.history || []) : [...(e.conges?.history || []), congeEntry] } }
       sbUpsert('employes', toDbEmploye(updated))
       return updated
     }))
@@ -1342,7 +1405,7 @@ export function DataProvider({ children }) {
     if (finalUpdates.statut === 'approuve') _finalizeApprovedLeave(dem)
     if (updates.statut && dem) {
       let label = updates.statut === 'approuve' ? (finalUpdates.statut === 'approuve' ? 'définitivement approuvée par le RH ✓' : 'approuvée par le RH — en attente de votre responsable') : 'refusée par le RH'
-      setNotifications(prev => [{ id: `notif${Date.now()}`, read: false, createdAt: new Date().toISOString(), type: 'request_processed', message: `Votre demande de ${DEMANDE_LABELS[dem.type] || 'demande'} a été ${label}`, targetUserId: String(dem.employeId), link: '/app' }, ...prev])
+      setNotifications(prev => [{ id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'request_processed', message: `Votre demande de ${DEMANDE_LABELS[dem.type] || 'demande'} a été ${label}`, targetUserId: String(dem.employeId), link: '/app' }, ...prev])
     }
   }
 
@@ -1361,18 +1424,23 @@ export function DataProvider({ children }) {
   }
 
   const addNotification = (data) => {
-    const notif = { id: `notif${Date.now()}`, read: false, createdAt: new Date().toISOString(), ...data }
+    const notif = { id: uid('notif'), read: false, createdAt: new Date().toISOString(), ...data }
     setNotifications(prev => [notif, ...prev])
     sbUpsert('notifications', toDbNotification(notif))
     return notif
   }
 
   const markAllNotificationsRead = () => {
+    const ids = notifications.filter(n => !n.read).map(n => n.id)
     setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+    if (supabase && ids.length) supabase.from('notifications').update({ read: true }).in('id', ids)
+      .then(({ error }) => { if (error) console.warn('[markAllRead] Supabase sync failed:', error.message) })
   }
 
   const markNotificationsReadForTarget = (targetUserId) => {
     setNotifications(prev => prev.map(n => n.targetUserId === targetUserId ? { ...n, read: true } : n))
+    if (supabase) supabase.from('notifications').update({ read: true }).eq('target_user_id', targetUserId).eq('read', false)
+      .then(({ error }) => { if (error) console.warn('[markReadForTarget] Supabase sync failed:', error.message) })
   }
 
   const deleteNotification = (notifId) => {
@@ -1560,9 +1628,10 @@ export function DataProvider({ children }) {
   }
 
   const addRecrutement = (data) => {
-    const rec = { id: `rec${Date.now()}`, statut: 'ouvert', candidats: [], createdAt: new Date().toISOString().slice(0, 10), ...data }
+    const rec = { id: uid('rec'), statut: 'ouvert', candidats: [], createdAt: new Date().toISOString().slice(0, 10), ...data }
     setRecrutements(prev => [rec, ...prev])
     sbUpsert('recrutements', toDbRecrutement(rec))
+    syncDept(data.dept)
     return rec
   }
 
@@ -1701,7 +1770,7 @@ export function DataProvider({ children }) {
   }, []) // eslint-disable-line
 
   const addCandidatureSpont = (data) => {
-    const c = { id: `cs${Date.now()}`, ...data, dateReception: new Date().toISOString().slice(0, 10), statut: 'nouveau' }
+    const c = { id: uid('cs'), ...data, dateReception: new Date().toISOString().slice(0, 10), statut: 'nouveau' }
     setCandidaturesSpont(prev => [c, ...prev])
     sbUpsert('candidatures_spont', toDbCandidatureSpont(c))
     return c
@@ -1719,6 +1788,12 @@ export function DataProvider({ children }) {
   const deleteCandidatureSpont = (id) => {
     setCandidaturesSpont(prev => prev.filter(c => String(c.id) !== String(id)))
     sbDelete('candidatures_spont', id)
+  }
+
+  const refreshCandidatures = async () => {
+    if (!supabase) return
+    const { data } = await supabase.from('candidatures_spont').select('*').order('created_at', { ascending: false })
+    if (data) setCandidaturesSpont(data.map(fromDbCandidatureSpont))
   }
 
   const addJourFerie = (data) => {
@@ -1801,12 +1876,12 @@ export function DataProvider({ children }) {
       addChargeFixe, updateChargeFixe, deleteChargeFixe, setTauxImpot, updateAgenceSettings,
       addMessage, editMessage, deleteMessage, deleteConversation, markConvRead,
       addDemandeRH, updateDemandeRH, approveDemandeRHManager, deleteDemandeRH, archiveDemandeForManager,
-      addCandidatureSpont, updateCandidatureSpont, deleteCandidatureSpont,
+      addCandidatureSpont, updateCandidatureSpont, deleteCandidatureSpont, refreshCandidatures,
       addJourFerie, updateJourFerie, deleteJourFerie,
       addTaskComment, addClientFeedback, markClientFeedbackRead,
       addNotification, markAllNotificationsRead, markNotificationsReadForTarget, deleteNotification,
       checkpoints, createCheckpoint, restoreCheckpoint, deleteCheckpoint,
-      activityLog, logActivity, clearActivityLog,
+      activityLog, logActivity, clearActivityLog, clearActivityLogBefore,
       setupEmployeePortal, setupClientPortal, blockClientPortal, unblockClientPortal,
       addClientExpense, deleteClientExpense, addProspectRdv, deleteProspectRdv,
       updateConceptImages, updateConceptQuestions, saveConceptResponse, clearConceptResponse,

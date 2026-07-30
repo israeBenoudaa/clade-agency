@@ -11,6 +11,7 @@ import toast from 'react-hot-toast'
 import { useData } from '../../context/DataContext'
 import { generateDevisPdf } from '../../utils/generateDevisPdf'
 import { computeTJH, calcSimulateur } from '../../lib/simulator-engine'
+import SelectField from '../../components/SelectField'
 
 function generateUsername(prenom, nom) {
   const p = (prenom || '').toLowerCase().replace(/[^a-z]/g, '')
@@ -25,13 +26,11 @@ const fmtN = (n) => Number(n || 0).toLocaleString('fr-FR')
 
 // ── Simulator constants ──
 const TYPE_OPTIONS = [
-  { value: '0.8', label: 'Villa standard' },
-  { value: '1.2', label: 'Villa haut gamme' },
-  { value: '0.4', label: 'Logement collectif' },
-  { value: '0.5', label: 'Tertiaire / Bureaux' },
-  { value: '1.0', label: 'Hôtel / Restaurant' },
-  { value: '0.9', label: 'Équipement public' },
-  { value: '1.5', label: 'Rénovation lourde' },
+  { value: '1.0', label: 'Architecture' },
+  { value: '1.5', label: 'Conservation' },
+  { value: '0.8', label: 'Paysage' },
+  { value: '1.2', label: 'Design' },
+  { value: '1.3', label: 'Éphémère' },
 ]
 
 const COMPLEXITE_OPTIONS = [
@@ -55,9 +54,7 @@ const STATUT_CONFIG = {
 }
 
 const TYPE_PROJET_OPTIONS = [
-  'Villa standard', 'Villa haut gamme', 'Logement collectif', 'Tertiaire / Bureaux',
-  'Hôtel / Restaurant', 'Équipement public', 'Rénovation lourde', 'Particulier',
-  'Tertiaire', 'Immobilier', 'Hospitalité', 'Public', 'Industrie', 'Autre',
+  'Architecture', 'Conservation', 'Paysage', 'Design', 'Éphémère',
 ]
 
 function EditClientModal({ prospect, onClose, onSave }) {
@@ -173,10 +170,14 @@ function EditClientModal({ prospect, onClose, onSave }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label-text mb-1.5 flex items-center gap-1"><Building2 size={10} /> Type de projet</label>
-              <select className="input-field" value={form.typeProjet} onChange={set('typeProjet')}>
-                <option value="">— Sélectionner —</option>
-                {TYPE_PROJET_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
+              <SelectField
+                value={form.typeProjet}
+                onChange={v => set('typeProjet')({ target: { value: v } })}
+                options={[
+                  { value: '', label: '— Sélectionner —' },
+                  ...TYPE_PROJET_OPTIONS.map(t => ({ value: t, label: t })),
+                ]}
+              />
             </div>
             <div>
               <label className="label-text mb-1.5 flex items-center gap-1"><Ruler size={10} /> Surface (m²)</label>
@@ -439,7 +440,7 @@ export default function ProspectDetailPage() {
           {[
             { icon: Building2, label: 'Type', value: prospect.typeProjet || '—' },
             { icon: Ruler, label: 'Surface', value: prospect.surface ? `${prospect.surface} m²` : '—' },
-            { icon: Wallet, label: 'Budget', value: prospect.budget ? fmtMAD(prospect.budget) : '—' },
+            { icon: Wallet, label: 'Budget', value: prospect.budget ? (isNaN(Number(prospect.budget)) ? String(prospect.budget) : fmtMAD(prospect.budget)) : '—' },
             { icon: MapPin, label: 'Localisation', value: prospect.localisation || '—' },
           ].map((item, i) => {
             const Icon = item.icon
@@ -456,14 +457,14 @@ export default function ProspectDetailPage() {
         </div>
 
         {prospect.notes && (
-          <div className="mt-4 text-sm text-muted bg-paper-warm rounded-xl px-4 py-3 leading-relaxed">
+          <div className="mt-4 text-sm text-muted bg-paper-warm rounded-xl px-4 py-3 leading-relaxed whitespace-pre-line">
             {prospect.notes}
           </div>
         )}
       </div>
 
       {/* ── Tabs ── */}
-      <div className="flex gap-1 bg-paper-warm border border-border rounded-2xl p-1 flex-wrap w-fit">
+      <div className="flex gap-1 bg-paper-warm border border-border rounded-2xl p-1 w-full">
         {[
           { key: 'simulateur', label: 'Simulateur d\'honoraires', icon: Calculator },
           { key: 'devis', label: 'Création de devis', icon: FileText },
@@ -471,10 +472,10 @@ export default function ProspectDetailPage() {
           const Icon = t.icon
           return (
             <button key={t.key} onClick={() => setTab(t.key)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors flex-1 justify-center text-center leading-tight ${
                 tab === t.key ? 'bg-white shadow-sm text-ink' : 'text-muted hover:text-ink'
               }`}>
-              <Icon size={14} /> {t.label}
+              <Icon size={14} className="flex-shrink-0" /> <span>{t.label}</span>
             </button>
           )
         })}
@@ -496,9 +497,11 @@ export default function ProspectDetailPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="label-text mb-1.5 block">Type de projet</label>
-                    <select className="input-field" value={sim.typeProjet} onChange={setSim_('typeProjet')}>
-                      {TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
+                    <SelectField
+                      value={sim.typeProjet}
+                      onChange={v => setSim_('typeProjet')({ target: { value: v } })}
+                      options={TYPE_OPTIONS}
+                    />
                   </div>
                   <div>
                     <label className="label-text mb-1.5 block">Surface (m²)</label>
@@ -519,15 +522,19 @@ export default function ProspectDetailPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="label-text mb-1.5 block">Complexité technique</label>
-                    <select className="input-field" value={sim.complexite} onChange={setSim_('complexite')}>
-                      {COMPLEXITE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
+                    <SelectField
+                      value={sim.complexite}
+                      onChange={v => setSim_('complexite')({ target: { value: v } })}
+                      options={COMPLEXITE_OPTIONS}
+                    />
                   </div>
                   <div>
                     <label className="label-text mb-1.5 block">Niveau de risque</label>
-                    <select className="input-field" value={sim.risque} onChange={setSim_('risque')}>
-                      {RISQUE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
+                    <SelectField
+                      value={sim.risque}
+                      onChange={v => setSim_('risque')({ target: { value: v } })}
+                      options={RISQUE_OPTIONS}
+                    />
                   </div>
                 </div>
               </div>
@@ -547,11 +554,11 @@ export default function ProspectDetailPage() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col sm:flex-row gap-3">
                   {/* TJH avec badge auto + override */}
-                  <div>
+                  <div className="flex-1">
                     <div className="flex items-center justify-between mb-1.5">
-                      <label className="label-text">Taux horaire interne (MAD/h)</label>
+                      <label className="label-text">TJH interne (MAD/h)</label>
                       {isManualTJH ? (
                         <button
                           onClick={() => setTjhManuel(null)}
@@ -563,7 +570,7 @@ export default function ProspectDetailPage() {
                       ) : (
                         <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-600">
                           <CheckCircle2 size={10} />
-                          {tjhEngine.hasData ? 'Calculé depuis vos charges' : 'Valeur par défaut'}
+                          {tjhEngine.hasData ? 'Depuis vos charges' : 'Par défaut'}
                         </span>
                       )}
                     </div>
@@ -575,7 +582,7 @@ export default function ProspectDetailPage() {
                       onChange={e => setTjhManuel(e.target.value)}
                     />
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <label className="label-text mb-1.5 block">Marge cible (%)</label>
                     <input type="number" min="0" max="100" className="input-field" value={sim.marge} onChange={setSim_('marge')} />
                   </div>
@@ -716,7 +723,8 @@ export default function ProspectDetailPage() {
 
               {/* Missions list */}
               {/* ── Tableau missions ── */}
-              <div className="border border-border rounded-2xl overflow-hidden">
+              <div className="overflow-x-auto -mx-5 lg:-mx-7 px-5 lg:px-7">
+              <div className="border border-border rounded-2xl overflow-hidden min-w-[580px]">
 
                 {/* Header */}
                 <div className="flex bg-[#0A1E3F] text-white text-[9px] font-semibold uppercase tracking-widest select-none">
@@ -856,6 +864,7 @@ export default function ProspectDetailPage() {
                     <div className="w-9 flex-shrink-0" />
                   </div>
                 )}
+              </div>
               </div>
             </div>
           </motion.div>

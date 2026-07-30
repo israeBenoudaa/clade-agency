@@ -3,8 +3,8 @@ import { supabase } from '../lib/supabase'
 
 const AuthContext = createContext(null)
 
-// PIN directeur (second facteur après le mot de passe Supabase)
-const DIRECTOR_PIN = '487117'
+// PIN directeur (second facteur après le mot de passe Supabase) — défini dans .env
+const DIRECTOR_PIN = import.meta.env.VITE_DIRECTOR_PIN
 
 // ── Demo helpers (mode démo local, pas de vraie session Supabase) ─────────────
 const DEMO_NAMES = {

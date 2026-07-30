@@ -3,10 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, UserPlus, CheckCircle, Users } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useData } from '../context/DataContext'
+import SelectField from './SelectField'
 
 const TYPE_PROJET_OPTIONS = [
-  'Villa standard', 'Villa haut gamme', 'Logement collectif',
-  'Bureaux / Tertiaire', 'Hôtel / Restaurant', 'Équipement public', 'Rénovation lourde',
+  'Architecture', 'Conservation', 'Paysage', 'Design', 'Éphémère',
 ]
 
 const STATUT_OPTIONS = [
@@ -30,7 +30,7 @@ export default function NouveauProspectModal({ onClose, existing = null }) {
     nom:         existing?.nom         ?? '',
     telephone:   existing?.telephone   ?? '',
     email:       existing?.email       ?? '',
-    typeProjet:  existing?.typeProjet  ?? 'Villa haut gamme',
+    typeProjet:  existing?.typeProjet  ?? 'Architecture',
     surface:     existing?.surface     ?? '',
     budget:      existing?.budget      ?? '',
     localisation:existing?.localisation ?? '',
@@ -153,13 +153,12 @@ export default function NouveauProspectModal({ onClose, existing = null }) {
             {isExistant && (
               <div>
                 <label className="label-text mb-1.5 block">Sélectionner le client *</label>
-                <select className="input-field" value={selectedParentId}
-                  onChange={e => handleParentSelect(e.target.value)}>
-                  <option value="">Choisir un client confirmé…</option>
-                  {confirmedRoots.map(p => (
-                    <option key={p.id} value={p.id}>{p.prenom} {p.nom}</option>
-                  ))}
-                </select>
+                <SelectField
+                  value={selectedParentId}
+                  onChange={v => handleParentSelect(v)}
+                  options={confirmedRoots.map(p => ({ value: p.id, label: `${p.prenom} ${p.nom}` }))}
+                  placeholder="Choisir un client confirmé…"
+                />
 
                 {selectedParent && (
                   <div className="mt-2 flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-100 rounded-xl text-xs">
@@ -220,9 +219,11 @@ export default function NouveauProspectModal({ onClose, existing = null }) {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="label-text mb-1.5 block">Type de projet</label>
-                    <select className="input-field" value={form.typeProjet} onChange={set('typeProjet')}>
-                      {TYPE_PROJET_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
+                    <SelectField
+                      value={form.typeProjet}
+                      onChange={v => set('typeProjet')({ target: { value: v } })}
+                      options={TYPE_PROJET_OPTIONS}
+                    />
                   </div>
                   <div>
                     <label className="label-text mb-1.5 block">Localisation</label>

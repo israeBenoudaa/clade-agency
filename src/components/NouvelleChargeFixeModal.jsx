@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Repeat, CheckCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useData } from '../context/DataContext'
+import SelectField from './SelectField'
 
 const CATEGORIES = ['Loyer', 'Logiciels', 'Abonnements', 'Services', 'Assurances', 'Utilities', 'Autre']
 const PERIODICITES = [
@@ -84,18 +85,22 @@ export default function NouvelleChargeFixeModal({ onClose, existing = null }) {
               </div>
               <div>
                 <label className="label-text mb-1.5 block">Périodicité</label>
-                <select className="input-field" value={form.periodicite} onChange={set('periodicite')}>
-                  {PERIODICITES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-                </select>
+                <SelectField
+                  value={form.periodicite}
+                  onChange={v => setForm(f => ({ ...f, periodicite: v }))}
+                  options={PERIODICITES}
+                />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="label-text mb-1.5 block">Catégorie</label>
-                <select className="input-field" value={form.categorie} onChange={set('categorie')}>
-                  {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
+                <SelectField
+                  value={form.categorie}
+                  onChange={v => setForm(f => ({ ...f, categorie: v }))}
+                  options={CATEGORIES}
+                />
               </div>
               <div>
                 <label className="label-text mb-1.5 block">Date de début</label>

@@ -8,8 +8,12 @@ import {
   AlertTriangle, CalendarDays, TrendingDown,
 } from 'lucide-react'
 import { useData } from '../../context/DataContext'
+import { useAuth } from '../../context/AuthContext'
 import { computeCongesBalance } from '../../utils/conges'
 import toast from 'react-hot-toast'
+import SelectField from '../../components/SelectField'
+import PayslipSection from '../../components/PayslipSection'
+import PrimesSection from '../../components/PrimesSection'
 
 const OT_THRESHOLD_MS = 10 * 3600 * 1000
 
@@ -208,9 +212,6 @@ function AddEventModal({ date, onClose, onAdd }) {
 }
 
 // ── DirectorPinGate ───────────────────────────────────────────────────────────
-const DIR_PASSWORD = 'Achraf@123'
-const DIR_PIN = '487117'
-
 function DirectorPinGate({ onUnlock }) {
   const [step, setStep] = useState('password') // 'password' | 'pin'
   const [pwd, setPwd] = useState('')
@@ -221,7 +222,7 @@ function DirectorPinGate({ onUnlock }) {
 
   const submitPassword = (e) => {
     e.preventDefault()
-    if (pwd === DIR_PASSWORD) {
+    if (pwd === import.meta.env.VITE_DIRECTOR_PWD) {
       setError('')
       setStep('pin')
       setTimeout(() => pinRefs.current[0]?.focus(), 100)
@@ -239,7 +240,7 @@ function DirectorPinGate({ onUnlock }) {
     if (digit && i < 5) pinRefs.current[i + 1]?.focus()
     if (i === 5 && digit) {
       const code = [...next].join('')
-      if (code === DIR_PIN) {
+      if (code === import.meta.env.VITE_DIRECTOR_PIN) {
         setError('')
         onUnlock()
       } else {
@@ -411,6 +412,7 @@ export default function EmployeDetailPage() {
     addPlanningEvent, deletePlanningEvent, updatePlanningEvent, addCongeEmploye,
     addHeureSupManuelle, deleteHeureSupManuelle,
     projects, formations, demandesRH, updateDemandeRH, updateTask,
+    addTransaction, removeTransaction,
   } = useData()
 
   const employe = employes.find(e => String(e.id) === id)
@@ -579,6 +581,7 @@ export default function EmployeDetailPage() {
       avatar: av || employe.avatar,
       salaireNet: editForm.salaireNet !== '' ? Number(editForm.salaireNet) || 0 : 0,
       salaireBrut: editForm.salaireBrut !== '' ? Number(editForm.salaireBrut) || 0 : 0,
+      modeRemuneration: editForm.modeRemuneration || 'mensuel',
     })
     setEditMode(false)
     setEditForm(null)
@@ -599,6 +602,7 @@ export default function EmployeDetailPage() {
       adresse: employe.adresse || '',
       cin: employe.cin || '',
       contrat: employe.contrat || 'CDI',
+      modeRemuneration: employe.modeRemuneration || 'mensuel',
       salaireNet: employe.salaireNet || '',
       salaireBrut: employe.salaireBrut || '',
       poste: employe.poste || '',
@@ -772,9 +776,22 @@ export default function EmployeDetailPage() {
             ))}
             <div>
               <label className="label-text mb-1.5 block">Type de contrat</label>
-              <select className="input-field" value={editForm.contrat} onChange={setEF('contrat')}>
-                {['CDI', 'CDD', 'Freelance', 'Stage'].map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
+              <SelectField
+                value={editForm.contrat}
+                onChange={setEF('contrat')}
+                options={['CDI', 'CDD', 'Freelance', 'Stage']}
+              />
+            </div>
+            <div>
+              <label className="label-text mb-1.5 block">Mode de rémunération</label>
+              <SelectField
+                value={editForm.modeRemuneration}
+                onChange={setEF('modeRemuneration')}
+                options={[
+                  { value: 'mensuel', label: 'Mensuel fixe' },
+                  { value: 'horaire', label: 'Horaire (sessions)' },
+                ]}
+              />
             </div>
           </div>
         ) : (
@@ -789,6 +806,7 @@ export default function EmployeDetailPage() {
               { label: 'CIN', value: employe.cin },
               { label: 'Adresse', value: employe.adresse },
               { label: 'Type de contrat', value: employe.contrat },
+              { label: 'Mode de rémunération', value: employe.modeRemuneration === 'horaire' ? 'Horaire (sessions)' : 'Mensuel fixe' },
               { label: 'Salaire net', value: employe.salaireNet ? `${Number(employe.salaireNet).toLocaleString('fr-FR')} MAD` : '—' },
               { label: 'Salaire brut', value: employe.salaireBrut ? `${Number(employe.salaireBrut).toLocaleString('fr-FR')} MAD` : '—' },
               { label: "Date d'embauche", value: employe.dateEmbauche ? new Date(employe.dateEmbauche + 'T00:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—' },
@@ -1324,13 +1342,11 @@ export default function EmployeDetailPage() {
               <div className="bg-paper-warm rounded-xl p-4 grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
                 <div>
                   <label className="label-text mb-1.5 block">Type</label>
-                  <select
-                    className="input-field"
+                  <SelectField
                     value={congeForm.type}
-                    onChange={e => setCongeForm(f => ({ ...f, type: e.target.value }))}
-                  >
-                    {['Congés annuels', 'RTT', 'Maladie', 'Autre'].map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
+                    onChange={v => setCongeForm(f => ({ ...f, type: v }))}
+                    options={['Congés annuels', 'RTT', 'Maladie', 'Autre']}
+                  />
                 </div>
                 <div>
                   <label className="label-text mb-1.5 block">Début</label>
@@ -1736,6 +1752,21 @@ export default function EmployeDetailPage() {
           </div>
         )
       })()}
+
+      {/* ── Primes & Bonus ── */}
+      <PrimesSection
+        employe={employe}
+        addTransaction={addTransaction}
+        removeTransaction={removeTransaction}
+        updateEmploye={updateEmploye}
+      />
+
+      {/* ── Fiches de paie ── */}
+      <PayslipSection
+        employe={employe}
+        addTransaction={addTransaction}
+        updateEmploye={updateEmploye}
+      />
 
       {/* Add heure sup modal */}
       {showAddHeureSup && (

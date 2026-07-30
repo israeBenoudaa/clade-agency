@@ -12,6 +12,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useData } from '../../context/DataContext'
 import { computeCongesBalance } from '../../utils/conges'
 import FormationModal from '../../components/FormationModal'
+import SelectField from '../../components/SelectField'
 import toast from 'react-hot-toast'
 
 function StarPicker({ value, onChange, size = 18 }) {
@@ -582,14 +583,13 @@ function EmployeeDetailModal({ employe: initialEmploye, projects, demandesRH, fo
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="label-text mb-1.5 block">Projet *</label>
-                      <select
-                        className="input-field text-sm w-full"
+                      <SelectField
                         value={evalForm.projetId}
-                        onChange={e => setEvalForm(f => ({ ...f, projetId: e.target.value }))}
-                      >
-                        <option value="">Sélectionner…</option>
-                        {myProjects.map(p => <option key={p.id} value={p.id}>{p.nom}</option>)}
-                      </select>
+                        onChange={v => setEvalForm(f => ({ ...f, projetId: v }))}
+                        options={myProjects.map(p => ({ value: p.id, label: p.nom }))}
+                        placeholder="Sélectionner…"
+                        className="w-full"
+                      />
                     </div>
                     <div>
                       <label className="label-text mb-1.5 block">Note *</label>
@@ -881,7 +881,7 @@ export default function MyTeamPage() {
         // Projects visible in dropdown: filtered by status
         const dropdownProjects = statusFilter === 'Tous'
           ? typeProjects
-          : typeProjects.filter(p => (p.projetStatut || 'En cours') === statusFilter)
+          : typeProjects.filter(p => (p.statut || 'En cours') === statusFilter)
 
         const STATUT_FILTER = [
           { key: 'Tous', dot: null },
@@ -1037,7 +1037,7 @@ export default function MyTeamPage() {
                       {key}
                       {key !== 'Tous' && (
                         <span className={`text-[10px] ${isActive ? 'opacity-60' : 'opacity-50'}`}>
-                          {typeProjects.filter(p => (p.projetStatut || 'En cours') === key).length}
+                          {typeProjects.filter(p => (p.statut || 'En cours') === key).length}
                         </span>
                       )}
                     </button>

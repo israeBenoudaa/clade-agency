@@ -13,18 +13,38 @@ export function CladeLogo({ size = 36, light = false }) {
   )
 }
 
-export function CladeBrand({ light = false, vertical = false }) {
+// Inline brand mark used in login page hero and sidebar
+export function CladeBrand({ light = false, size = 'md' }) {
+  const nameColor  = light ? '#FAFBFD' : '#0A1E3F'
+  const subColor   = light ? 'rgba(250,251,253,0.45)' : 'rgba(10,30,63,0.4)'
+  const nameSizes  = { sm: 20, md: 26, lg: 36 }
+  const subSizes   = { sm: 7,  md: 8,  lg: 10 }
+  const nameSize   = nameSizes[size] ?? nameSizes.md
+  const subSize    = subSizes[size]  ?? subSizes.md
+
   return (
-    <div className={`flex items-center gap-3 ${vertical ? 'flex-col' : ''}`}>
-      <CladeLogo size={40} light={light} />
-      <div>
-        <div className={`font-display text-2xl leading-none tracking-tight ${light ? 'text-paper' : 'text-ink'}`}>
-          CLADE<span className="text-electric">.</span>
-        </div>
-        <div className={`text-[10px] tracking-[0.2em] uppercase mt-1 ${light ? 'text-paper/60' : 'text-muted'}`}>
-          Agence d'Architecture
-        </div>
-      </div>
+    <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
+      <span style={{
+        fontFamily: "'Averia Libre', serif",
+        fontSize: nameSize,
+        fontWeight: 400,
+        lineHeight: 1,
+        letterSpacing: '0.02em',
+        color: nameColor,
+      }}>
+        Clade
+      </span>
+      <span style={{
+        fontFamily: "'Inter Tight', -apple-system, sans-serif",
+        fontSize: subSize,
+        fontWeight: 500,
+        letterSpacing: '0.22em',
+        textTransform: 'uppercase',
+        color: subColor,
+        lineHeight: 1,
+      }}>
+        architects &amp; co
+      </span>
     </div>
   )
 }

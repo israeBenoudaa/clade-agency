@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, User, Mail, Phone, Building2, CheckCircle } from 'lucide-react'
 import { useData } from '../context/DataContext'
 import toast from 'react-hot-toast'
+import SelectField from './SelectField'
 
 const SECTEURS = [
   'Particulier',
@@ -153,9 +154,11 @@ export default function NouveauClientModal({ onClose, onCreated, zIndex = 60 }) 
                   <Building2 size={11} className="inline mr-1" />
                   Secteur
                 </label>
-                <select className="input-field" value={form.secteur} onChange={set('secteur')}>
-                  {SECTEURS.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
+                <SelectField
+                  value={form.secteur}
+                  onChange={v => setForm(f => ({ ...f, secteur: v }))}
+                  options={SECTEURS}
+                />
               </div>
             </div>
 

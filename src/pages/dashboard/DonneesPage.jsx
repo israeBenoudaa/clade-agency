@@ -5,14 +5,11 @@ import {
   Database, Shield, ShieldCheck, AlertTriangle, CheckCircle,
   Upload, Download, RotateCcw, Eye, EyeOff,
   DatabaseBackup, Clock, Trash2, HistoryIcon, Save, FileJson, TriangleAlert, X,
-  FolderGit2, Users, Wallet, BookOpen, Link, Activity, UserCheck, Lock,
+  FolderGit2, Users, Wallet, BookOpen, Link, Activity, UserCheck, Lock, ChevronDown,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useData } from '../../context/DataContext'
 import { useAuth } from '../../context/AuthContext'
-
-const DIR_PASSWORD = 'Achraf@123'
-const DIR_PIN = '487117'
 
 const getExportKeys = () =>
   Object.keys(localStorage).filter(k => k.startsWith('clade_') && k !== 'clade_checkpoints')
@@ -21,6 +18,91 @@ const ACTION_META = {
   reset:  { icon: RotateCcw, color: 'text-rose-500',   bg: 'bg-rose-50',     label: 'Réinitialiser les données' },
   export: { icon: Download,  color: 'text-electric',    bg: 'bg-electric/10', label: 'Exporter les données'      },
   import: { icon: Upload,    color: 'text-violet-600',  bg: 'bg-violet-50',   label: 'Importer des données'      },
+}
+
+/* ── PIN validation modal ─────────────────────────────────────────────────── */
+function PinModal({ title, subtitle, onConfirm, onClose }) {
+  const [pin, setPin] = useState('')
+  const [err, setErr] = useState('')
+
+  const handleConfirm = () => {
+    if (pin === import.meta.env.VITE_DIRECTOR_PIN) { onConfirm(); onClose() }
+    else { setErr('Code PIN incorrect'); setPin('') }
+  }
+
+  return (
+    <motion.div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/50 backdrop-blur-sm"
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
+      <motion.div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs overflow-hidden"
+        initial={{ scale: 0.95, y: 12 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 12 }}
+        onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-3 p-4 border-b border-border">
+          <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
+            <Lock size={16} className="text-amber-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold text-ink text-sm">{title}</div>
+            {subtitle && <div className="text-xs text-muted">{subtitle}</div>}
+          </div>
+          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-paper-warm text-muted">
+            <X size={14} />
+          </button>
+        </div>
+        <div className="p-4 space-y-3">
+          <div>
+            <label className="label-text mb-1.5 block">Code PIN Directeur</label>
+            <input type="password" inputMode="numeric" maxLength={6} autoFocus
+              className="input-field w-full tracking-[0.5em] text-center font-mono text-lg"
+              placeholder="• • • • • •" value={pin}
+              onChange={e => { setPin(e.target.value.replace(/\D/g, '')); setErr('') }}
+              onKeyDown={e => e.key === 'Enter' && handleConfirm()} />
+          </div>
+          {err && (
+            <div className="flex items-center gap-2 text-xs text-rose-600 bg-rose-50 rounded-xl px-3 py-2.5">
+              <AlertTriangle size={12} className="flex-shrink-0" /> {err}
+            </div>
+          )}
+          <div className="flex gap-2 pt-1">
+            <button onClick={onClose} className="btn-ghost flex-1">Annuler</button>
+            <button onClick={handleConfirm} className="btn-primary flex-1">Confirmer</button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+/* ── Confirm delete modal ─────────────────────────────────────────────────── */
+function ConfirmDeleteModal({ label, onConfirm, onClose }) {
+  return (
+    <motion.div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/50 backdrop-blur-sm"
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
+      <motion.div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs overflow-hidden"
+        initial={{ scale: 0.95, y: 12 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 12 }}
+        onClick={e => e.stopPropagation()}>
+        <div className="p-5 space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-rose-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <Trash2 size={16} className="text-rose-500" />
+            </div>
+            <div>
+              <div className="font-semibold text-ink text-sm mb-1">Supprimer la sauvegarde ?</div>
+              <div className="text-xs text-muted leading-relaxed">
+                « {label} » sera définitivement supprimée. Cette action est irréversible.
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={onClose} className="btn-ghost flex-1">Annuler</button>
+            <button onClick={() => { onConfirm(); onClose() }}
+              className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-rose-500 text-white hover:bg-rose-600 transition-colors">
+              Supprimer
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
 }
 
 function DataActionsModal({ action, onClose }) {
@@ -37,7 +119,7 @@ function DataActionsModal({ action, onClose }) {
   const Icon = meta.icon
 
   const handleAuth = () => {
-    if (pwd === DIR_PASSWORD && pin === DIR_PIN) { setStep('action') }
+    if (pwd === import.meta.env.VITE_DIRECTOR_PWD && pin === import.meta.env.VITE_DIRECTOR_PIN) { setStep('action') }
     else { setAuthErr('Mot de passe ou PIN incorrect') }
   }
 
@@ -273,13 +355,23 @@ function timeAgo(isoStr) {
   return new Date(isoStr).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' })
 }
 
+const CLEAR_OPTIONS = [
+  { label: 'Dernières 15 min', ms: 15 * 60 * 1000 },
+  { label: 'Dernière heure',   ms: 60 * 60 * 1000 },
+  { label: '8 dernières heures', ms: 8 * 60 * 60 * 1000 },
+  { label: 'Tout effacer',     ms: null },
+]
+
 export default function DonneesPage() {
-  const { checkpoints, createCheckpoint, deleteCheckpoint, enterDemoMode, activityLog } = useData()
+  const { checkpoints, createCheckpoint, deleteCheckpoint, enterDemoMode, activityLog, clearActivityLog, clearActivityLogBefore } = useData()
   const { isDirector, profile } = useAuth()
   const byName = profile?.nom || profile?.full_name || ''
   const navigate = useNavigate()
   const [dataAction, setDataAction] = useState(null)
   const [logFilter, setLogFilter] = useState('tous')
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
+  const [clearPending, setClearPending] = useState(null) // { label, ms }
+  const [showClearDropdown, setShowClearDropdown] = useState(false)
 
   const TRIGGER_CFG = {
     auto:               { label: 'Auto — démarrage',   color: 'bg-emerald-100 text-emerald-700' },
@@ -288,13 +380,13 @@ export default function DonneesPage() {
     manuel:             { label: 'Manuel',             color: 'bg-electric/10 text-electric' },
   }
 
+  const confirmingCp = checkpoints.find(c => c.id === confirmDeleteId)
+
   return (
     <div className="p-4 lg:p-10 space-y-6">
 
-
       {/* ── Sauvegardes ─────────────────────────────────────────────────── */}
       <div className="card p-5 lg:p-7">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-5">
           <div>
             <div className="label-text mb-1">Données</div>
@@ -332,7 +424,6 @@ export default function DonneesPage() {
           </div>
         </div>
 
-        {/* Timeline */}
         {checkpoints.length === 0 ? (
           <div className="py-12 text-center border border-dashed border-border rounded-xl">
             <div className="w-12 h-12 rounded-2xl bg-electric/10 flex items-center justify-center mx-auto mb-3">
@@ -363,7 +454,6 @@ export default function DonneesPage() {
               <motion.div key={cp.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.03 }}
                 className="rounded-xl bg-paper-warm hover:bg-white hover:shadow-sm transition-all overflow-hidden">
-                {/* Info row */}
                 <div className="flex items-center gap-3 p-3.5">
                   <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${i === 0 ? 'bg-electric/15' : 'bg-white'}`}>
                     <Clock size={14} className={i === 0 ? 'text-electric' : 'text-muted'} />
@@ -379,10 +469,10 @@ export default function DonneesPage() {
                       <span className={`px-1.5 py-0.5 rounded-full font-semibold ${cfg.color}`}>{cfg.label}</span>
                       <span className="text-border">·</span>
                       <span>{cp.size} Ko</span>
+                      {cp.by && <><span className="text-border">·</span><span className="font-semibold text-ink/60">{cp.by}</span></>}
                     </div>
                   </div>
 
-                  {/* Desktop actions — hidden on mobile */}
                   <div className="hidden sm:flex items-center gap-1 flex-shrink-0">
                     <button onClick={exportCp}
                       className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-muted hover:text-ink hover:bg-white border border-transparent hover:border-border transition-colors">
@@ -393,20 +483,18 @@ export default function DonneesPage() {
                       <Eye size={12} /> Aperçu
                     </button>
                     <div className="w-px h-4 bg-border mx-0.5" />
-                    <button onClick={() => { deleteCheckpoint(cp.id); toast.success('Sauvegarde supprimée') }}
+                    <button onClick={() => setConfirmDeleteId(cp.id)}
                       className="w-7 h-7 rounded-lg flex items-center justify-center text-muted hover:text-rose-500 hover:bg-rose-50 transition-colors">
                       <Trash2 size={12} />
                     </button>
                   </div>
 
-                  {/* Mobile delete only */}
-                  <button onClick={() => { deleteCheckpoint(cp.id); toast.success('Sauvegarde supprimée') }}
+                  <button onClick={() => setConfirmDeleteId(cp.id)}
                     className="sm:hidden w-7 h-7 rounded-lg flex items-center justify-center text-muted hover:text-rose-500 hover:bg-rose-50 transition-colors flex-shrink-0">
                     <Trash2 size={12} />
                   </button>
                 </div>
 
-                {/* Action bar — mobile only */}
                 <div className="sm:hidden flex border-t border-border/60">
                   <button onClick={exportCp}
                     className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] font-semibold text-muted hover:text-ink hover:bg-white transition-colors border-r border-border/60">
@@ -426,7 +514,7 @@ export default function DonneesPage() {
 
       {/* ── Activity log ─────────────────────────────────────────────────── */}
       <div className="card p-5 lg:p-7">
-        <div className="flex flex-col gap-3 mb-5">
+        <div className="flex flex-col gap-3 mb-4">
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="label-text mb-1">Audit</div>
@@ -435,13 +523,36 @@ export default function DonneesPage() {
                 Historique d'activité
               </div>
             </div>
-            <div className="text-[10px] text-muted text-right flex-shrink-0 mt-1">
-              <Clock size={10} className="inline mr-1 opacity-60" />
-              Purge auto · 30 jours
+            <div className="flex items-center gap-2 flex-shrink-0 mt-1">
+              <div className="text-[10px] text-muted">
+                <Clock size={10} className="inline mr-1 opacity-60" />
+                Purge auto · 30 jours
+              </div>
+              {/* Clear history dropdown */}
+              <div className="relative">
+                <button onClick={() => setShowClearDropdown(v => !v)}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-rose-500 hover:bg-rose-50 border border-rose-100 transition-colors">
+                  <Trash2 size={11} /> Effacer <ChevronDown size={10} />
+                </button>
+                <AnimatePresence>
+                  {showClearDropdown && (
+                    <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+                      className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-border z-20 w-48 overflow-hidden">
+                      {CLEAR_OPTIONS.map(opt => (
+                        <button key={opt.label} onClick={() => { setClearPending(opt); setShowClearDropdown(false) }}
+                          className="w-full text-left px-3.5 py-2.5 text-xs text-ink hover:bg-paper-warm transition-colors border-b border-border/50 last:border-0">
+                          {opt.label}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
           </div>
-          {/* Category filter — scrollable on mobile, centered on desktop */}
-          <div className="overflow-x-auto no-scrollbar flex justify-center">
+
+          {/* Category filter — centered */}
+          <div className="flex justify-center">
             <div className="flex gap-1 bg-paper-warm border border-border rounded-xl p-1 flex-shrink-0">
               {[
                 { key: 'tous',    label: 'Tout'     },
@@ -473,55 +584,81 @@ export default function DonneesPage() {
           return filtered.length === 0 ? (
             <div className="text-center py-8 text-muted text-sm">Aucune activité dans cette catégorie.</div>
           ) : (
-            <div className="space-y-1">
-              {filtered.slice(0, 100).map((entry, i) => {
-                const cfg = LOG_CFG[entry.category] || LOG_CFG.data
-                const Icon = cfg.icon
-                const date = new Date(entry.timestamp)
-                return (
-                  <motion.div
-                    key={entry.id}
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.02 }}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-paper-warm transition-colors group"
-                  >
-                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${cfg.bg}`}>
-                      <Icon size={13} className={cfg.color} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-semibold text-ink">{entry.action}</span>
-                        {entry.details && (
-                          <span className="text-xs text-muted truncate max-w-[260px]">{entry.details}</span>
-                        )}
+            /* Fixed-height scrollable container */
+            <div className="h-80 overflow-y-auto rounded-xl border border-border bg-paper-warm/40 pr-0.5">
+              <div className="space-y-0.5 p-1.5">
+                {filtered.slice(0, 200).map((entry, i) => {
+                  const cfg = LOG_CFG[entry.category] || LOG_CFG.data
+                  const Icon = cfg.icon
+                  const date = new Date(entry.timestamp)
+                  return (
+                    <motion.div
+                      key={entry.id}
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: Math.min(i * 0.015, 0.3) }}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white transition-colors"
+                    >
+                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${cfg.bg}`}>
+                        <Icon size={13} className={cfg.color} />
                       </div>
-                      <div className="flex items-center gap-2 text-[10px] text-muted mt-0.5">
-                        {entry.by && (
-                          <>
-                            <span className="font-semibold text-ink/60">{entry.by}</span>
-                            <span>·</span>
-                          </>
-                        )}
-                        <span title={date.toLocaleString('fr-FR')}>{timeAgo(entry.timestamp)}</span>
-                        <span>·</span>
-                        <span>{date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-semibold text-ink">{entry.action}</span>
+                          {entry.details && (
+                            <span className="text-xs text-muted truncate max-w-[220px]">{entry.details}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px] text-muted mt-0.5">
+                          <span className="font-semibold text-ink/70">{entry.by || 'Système'}</span>
+                          <span>·</span>
+                          <span title={date.toLocaleString('fr-FR')}>{timeAgo(entry.timestamp)}</span>
+                          <span>·</span>
+                          <span>{date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
                       </div>
-                    </div>
-                  </motion.div>
-                )
-              })}
-              {filtered.length > 100 && (
-                <div className="text-center text-xs text-muted py-2">
-                  + {filtered.length - 100} entrées plus anciennes (effacées après 60 jours)
-                </div>
-              )}
+                    </motion.div>
+                  )
+                })}
+                {filtered.length > 200 && (
+                  <div className="text-center text-xs text-muted py-2">
+                    + {filtered.length - 200} entrées plus anciennes
+                  </div>
+                )}
+              </div>
             </div>
           )
         })()}
       </div>
 
       {dataAction && <DataActionsModal action={dataAction} onClose={() => setDataAction(null)} />}
+
+      <AnimatePresence>
+        {confirmingCp && (
+          <ConfirmDeleteModal
+            label={confirmingCp.label}
+            onConfirm={() => { deleteCheckpoint(confirmingCp.id); toast.success('Sauvegarde supprimée') }}
+            onClose={() => setConfirmDeleteId(null)}
+          />
+        )}
+        {clearPending && (
+          <PinModal
+            title={clearPending.label}
+            subtitle="Confirmation par PIN Directeur requise"
+            onConfirm={() => {
+              if (clearPending.ms === null) {
+                clearActivityLog()
+                toast.success('Historique effacé')
+              } else {
+                clearActivityLogBefore(clearPending.ms)
+                toast.success(`Entrées des ${clearPending.label.toLowerCase()} effacées`)
+              }
+              setClearPending(null)
+            }}
+            onClose={() => setClearPending(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }

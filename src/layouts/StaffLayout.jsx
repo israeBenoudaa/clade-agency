@@ -6,15 +6,16 @@ import {
   Bell, Search, LogOut, Menu, X, UserPlus, ChevronRight, Database,
   MessageSquare, ChevronDown, Network, FolderGit2, UserCircle,
   ClipboardList, Paperclip, UsersRound, Briefcase, BookOpen, Layers,
-  Eye, RotateCcw, History,
+  Eye, RotateCcw, History, Globe,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
 import { ROLE_LABELS } from '../lib/supabase'
 import { PATH_MODULE_MAP, ALL_MODULES } from '../lib/modules'
 import { Avatar } from '../components/ui'
-import { CladeLogo } from '../components/ui/Logo'
+import { CladeBrand } from '../components/ui/Logo'
 import EmployeeRequestModal from '../components/EmployeeRequestModal'
+import OnboardingGuide from '../components/OnboardingGuide'
 import toast from 'react-hot-toast'
 
 const MON_ESPACE_NAV = [
@@ -61,6 +62,7 @@ const TITLES = {
   '/app/crm':             { t: 'Relations Clients',    s: '◆ Gestion' },
   '/app/collaborateurs':  { t: 'Collaborateurs',       s: '◆ Gestion' },
   '/app/workflow':        { t: 'Processus',             s: '◆ Gestion' },
+  '/app/portfolio':         { t: 'Portfolio',             s: '◆ Gestion' },
   '/app/users':           { t: 'Utilisateurs & Accès', s: '◆ Administration' },
   '/app/donnees':         { t: 'Données',              s: '◆ Administration' },
   '/client':              { t: 'Mon Projet',           s: '◆ Portail Client' },
@@ -85,24 +87,25 @@ export default function StaffLayout() {
   const location = useLocation()
 
   const myId = String(profile?.id || 'unknown')
+  const myEmpId = String(profile?.employe_id || profile?.id || 'unknown')
   const isEmployee = isEmployeeMode && !isDirectorMode && !isDemoMode
   const hasTeam = useMemo(() =>
     projects.some(p => {
       const equipeIds = (p.equipeProjet || []).map(String)
       // Referent: has at least one team member
-      if (String(p.architecteReferentId) === myId) return equipeIds.length > 0
+      if (String(p.architecteReferentId) === myEmpId) return equipeIds.length > 0
       // Team member: project has at least one other member (not just self)
-      return equipeIds.includes(myId) && equipeIds.some(id => id !== myId)
+      return equipeIds.includes(myEmpId) && equipeIds.some(id => id !== myEmpId)
     }),
-    [projects, myId]
+    [projects, myEmpId]
   )
 
   const hasMyProjects = useMemo(() =>
     projects.some(p =>
-      String(p.architecteReferentId) === myId ||
-      (p.equipeProjet || []).map(String).includes(myId)
+      String(p.architecteReferentId) === myEmpId ||
+      (p.equipeProjet || []).map(String).includes(myEmpId)
     ),
-    [projects, myId]
+    [projects, myEmpId]
   )
 
   const unreadMsgCount = useMemo(() => {
@@ -126,7 +129,7 @@ export default function StaffLayout() {
     for (const convId of accessibleConvIds) {
       const lastRead = myReadState[convId] || 0
       const hasUnread = messages.some(
-        m => m.conversationId === convId && m.senderId !== myId && new Date(m.createdAt) > new Date(lastRead)
+        m => m.conversationId === convId && m.senderId !== myId && new Date(m.timestamp) > new Date(lastRead)
       )
       if (hasUnread) count++
     }
@@ -135,18 +138,20 @@ export default function StaffLayout() {
 
   const visibleNotifications = useMemo(() => {
     return (notifications || []).filter(n => {
-      // Targeted notification → only for the target
-      if (n.targetUserId) return String(n.targetUserId) === myId
-      // Non-targeted → directors / demo mode only; regular employees never see them
+      if (n.targetUserId) {
+        if (n.targetUserId === 'director-achraf') return isDirector || isDirectorMode || isDemoMode
+        return String(n.targetUserId) === myId || String(n.targetUserId) === myEmpId
+      }
+      if (n.forHR) return profile?.role === 'rh' || isDirector || isDirectorMode || isDemoMode
       if (isDirector || isDirectorMode || isDemoMode) return true
       return false
     })
-  }, [notifications, myId, isDirector, isDirectorMode, isDemoMode])
+  }, [notifications, myId, myEmpId, isDirector, isDirectorMode, isDemoMode])
 
   let allowedModules = null
   let allowedProjects = null // null = access to all
   if (isEmployeeMode && !isDemoMode && !isDirector && !isDirectorMode) {
-    const emp = employes.find(e => String(e.id) === profile?.id)
+    const emp = employes.find(e => String(e.id) === String(profile?.employe_id))
     if (emp?.permissions?.modules) {
       const validIds = new Set(ALL_MODULES.map(m => m.id))
       allowedModules = emp.permissions.modules.filter(id => validIds.has(id))
@@ -177,6 +182,7 @@ export default function StaffLayout() {
     || (path.startsWith('/app/hr/') ? { t: 'Ressources Humaines', s: '◆ Gestion' } : null)
     || (path.startsWith('/app/crm/') ? { t: 'Relations Clients', s: '◆ Gestion' } : null)
     || (path.startsWith('/app/finance/') ? { t: 'Finance', s: '◆ Gestion' } : null)
+    || (path.startsWith('/app/portfolio/') ? { t: 'Portfolio', s: '◆ Gestion' } : null)
     || TITLES['/app']
 
   // Search results — filtered by user permissions
@@ -219,7 +225,7 @@ export default function StaffLayout() {
       const matchedTasks = []
       for (const p of accessibleProjects) {
         for (const t of (p.tasks || [])) {
-          if (isRestricted && String(t.personnelId) !== myId) continue
+          if (isRestricted && String(t.personnelId) !== myEmpId) continue
           if (t.nom?.toLowerCase().includes(q)) {
             matchedTasks.push({ task: t, project: p })
             if (matchedTasks.length >= 4) break
@@ -660,6 +666,8 @@ export default function StaffLayout() {
         </div>
       </main>
 
+      <OnboardingGuide />
+
       {/* Employee request modal */}
       <AnimatePresence>
         {showRequestModal && (
@@ -742,16 +750,8 @@ function Sidebar({ mobile, onClose, onSignOut, isDirector, profile, initials, na
     <div className="h-screen w-72 lg:w-64 bg-ink-deep text-paper flex flex-col py-7 px-4 lg:sticky lg:top-0 overflow-y-auto">
       {/* Branding */}
       <div className="flex items-center justify-between mb-8 px-2 flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <CladeLogo size={36} />
-          <div>
-            <div className="font-display text-xl leading-none">
-              CLADE<span className="text-electric">.</span>
-            </div>
-            <div className="text-[10px] tracking-[0.18em] uppercase text-paper/50 mt-1">
-              Architecture
-            </div>
-          </div>
+        <div className="flex items-center">
+          <CladeBrand light size="md" />
         </div>
         {mobile && (
           <button onClick={onClose} className="text-paper/60">
@@ -801,6 +801,11 @@ function Sidebar({ mobile, onClose, onSignOut, isDirector, profile, initials, na
             <div className="text-[10px] uppercase tracking-[0.15em] text-paper/40 px-3 pt-5 pb-3">
               Administration
             </div>
+            <NavItem
+              item={{ to: '/app/portfolio', label: 'Portfolio', icon: Globe }}
+              mobile={mobile}
+              onClose={onClose}
+            />
             <NavItem
               item={{ to: '/app/users', label: 'Utilisateurs & Accès', icon: UserPlus }}
               mobile={mobile}

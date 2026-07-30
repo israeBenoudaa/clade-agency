@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'Averia Libre';
+  src: url('/fonts/AveriaLibre-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Averia Libre';
+  src: url('/fonts/AveriaLibre-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 @layer base {
   * {
     box-sizing: border-box;
@@ -75,7 +90,7 @@
            hover:bg-paper-warm transition-colors flex items-center gap-2;
   }
 
-  .input-field {
+  .input-field, .input {
     @apply w-full px-4 py-3 rounded-xl border border-border bg-white
            focus:outline-none focus:ring-2 focus:ring-electric/30 focus:border-electric
            transition-all text-sm;
@@ -110,6 +125,37 @@
   .text-balance {
     text-wrap: balance;
   }
+}
+
+/* ── Select fields — style soigné ───────────────────────────────────────────── */
+select.input-field,
+select.input {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236B7A99' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 14px;
+  padding-right: 36px !important;
+  border: 1px solid #E4E8F0;
+  box-shadow: 0 1px 3px rgba(10, 30, 63, 0.05), inset 0 1px 0 rgba(255,255,255,0.9);
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+select.input-field:hover,
+select.input:hover {
+  border-color: rgba(56, 189, 248, 0.5);
+  box-shadow: 0 2px 6px rgba(10, 30, 63, 0.08), inset 0 1px 0 rgba(255,255,255,0.9);
+}
+
+select.input-field:focus,
+select.input:focus {
+  outline: none;
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.12), 0 1px 3px rgba(10, 30, 63, 0.06);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2338bdf8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
 }
 
 /* Animations spéciales login */

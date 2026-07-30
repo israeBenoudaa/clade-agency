@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, CheckCircle, AlertCircle, Loader, User, Calendar, CheckSquare, Pencil, Flag } from 'lucide-react'
 import { useData } from '../context/DataContext'
 import toast from 'react-hot-toast'
+import SelectField from './SelectField'
 
 const STATUTS = [
   { val: 'Stuck',          label: 'Bloqué',  icon: AlertCircle, color: 'bg-rose-50 text-rose-700 border-rose-200',   activeColor: 'bg-rose-600 text-white border-rose-600' },
@@ -231,16 +232,13 @@ export default function NouveauTacheModal({ onClose, onAdd, onEdit, tache, missi
               <label className="label-text mb-1.5 flex items-center gap-1 block">
                 <User size={11} /> Personnel chargé *
               </label>
-              <select
-                className={`input-field ${errors.personnelId ? 'border-rose-400' : ''}`}
+              <SelectField
                 value={form.personnelId}
-                onChange={handlePersonnel}
-              >
-                <option value="">— Sélectionner un collaborateur —</option>
-                {employes.map(e => (
-                  <option key={e.id} value={e.id}>{e.nom} — {e.poste}</option>
-                ))}
-              </select>
+                onChange={v => handlePersonnel({ target: { value: String(v) } })}
+                options={employes.map(e => ({ value: e.id, label: `${e.nom} — ${e.poste}` }))}
+                placeholder="— Sélectionner un collaborateur —"
+                error={!!errors.personnelId}
+              />
               {errors.personnelId && <p className="text-xs text-rose-500 mt-1">{errors.personnelId}</p>}
             </div>
 

@@ -2,7 +2,7 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 export function ProtectedRoute({ children, requireStaff, requireClient, requireDirector }) {
-  const { session, profile, loading, isStaff, isClient, isDirector, isDemoMode } = useAuth()
+  const { session, profile, loading, isStaff, isClient, isDirector, isDemoMode, pinPending } = useAuth()
   const location = useLocation()
 
   if (loading) {
@@ -19,6 +19,11 @@ export function ProtectedRoute({ children, requireStaff, requireClient, requireD
 
   if (!session) {
     return <Navigate to="/login" state={{ from: location }} replace />
+  }
+
+  // Directeur authentifié Supabase mais PIN pas encore validé → retour login (step PIN)
+  if (pinPending) {
+    return <Navigate to="/login" replace />
   }
 
   if (!profile) {

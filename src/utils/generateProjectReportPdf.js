@@ -156,7 +156,7 @@ function buildTemplate({ project, tasks, missions, agenceSettings }) {
             ${project.client ? `<div style="color:rgba(255,255,255,0.4);font-size:8px;letter-spacing:2px;text-transform:uppercase;margin-bottom:5px;">Client</div>
             <div style="color:white;font-size:13px;font-weight:700;margin-bottom:10px;word-break:break-word;">${project.client}</div>` : ''}
             <div style="color:rgba(255,255,255,0.4);font-size:8px;letter-spacing:2px;text-transform:uppercase;margin-bottom:5px;">Statut</div>
-            <div style="color:#06B6D4;font-size:12px;font-weight:700;">${project.projetStatut || 'En cours'}</div>
+            <div style="color:#06B6D4;font-size:12px;font-weight:700;">${project.statut || 'En cours'}</div>
           </div>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { ClipboardList, X, Paperclip } from 'lucide-react'
+import SelectField from './SelectField'
 
 export default function EmployeeRequestModal({ profile, onClose, onSubmit }) {
   const [form, setForm] = useState({ type: 'conge', dateDebut: '', dateFin: '', motif: '' })
@@ -22,7 +23,7 @@ export default function EmployeeRequestModal({ profile, onClose, onSubmit }) {
     e.preventDefault()
     if (!form.type) return
     onSubmit({
-      employeId: String(profile?.id || ''),
+      employeId: String(profile?.employe_id || profile?.id || ''),
       employeNom: profile?.full_name || '',
       type: form.type,
       dateDebut: form.dateDebut || null,
@@ -51,14 +52,19 @@ export default function EmployeeRequestModal({ profile, onClose, onSubmit }) {
         <form onSubmit={submit} className="p-6 space-y-4">
           <div>
             <label className="label-text mb-1.5 block">Type de demande *</label>
-            <select className="input-field" value={form.type} onChange={set('type')}>
-              <option value="conge">Congé</option>
-              <option value="absence">Absence</option>
-              <option value="arret_maladie">Arrêt maladie</option>
-              <option value="attestation">Attestation de travail</option>
-              <option value="autre">Autre</option>
-              <option value="demission">Démission</option>
-            </select>
+            <SelectField
+              value={form.type}
+              onChange={v => setForm(f => ({ ...f, type: v }))}
+              options={[
+                { value: 'conge', label: 'Congé' },
+                { value: 'absence', label: 'Absence' },
+                { value: 'arret_maladie', label: 'Arrêt maladie' },
+                { value: 'attestation', label: 'Attestation de travail' },
+                { value: 'attestation_salaire', label: 'Attestation de salaire' },
+                { value: 'autre', label: 'Autre' },
+                { value: 'demission', label: 'Démission' },
+              ]}
+            />
           </div>
           {['conge', 'absence', 'arret_maladie'].includes(form.type) && (
             <div className="grid grid-cols-2 gap-3">

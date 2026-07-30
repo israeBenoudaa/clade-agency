@@ -903,7 +903,7 @@ export default function ProjectDetailPage({ backPath = '/app/projects' }) {
   const paidHT = finMissions.reduce((s, m) => finPaiements[m.id] === 'paye' ? s + (finHonoraires[m.id] || 0) : s, 0)
   const remainingHT = totalHT - paidHT
 
-  const projetStatut = project.projetStatut || 'En cours'
+  const projetStatut = project.statut || 'En cours'
   const projetStatutCfg = {
     'En cours':        { color: 'bg-electric/10 text-electric border-electric/20', dot: 'bg-electric' },
     'Projet livré':    { color: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
@@ -1859,7 +1859,7 @@ export default function ProjectDetailPage({ backPath = '/app/projects' }) {
           currentStatut={projetStatut}
           onClose={() => setShowStatutModal(false)}
           onSave={(statut, cr) => {
-            updateProject(project.id, { projetStatut: statut, ...(cr ? { compteRenduStatut: cr } : {}) })
+            updateProject(project.id, { statut, ...(cr ? { compteRenduStatut: cr } : {}) })
             setShowStatutModal(false)
             toast.success(`Statut mis à jour : ${statut}`)
           }}

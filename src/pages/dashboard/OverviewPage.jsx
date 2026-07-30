@@ -12,6 +12,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useData } from '../../context/DataContext'
 import { ProgressBar } from '../../components/ui'
 import EmployeeRequestModal from '../../components/EmployeeRequestModal'
+import SelectField from '../../components/SelectField'
 import toast from 'react-hot-toast'
 
 // ─── Timer helpers ────────────────────────────────────────────────────────────
@@ -857,11 +858,13 @@ function AjouterTacheModal({ onClose, employe, projects, addTask, updateTask, de
 
             <div>
               <label className="label-text mb-1.5 block">Projet *</label>
-              <select className={`input-field ${errors.projectId ? 'border-rose-400' : ''}`}
-                value={form.projectId} onChange={e => setForm(f => ({ ...f, projectId: e.target.value, missionId: '' }))}>
-                <option value="">Sélectionner un projet...</option>
-                {projects.map(p => <option key={p.id} value={p.id}>{p.nom}</option>)}
-              </select>
+              <SelectField
+                value={form.projectId}
+                onChange={v => setForm(f => ({ ...f, projectId: v, missionId: '' }))}
+                options={[{ value: '', label: 'Sélectionner un projet...' }, ...projects.map(p => ({ value: p.id, label: p.nom }))]}
+                placeholder="Sélectionner un projet..."
+                error={!!errors.projectId}
+              />
               {errors.projectId && <p className="text-xs text-rose-500 mt-1">{errors.projectId}</p>}
               {isEdit && String(editTask.projectId) !== form.projectId && form.projectId && (
                 <p className="text-[11px] text-amber-600 mt-1 flex items-center gap-1">
@@ -873,10 +876,12 @@ function AjouterTacheModal({ onClose, employe, projects, addTask, updateTask, de
             {missions.length > 0 && (
               <div>
                 <label className="label-text mb-1.5 block">Mission (optionnel)</label>
-                <select className="input-field" value={form.missionId} onChange={set('missionId')}>
-                  <option value="">Aucune mission</option>
-                  {missions.map(m => <option key={m.id} value={m.id}>{m.nom}</option>)}
-                </select>
+                <SelectField
+                  value={form.missionId}
+                  onChange={v => setForm(f => ({ ...f, missionId: v }))}
+                  options={[{ value: '', label: 'Aucune mission' }, ...missions.map(m => ({ value: m.id, label: m.nom }))]}
+                  placeholder="Aucune mission"
+                />
               </div>
             )}
 
@@ -1145,7 +1150,7 @@ export default function OverviewPage() {
 
   const employe = useMemo(() => {
     if (isDir) return employes.find(e => e.isDirecteur === true) ?? null
-    if (isEmployeeMode) return employes.find(e => String(e.id) === profile?.id) ?? null
+    if (isEmployeeMode) return employes.find(e => String(e.id) === String(profile?.employe_id)) ?? null
     return null
   }, [employes, profile, isEmployeeMode, isDir])
 
@@ -2495,6 +2500,19 @@ export default function OverviewPage() {
           onSave={handleRdvProspectUpdate}
           onDelete={handleRdvProspectDelete}
         />
+      )}
+
+      {/* ── Bouton demande RH — employés uniquement ── */}
+      {!isDir && isEmployeeMode && (
+        <div className="flex justify-center py-6">
+          <button
+            onClick={() => setShowDemandeModal(true)}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-sm font-semibold hover:bg-amber-100 transition-colors"
+          >
+            <ClipboardList size={15} />
+            Faire une demande RH
+          </button>
+        </div>
       )}
     </div>
   )

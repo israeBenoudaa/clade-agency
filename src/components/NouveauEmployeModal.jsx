@@ -4,6 +4,7 @@ import { X, UserPlus, CheckCircle } from 'lucide-react'
 import { useData } from '../context/DataContext'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
+import SelectField from './SelectField'
 
 const CONTRATS = ['CDI', 'CDD', 'Freelance', 'Stage']
 
@@ -218,9 +219,11 @@ export default function NouveauEmployeModal({ onClose }) {
             {/* Contrat */}
             <div>
               <label className="label-text mb-1.5 block">Type de contrat</label>
-              <select className="input-field" value={form.contrat} onChange={set('contrat')}>
-                {CONTRATS.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
+              <SelectField
+                value={form.contrat}
+                onChange={set('contrat')}
+                options={CONTRATS}
+              />
             </div>
 
             {/* Salaires */}

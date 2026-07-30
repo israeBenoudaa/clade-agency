@@ -1,19 +1,20 @@
-import { useState, useRef, useMemo } from 'react'
+import { useState, useRef, useMemo, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowLeft, Plus, X, Pencil, Trash2, FileText, Mail,
   User, CheckCircle, Clock, XCircle, CalendarCheck, Upload,
-  ChevronDown, Briefcase, PhoneCall, GraduationCap, Banknote,
+  ChevronDown, Briefcase, PhoneCall, GraduationCap, Banknote, Globe, Check, Send, UserCheck,
 } from 'lucide-react'
 import { useData } from '../../context/DataContext'
 import toast from 'react-hot-toast'
+import SelectField from '../../components/SelectField'
 
 const STATUT_CAND = {
-  recu:      { label: 'Reçu',      bg: 'bg-paper-warm',    text: 'text-muted',        border: 'border-border',        icon: Clock },
-  entretien: { label: 'Entretien', bg: 'bg-blue-50',       text: 'text-blue-700',     border: 'border-blue-200',      icon: CalendarCheck },
-  accepte:   { label: 'Accepté',   bg: 'bg-emerald-50',    text: 'text-emerald-700',  border: 'border-emerald-200',   icon: CheckCircle },
-  rejete:    { label: 'Rejeté',    bg: 'bg-rose-50',       text: 'text-rose-700',     border: 'border-rose-200',      icon: XCircle },
+  recu:     { label: 'Reçu',      bg: 'bg-paper-warm',  text: 'text-muted',        border: 'border-border',       icon: Clock },
+  accepte:  { label: 'Accepté',   bg: 'bg-emerald-50',  text: 'text-emerald-700',  border: 'border-emerald-200',  icon: CheckCircle },
+  refuse:   { label: 'Refusé',    bg: 'bg-rose-50',     text: 'text-rose-700',     border: 'border-rose-200',     icon: XCircle },
+  confirme: { label: 'Confirmé',  bg: 'bg-violet-50',   text: 'text-violet-700',   border: 'border-violet-200',   icon: UserCheck },
 }
 
 const STATUT_POSTE = {
@@ -78,11 +79,15 @@ function EditPosteModal({ poste, onClose, onSave }) {
               </div>
               <div>
                 <label className="label-text mb-1.5 block">Statut</label>
-                <select className="input-field" value={form.statut} onChange={set('statut')}>
-                  <option value="ouvert">Ouvert</option>
-                  <option value="ferme">Fermé</option>
-                  <option value="pourvu">Pourvu</option>
-                </select>
+                <SelectField
+                  value={form.statut}
+                  onChange={v => set('statut')({ target: { value: v } })}
+                  options={[
+                    { value: 'ouvert', label: 'Ouvert' },
+                    { value: 'ferme', label: 'Fermé' },
+                    { value: 'pourvu', label: 'Pourvu' },
+                  ]}
+                />
               </div>
             </div>
             <div>
@@ -232,263 +237,450 @@ function AddCandidatModal({ onClose, onAdd, existing }) {
   )
 }
 
-// ── EntretienModal ────────────────────────────────────────────────────────────
-function EntretienModal({ candidat, employes, onClose, onSave }) {
-  const [form, setForm] = useState({
-    date: new Date().toISOString().slice(0, 10),
-    heureDebut: '10:00',
-    duree: '60',
-    intervieweurId: '',
-  })
+// ── EmailPanel shared styles ──────────────────────────────────────────────────
+const PANEL_THEME = {
+  blue:    { bar: 'bg-blue-500',    light: 'bg-blue-50',    border: 'border-blue-200',    text: 'text-blue-700',    btn: 'bg-blue-600 hover:bg-blue-700',    label: 'text-blue-500' },
+  emerald: { bar: 'bg-emerald-500', light: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', btn: 'bg-emerald-600 hover:bg-emerald-700', label: 'text-emerald-500' },
+  rose:    { bar: 'bg-rose-500',    light: 'bg-rose-50',    border: 'border-rose-200',    text: 'text-rose-700',    btn: 'bg-rose-500 hover:bg-rose-600',    label: 'text-rose-500' },
+}
+
+function PanelHeader({ theme, title, onBack }) {
+  const t = PANEL_THEME[theme]
+  return (
+    <div className="flex-shrink-0">
+      <div className={`h-1 w-full ${t.bar}`} />
+      <div className="flex items-center gap-3 px-6 py-3 border-b border-border">
+        <button onClick={onBack} className="flex items-center gap-1 text-xs text-muted hover:text-ink transition-colors">
+          <ArrowLeft size={12} /> Retour
+        </button>
+        <div className="flex-1 text-center text-sm font-semibold text-ink">{title}</div>
+        <div className="w-12" />
+      </div>
+    </div>
+  )
+}
+
+// ── EntretienEmailPanel ───────────────────────────────────────────────────────
+function EntretienEmailPanel({ candidat, poste, employes, onBack, onSend }) {
+  const [form, setForm] = useState({ date: new Date().toISOString().slice(0, 10), heureDebut: '10:00', duree: '60', intervieweurId: '' })
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }))
-
   const heureFin = form.heureDebut ? addMinutesToTime(form.heureDebut, form.duree) : ''
+  const interviewer = employes.find(e => String(e.id) === form.intervieweurId)
+  const fullName = `${candidat.prenom} ${candidat.nom}`
+  const t = PANEL_THEME.blue
 
-  const submit = e => {
-    e.preventDefault()
-    if (!form.date || !form.intervieweurId) { toast.error('Date et intervieweur requis'); return }
-    const intervieweur = employes.find(emp => String(emp.id) === form.intervieweurId)
-    onSave({
-      date: form.date,
-      heureDebut: form.heureDebut,
-      heureFin,
-      duree: Number(form.duree),
-      intervieweurId: form.intervieweurId,
-      intervieweurNom: intervieweur?.nom || '',
-      intervieweurEmail: intervieweur?.email || '',
-    })
-    onClose()
+  const autoBody = form.date
+    ? `Bonjour ${fullName},\n\nNous avons examiné votre candidature pour le poste de « ${poste.intitule} » avec un vif intérêt et nous serions ravis de vous rencontrer.\n\nNous vous proposons un entretien :\n• Date : ${new Date(form.date).toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}\n• Horaire : ${form.heureDebut} – ${heureFin}${interviewer ? `\n• Interlocuteur : ${interviewer.prenom} ${interviewer.nom}` : ''}\n\nMerci de confirmer votre disponibilité en répondant à cet e-mail.\n\nCordialement,\nL'équipe CLADE Architecture`
+    : ''
+
+  const [body, setBody] = useState(autoBody)
+  const prevKey = useRef('')
+  const formKey = `${form.date}|${form.heureDebut}|${form.duree}|${form.intervieweurId}`
+  if (formKey !== prevKey.current) { prevKey.current = formKey; if (autoBody) setBody(autoBody) }
+
+  const handleSend = () => {
+    if (!candidat.email) { toast.error('Aucun email pour ce candidat'); return }
+    window.open(`mailto:${candidat.email}?subject=${encodeURIComponent(`Invitation à un entretien — ${poste.intitule} — CLADE Architecture`)}&body=${encodeURIComponent(body)}`, '_blank')
+    if (form.intervieweurId && form.date) {
+      onSend({ intervieweurId: form.intervieweurId, entretienEvent: {
+        id: `ev${Date.now()}`, titre: `Entretien — ${fullName}`,
+        date: form.date, heureDebut: form.heureDebut, heureFin,
+        couleur: '#3B82F6', type: 'entretien',
+      }})
+    }
+    onBack()
+    toast.success('Email ouvert dans votre client mail')
+  }
+
+  return (
+    <div className="flex flex-col flex-1 overflow-hidden">
+      <PanelHeader theme="blue" title="Proposer un entretien" onBack={onBack} />
+      <div className="overflow-y-auto p-6 space-y-4 flex-1">
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className={`text-[10px] font-semibold uppercase tracking-widest mb-1.5 block ${t.label}`}>Date</label>
+            <input type="date" className="input w-full" value={form.date} onChange={set('date')} />
+          </div>
+          <div>
+            <label className={`text-[10px] font-semibold uppercase tracking-widest mb-1.5 block ${t.label}`}>Heure de début</label>
+            <input type="time" className="input w-full" value={form.heureDebut} onChange={set('heureDebut')} />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className={`text-[10px] font-semibold uppercase tracking-widest mb-1.5 block ${t.label}`}>Durée</label>
+            <SelectField
+              value={form.duree}
+              onChange={v => set('duree')({ target: { value: v } })}
+              options={[30, 45, 60, 90, 120].map(d => ({ value: String(d), label: `${d} min` }))}
+              className="w-full"
+            />
+          </div>
+          <div>
+            <label className={`text-[10px] font-semibold uppercase tracking-widest mb-1.5 block ${t.label}`}>Intervieweur</label>
+            <SelectField
+              value={form.intervieweurId}
+              onChange={v => set('intervieweurId')({ target: { value: v } })}
+              options={[
+                { value: '', label: '— Choisir —' },
+                ...employes.filter(e => e.statut === 'actif').map(e => ({ value: String(e.id), label: `${e.prenom} ${e.nom}` })),
+              ]}
+              className="w-full"
+            />
+          </div>
+        </div>
+        <div>
+          <label className={`text-[10px] font-semibold uppercase tracking-widest mb-1.5 block ${t.label}`}>Corps de l'email</label>
+          <textarea value={body} onChange={e => setBody(e.target.value)} rows={10}
+            className={`input w-full resize-none text-xs leading-relaxed font-mono focus:border-blue-300 focus:ring-1 focus:ring-blue-100`} />
+        </div>
+      </div>
+      <div className="px-6 pb-5 flex gap-3 border-t border-border pt-4 flex-shrink-0">
+        <button onClick={onBack} className="btn-ghost text-sm flex-1 justify-center">Annuler</button>
+        <button onClick={handleSend} disabled={!body}
+          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold transition-colors disabled:opacity-40 ${t.btn}`}>
+          <Send size={13} /> Envoyer par email
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── RefusEmailPanel ───────────────────────────────────────────────────────────
+function RefusEmailPanel({ candidat, poste, onBack, onConfirm }) {
+  const fullName = `${candidat.prenom} ${candidat.nom}`
+  const t = PANEL_THEME.rose
+  const [body, setBody] = useState(
+    `Bonjour ${fullName},\n\nNous vous remercions de l'intérêt que vous portez à notre cabinet et pour le temps consacré à votre candidature pour le poste de « ${poste.intitule} ».\n\nAprès examen attentif de votre dossier, nous ne sommes pas en mesure de donner suite à votre demande pour ce poste. Cette décision ne remet pas en question vos compétences, et nous conservons votre profil pour de futures opportunités.\n\nNous vous souhaitons beaucoup de succès dans vos recherches.\n\nCordialement,\nL'équipe CLADE Architecture`
+  )
+
+  const handleSend = () => {
+    if (!candidat.email) { onConfirm(); return }
+    window.open(`mailto:${candidat.email}?subject=${encodeURIComponent(`Votre candidature — ${poste.intitule} — CLADE Architecture`)}&body=${encodeURIComponent(body)}`, '_blank')
+    onConfirm()
+    toast.success('Email ouvert — candidature refusée')
+  }
+
+  return (
+    <div className="flex flex-col flex-1 overflow-hidden">
+      <PanelHeader theme="rose" title="Refuser la candidature" onBack={onBack} />
+      <div className="overflow-y-auto p-6 space-y-4 flex-1">
+        <div className={`${t.light} ${t.border} border rounded-xl p-3 flex items-center gap-2`}>
+          <XCircle size={14} className={t.text} />
+          <span className={`text-xs font-medium ${t.text}`}>Un email de refus sera envoyé à {candidat.email || 'ce candidat'}</span>
+        </div>
+        <div>
+          <label className={`text-[10px] font-semibold uppercase tracking-widest mb-1.5 block ${t.label}`}>Corps de l'email</label>
+          <textarea rows={11} value={body} onChange={e => setBody(e.target.value)}
+            className={`input w-full resize-none text-xs leading-relaxed font-mono focus:border-rose-200 focus:ring-1 focus:ring-rose-50`} />
+        </div>
+      </div>
+      <div className="px-6 pb-5 flex gap-3 border-t border-border pt-4 flex-shrink-0">
+        <button onClick={onBack} className="btn-ghost text-sm flex-1 justify-center">Annuler</button>
+        <button onClick={handleSend}
+          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold transition-colors ${t.btn}`}>
+          <Send size={13} /> Envoyer par email
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── CandidatDetailModal ───────────────────────────────────────────────────────
+function CandidatDetailModal({ candidat, poste, employes, onClose, onUpdate, onDelete }) {
+  const [mode, setMode] = useState(null) // null | 'entretien' | 'refuse'
+  const cfg = STATUT_CAND[candidat.statut] || STATUT_CAND.recu
+  const Icon = cfg.icon
+
+  const handleAccepte = () => {
+    toast((t) => (
+      <div className="flex items-center gap-3">
+        <span className="text-sm">Accepter <strong>{candidat.prenom}</strong> et créer son profil employé ?</span>
+        <button onClick={() => { onUpdate({ statut: 'accepte' }); toast.dismiss(t.id) }}
+          className="text-xs bg-emerald-500 text-white px-3 py-1.5 rounded-lg font-semibold">Confirmer</button>
+        <button onClick={() => toast.dismiss(t.id)} className="text-xs text-muted">Annuler</button>
+      </div>
+    ), { duration: 8000 })
   }
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-ink/50 backdrop-blur-sm"
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/50 backdrop-blur-sm"
         onClick={e => e.target === e.currentTarget && onClose()}>
         <motion.div initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95 }} transition={{ type: 'spring', stiffness: 320, damping: 28 }}
-          className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-            <div>
-              <div className="font-semibold text-ink text-sm">Programmer un entretien</div>
-              <div className="text-xs text-muted mt-0.5">{candidat.prenom} {candidat.nom}</div>
+          className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+          {/* Header — always visible */}
+          <div className="flex items-start gap-4 px-6 py-5 border-b border-border flex-shrink-0">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-ink to-electric flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-sm font-bold">{((candidat.prenom?.[0] || '') + (candidat.nom?.[0] || '')).toUpperCase()}</span>
             </div>
-            <button onClick={onClose} className="w-7 h-7 rounded-lg hover:bg-paper-warm flex items-center justify-center text-muted"><X size={14} /></button>
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-ink">{candidat.prenom} {candidat.nom}</div>
+              <div className="text-xs text-muted mt-0.5">{candidat.etudes || '—'}</div>
+            </div>
+            <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border flex-shrink-0 ${cfg.bg} ${cfg.text} ${cfg.border}`}>
+              <Icon size={11} /> {cfg.label}
+            </span>
+            <button onClick={onClose} className="w-7 h-7 rounded-lg hover:bg-paper-warm flex items-center justify-center text-muted ml-1"><X size={14} /></button>
           </div>
-          <form onSubmit={submit} className="p-6 space-y-4">
-            <div>
-              <label className="label-text mb-1.5 block">Intervieweur</label>
-              <select className="input-field" value={form.intervieweurId} onChange={set('intervieweurId')}>
-                <option value="">Sélectionner un membre de l'équipe</option>
-                {employes.filter(e => e.statut === 'actif').map(e => (
-                  <option key={e.id} value={String(e.id)}>{e.nom} — {e.poste}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="label-text mb-1.5 block">Date</label>
-              <input type="date" className="input-field" value={form.date} onChange={set('date')} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="label-text mb-1.5 block">Heure de début</label>
-                <input type="time" className="input-field" value={form.heureDebut} onChange={set('heureDebut')} />
-              </div>
-              <div>
-                <label className="label-text mb-1.5 block">Durée (minutes)</label>
-                <select className="input-field" value={form.duree} onChange={set('duree')}>
-                  {[30, 45, 60, 90, 120].map(d => <option key={d} value={d}>{d} min</option>)}
-                </select>
-              </div>
-            </div>
-            {form.heureDebut && (
-              <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700">
-                Entretien de <strong>{form.heureDebut}</strong> à <strong>{heureFin}</strong>
-                {form.intervieweurId && (
-                  <> — planifié dans le calendrier de <strong>{employes.find(e => String(e.id) === form.intervieweurId)?.nom}</strong></>
+
+          {mode === null && (
+            <>
+              <div className="overflow-y-auto p-6 space-y-4 flex-1">
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { icon: Mail, label: 'Email', value: candidat.email },
+                    { icon: PhoneCall, label: 'Téléphone', value: candidat.telephone },
+                    { icon: GraduationCap, label: 'Études', value: candidat.etudes },
+                    { icon: Banknote, label: 'Prétention salariale', value: candidat.pretentionSalariale ? `${Number(candidat.pretentionSalariale).toLocaleString('fr-FR')} DH` : null },
+                  ].map(({ icon: ItemIcon, label, value }) => value ? (
+                    <div key={label} className="bg-paper-warm rounded-xl p-3">
+                      <div className="flex items-center gap-1.5 mb-1"><ItemIcon size={11} className="text-muted" /><span className="label-text text-[10px]">{label}</span></div>
+                      <div className="text-sm font-medium text-ink truncate">{value}</div>
+                    </div>
+                  ) : null)}
+                </div>
+                {candidat.notes && (
+                  <div className="bg-paper-warm rounded-xl p-3">
+                    <div className="label-text text-[10px] mb-1">Notes</div>
+                    <p className="text-sm text-ink">{candidat.notes}</p>
+                  </div>
+                )}
+                {(candidat.cv || candidat.portfolio) && (
+                  <div className="flex gap-2 flex-wrap">
+                    {candidat.cv && (
+                      <a href={candidat.cv.dataUrl} download={candidat.cv.name}
+                        className="flex items-center gap-2 px-3 py-2 bg-electric/10 text-electric border border-electric/20 rounded-xl text-xs font-semibold hover:bg-electric/20 transition-colors">
+                        <FileText size={13} /> CV — {candidat.cv.name}
+                      </a>
+                    )}
+                    {candidat.portfolio && (
+                      <a href={candidat.portfolio.dataUrl} download={candidat.portfolio.name}
+                        className="flex items-center gap-2 px-3 py-2 bg-violet-50 text-violet-700 border border-violet-200 rounded-xl text-xs font-semibold hover:bg-violet-100 transition-colors">
+                        <FileText size={13} /> Portfolio — {candidat.portfolio.name}
+                      </a>
+                    )}
+                  </div>
                 )}
               </div>
-            )}
-            <div className="flex gap-2">
-              <button type="button" onClick={onClose} className="btn-ghost flex-1 justify-center">Annuler</button>
-              <button type="submit" className="btn-primary flex-1 justify-center"><CalendarCheck size={13} /> Planifier</button>
-            </div>
-          </form>
+              <div className="px-6 pb-5 flex items-center gap-2 flex-shrink-0 border-t border-border pt-4">
+                <button onClick={onDelete} className="flex items-center gap-1.5 text-xs font-semibold text-rose-600 hover:text-rose-700 px-3 py-2 rounded-xl hover:bg-rose-50 transition-colors">
+                  <Trash2 size={13} /> Supprimer
+                </button>
+                <div className="flex-1" />
+                {candidat.statut !== 'refuse' && (
+                  <button onClick={() => setMode('refuse')} className="flex items-center gap-2 px-4 py-2 rounded-xl border border-rose-200 text-rose-600 text-sm font-semibold hover:bg-rose-50 transition-colors">
+                    <XCircle size={14} /> Refuser
+                  </button>
+                )}
+                {candidat.statut !== 'accepte' && (
+                  <button onClick={handleAccepte} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-semibold hover:bg-emerald-100 transition-colors">
+                    <CheckCircle size={14} /> Accepter
+                  </button>
+                )}
+                <button onClick={() => setMode('entretien')} className="btn-primary text-sm">
+                  <CalendarCheck size={14} /> Entretien
+                </button>
+              </div>
+            </>
+          )}
+
+          {mode === 'entretien' && (
+            <EntretienEmailPanel
+              candidat={candidat} poste={poste} employes={employes}
+              onBack={() => setMode(null)}
+              onSend={(opts) => onUpdate({}, opts)}
+            />
+          )}
+
+          {mode === 'refuse' && (
+            <RefusEmailPanel
+              candidat={candidat} poste={poste}
+              onBack={() => setMode(null)}
+              onConfirm={() => { onUpdate({ statut: 'refuse' }); onClose() }}
+            />
+          )}
         </motion.div>
       </div>
     </AnimatePresence>
   )
 }
 
-// ── CandidatDetailModal ───────────────────────────────────────────────────────
-function CandidatDetailModal({ candidat, poste, employes, onClose, onUpdate, onDelete }) {
-  const [showEntretienModal, setShowEntretienModal] = useState(false)
-  const [statusOpen, setStatusOpen] = useState(false)
+// ── AcceptEmailPanel ──────────────────────────────────────────────────────────
+function AcceptEmailPanel({ candidat, poste, onBack, onConfirm }) {
+  const [salaire, setSalaire] = useState('')
+  const fullName = `${candidat.prenom || ''} ${candidat.nom || ''}`.trim()
+  const t = PANEL_THEME.emerald
 
-  const cfg = STATUT_CAND[candidat.statut] || STATUT_CAND.recu
-  const Icon = cfg.icon
+  const buildBody = (sal) =>
+    `Bonjour ${fullName},\n\nNous avons le plaisir de vous informer que votre candidature pour le poste de ${poste?.intitule || ''} au sein de CLADE Architecture a retenu toute notre attention et que nous souhaitons vous accueillir dans notre équipe.${sal ? `\n\nNous vous proposons une rémunération mensuelle de ${Number(sal).toLocaleString('fr-FR')} DH.` : ''}\n\nNous vous contacterons très prochainement pour les formalités d'intégration et vous transmettrons toutes les informations pratiques.\n\nNous sommes ravis de vous compter parmi nous.\n\nCordialement,\nL'équipe CLADE Architecture`
 
-  const handleStatusChange = (newStatut) => {
-    setStatusOpen(false)
-    if (newStatut === candidat.statut) return
-    if (newStatut === 'entretien') { setShowEntretienModal(true); return }
-    if (newStatut === 'accepte') {
-      toast((t) => (
-        <div className="flex items-center gap-3">
-          <span className="text-sm">Accepter <strong>{candidat.prenom}</strong> et créer son profil employé ?</span>
-          <button onClick={() => { onUpdate({ statut: 'accepte' }); toast.dismiss(t.id) }}
-            className="text-xs bg-emerald-500 text-white px-3 py-1.5 rounded-lg font-semibold">Confirmer</button>
-          <button onClick={() => toast.dismiss(t.id)} className="text-xs text-muted">Annuler</button>
-        </div>
-      ), { duration: 8000 })
-      return
-    }
-    onUpdate({ statut: newStatut })
+  const [body, setBody] = useState(() => buildBody(''))
+  useEffect(() => { setBody(buildBody(salaire)) }, [salaire])
+
+  const handleSend = () => {
+    const subject = encodeURIComponent(`Votre candidature — ${poste?.intitule || ''} — CLADE Architecture`)
+    window.open(`mailto:${candidat.email}?subject=${subject}&body=${encodeURIComponent(body)}`, '_blank')
+    onConfirm()
+    toast.success('Email ouvert — candidature acceptée')
   }
-
-  const handleEntretienSave = (entretienData) => {
-    onUpdate(
-      { statut: 'entretien', entretien: entretienData },
-      { intervieweurId: entretienData.intervieweurId, entretienEvent: {
-        id: `ev${Date.now()}`, titre: `Entretien — ${candidat.prenom} ${candidat.nom}`,
-        date: entretienData.date, heureDebut: entretienData.heureDebut, heureFin: entretienData.heureFin,
-        couleur: '#3B82F6', type: 'entretien',
-      }}
-    )
-    toast.success('Entretien planifié')
-  }
-
-  const notifyEmailHref = candidat.entretien?.intervieweurEmail
-    ? `mailto:${candidat.entretien.intervieweurEmail}?subject=Entretien RH — ${candidat.prenom} ${candidat.nom} — ${candidat.entretien.date}&body=Bonjour,%0D%0A%0D%0AVous êtes chargé(e) de l'entretien pour le poste "${poste.intitule}" avec ${candidat.prenom} ${candidat.nom}.%0D%0A%0D%0ADate : ${candidat.entretien.date}%0D%0AHeure : ${candidat.entretien.heureDebut} — ${candidat.entretien.heureFin}%0D%0A%0D%0ACordialement`
-    : null
 
   return (
-    <>
-      <AnimatePresence>
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/50 backdrop-blur-sm"
-          onClick={e => e.target === e.currentTarget && onClose()}>
-          <motion.div initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95 }} transition={{ type: 'spring', stiffness: 320, damping: 28 }}
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
-            {/* Header */}
-            <div className="flex items-start gap-4 px-6 py-5 border-b border-border flex-shrink-0">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-ink to-electric flex items-center justify-center flex-shrink-0">
-                <span className="text-white text-sm font-bold">{(candidat.prenom[0] + candidat.nom[0]).toUpperCase()}</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="font-semibold text-ink">{candidat.prenom} {candidat.nom}</div>
-                <div className="text-xs text-muted mt-0.5">{candidat.etudes || '—'}</div>
-              </div>
-              {/* Status selector */}
-              <div className="relative flex-shrink-0">
-                <button onClick={() => setStatusOpen(v => !v)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
-                  <Icon size={11} /> {cfg.label} <ChevronDown size={11} />
-                </button>
-                {statusOpen && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setStatusOpen(false)} />
-                    <div className="absolute right-0 top-full mt-1 bg-white border border-border rounded-xl shadow-xl z-20 overflow-hidden min-w-[140px]">
-                      {Object.entries(STATUT_CAND).map(([key, s]) => {
-                        const SI = s.icon
-                        return (
-                          <button key={key} onClick={() => handleStatusChange(key)}
-                            className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-paper-warm transition-colors ${candidat.statut === key ? 'font-semibold' : ''}`}>
-                            <SI size={12} className={s.text} /> {s.label}
-                          </button>
-                        )
-                      })}
+    <div className="flex flex-col flex-1 overflow-hidden">
+      <PanelHeader theme="emerald" title="Email d'acceptation" onBack={onBack} />
+      <div className="overflow-y-auto p-6 space-y-4 flex-1">
+        <div className={`${t.light} ${t.border} border rounded-xl p-3 flex items-center gap-2`}>
+          <CheckCircle size={14} className={t.text} />
+          <span className={`text-xs font-medium ${t.text}`}>Un email d'acceptation sera envoyé à {candidat.email}</span>
+        </div>
+        <div>
+          <label className={`text-[10px] font-semibold uppercase tracking-widest mb-1.5 block ${t.label}`}>Salaire proposé (DH / mois)</label>
+          <input type="number" value={salaire} onChange={e => setSalaire(e.target.value)}
+            placeholder="Ex : 8 000"
+            className={`input w-full focus:border-emerald-300 focus:ring-1 focus:ring-emerald-50`} />
+          {salaire && (
+            <p className={`text-[10px] mt-1 ${t.text}`}>✓ Le salaire sera automatiquement intégré dans l'email</p>
+          )}
+        </div>
+        <div>
+          <label className={`text-[10px] font-semibold uppercase tracking-widest mb-1.5 block ${t.label}`}>Corps de l'email</label>
+          <textarea value={body} onChange={e => setBody(e.target.value)} rows={10}
+            className={`input w-full resize-none text-xs leading-relaxed font-mono focus:border-emerald-200 focus:ring-1 focus:ring-emerald-50`} />
+        </div>
+      </div>
+      <div className="px-6 pb-5 flex gap-3 border-t border-border pt-4 flex-shrink-0">
+        <button onClick={onBack} className="btn-ghost text-sm flex-1 justify-center">Annuler</button>
+        <button onClick={handleSend}
+          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold transition-colors ${t.btn}`}>
+          <Send size={13} /> Envoyer par email
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── PortfolioApplicantModal ───────────────────────────────────────────────────
+const PORTFOLIO_TO_DISPLAY = { nouveau: 'recu', entretien_planifie: 'recu', classe: 'refuse', recu: 'recu', accepte: 'accepte', refuse: 'refuse', confirme: 'confirme' }
+const DISPLAY_TO_PORTFOLIO = { recu: 'recu', accepte: 'accepte', refuse: 'refuse', confirme: 'confirme' }
+
+function PortfolioApplicantModal({ candidature, poste, employes, onClose, onUpdate, onDelete }) {
+  const [mode, setMode] = useState(null) // null | 'entretien' | 'classe'
+  const displayStatut = PORTFOLIO_TO_DISPLAY[candidature.statut] || 'recu'
+  const cfg = STATUT_CAND[displayStatut] || STATUT_CAND.recu
+  const Icon = cfg.icon
+
+  return (
+    <AnimatePresence>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/50 backdrop-blur-sm"
+        onClick={e => e.target === e.currentTarget && onClose()}>
+        <motion.div initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95 }} transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+          className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center gap-4 px-6 py-5 border-b border-border flex-shrink-0">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-ink/80 to-electric flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-sm font-bold">{(candidature.prenom?.[0] || '?') + (candidature.nom?.[0] || '?')}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-ink">{candidature.prenom} {candidature.nom}</div>
+              {candidature.departement && <div className="text-xs text-muted mt-0.5">{candidature.departement}</div>}
+            </div>
+            <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border flex-shrink-0 ${cfg.bg} ${cfg.text} ${cfg.border}`}>
+              <Icon size={11} /> {cfg.label}
+            </span>
+            <button onClick={onClose} className="w-7 h-7 rounded-lg hover:bg-paper-warm flex items-center justify-center text-muted"><X size={14} /></button>
+          </div>
+
+          {mode === null && (
+            <>
+              <div className="overflow-y-auto p-6 space-y-5 flex-1">
+                {/* Contact */}
+                <div className="flex flex-wrap gap-5">
+                  {candidature.email && (
+                    <div className="flex items-center gap-2 text-xs text-ink">
+                      <Mail size={13} className="text-muted flex-shrink-0" />
+                      <span>{candidature.email}</span>
                     </div>
-                  </>
+                  )}
+                  {candidature.telephone && (
+                    <div className="flex items-center gap-2 text-xs text-ink">
+                      <PhoneCall size={13} className="text-muted flex-shrink-0" />
+                      <span>{candidature.telephone}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* CV + Portfolio centered */}
+                {(candidature.cvUrl || candidature.portfolioUrl) && (
+                  <div className="flex justify-center gap-3 flex-wrap">
+                    {candidature.cvUrl && (
+                      <a href={candidature.cvUrl} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-4 py-2 bg-paper-warm text-ink border border-border rounded-xl text-xs font-semibold hover:bg-paper transition-colors">
+                        <FileText size={13} /> Voir le CV
+                      </a>
+                    )}
+                    {candidature.portfolioUrl && (
+                      <a href={candidature.portfolioUrl} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-4 py-2 bg-paper-warm text-ink border border-border rounded-xl text-xs font-semibold hover:bg-paper transition-colors">
+                        <Globe size={13} /> Voir le portfolio
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {/* Message */}
+                {candidature.message && (
+                  <div className="bg-paper-warm rounded-xl p-4">
+                    <div className="label-text text-[10px] mb-1.5">Lettre de motivation</div>
+                    <p className="text-sm text-ink whitespace-pre-wrap leading-relaxed">{candidature.message}</p>
+                  </div>
+                )}
+
+                {candidature.dateReception && (
+                  <div className="text-[10px] text-muted">Reçue le {new Date(candidature.dateReception).toLocaleDateString('fr-FR')}</div>
                 )}
               </div>
-              <button onClick={onClose} className="w-7 h-7 rounded-lg hover:bg-paper-warm flex items-center justify-center text-muted ml-1"><X size={14} /></button>
-            </div>
 
-            {/* Body */}
-            <div className="overflow-y-auto p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { icon: Mail, label: 'Email', value: candidat.email },
-                  { icon: PhoneCall, label: 'Téléphone', value: candidat.telephone },
-                  { icon: GraduationCap, label: 'Études', value: candidat.etudes },
-                  { icon: Banknote, label: 'Prétention salariale', value: candidat.pretentionSalariale ? `${Number(candidat.pretentionSalariale).toLocaleString('fr-FR')} DH` : null },
-                ].map(({ icon: ItemIcon, label, value }) => value ? (
-                  <div key={label} className="bg-paper-warm rounded-xl p-3">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <ItemIcon size={11} className="text-muted" />
-                      <span className="label-text text-[10px]">{label}</span>
-                    </div>
-                    <div className="text-sm font-medium text-ink truncate">{value}</div>
-                  </div>
-                ) : null)}
+              <div className="px-6 pb-5 flex-shrink-0 border-t border-border pt-4 space-y-3">
+                <div className="flex gap-3">
+                  <button onClick={() => setMode('classe')}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-sm font-medium text-gray-700 transition-colors">
+                    <Check size={15} /> Classer
+                  </button>
+                  <button onClick={() => setMode('entretien')}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-ink hover:bg-ink/90 text-white text-sm font-medium transition-colors">
+                    <CalendarCheck size={15} /> Proposer un entretien
+                  </button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <button onClick={onDelete} className="flex items-center gap-1.5 text-xs font-semibold text-rose-600 hover:text-rose-700 px-2 py-1.5 rounded-xl hover:bg-rose-50 transition-colors">
+                    <Trash2 size={13} /> Supprimer
+                  </button>
+                  <button onClick={onClose} className="btn-ghost text-sm">Fermer</button>
+                </div>
               </div>
+            </>
+          )}
 
-              {candidat.notes && (
-                <div className="bg-paper-warm rounded-xl p-3">
-                  <div className="label-text text-[10px] mb-1">Notes</div>
-                  <p className="text-sm text-ink">{candidat.notes}</p>
-                </div>
-              )}
+          {mode === 'entretien' && (
+            <EntretienEmailPanel
+              candidat={candidature} poste={poste} employes={employes}
+              onBack={() => setMode(null)}
+              onSend={(opts) => onUpdate({}, opts)}
+            />
+          )}
 
-              {/* CV / Portfolio */}
-              {(candidat.cv || candidat.portfolio) && (
-                <div className="flex gap-2">
-                  {candidat.cv && (
-                    <a href={candidat.cv.dataUrl} download={candidat.cv.name}
-                      className="flex items-center gap-2 px-3 py-2 bg-electric/10 text-electric border border-electric/20 rounded-xl text-xs font-semibold hover:bg-electric/20 transition-colors">
-                      <FileText size={13} /> CV — {candidat.cv.name}
-                    </a>
-                  )}
-                  {candidat.portfolio && (
-                    <a href={candidat.portfolio.dataUrl} download={candidat.portfolio.name}
-                      className="flex items-center gap-2 px-3 py-2 bg-violet-50 text-violet-700 border border-violet-200 rounded-xl text-xs font-semibold hover:bg-violet-100 transition-colors">
-                      <FileText size={13} /> Portfolio — {candidat.portfolio.name}
-                    </a>
-                  )}
-                </div>
-              )}
-
-              {/* Entretien info */}
-              {candidat.statut === 'entretien' && candidat.entretien && (
-                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
-                  <div className="label-text text-[10px] text-blue-600 mb-2">Entretien planifié</div>
-                  <div className="grid grid-cols-2 gap-2 text-xs text-blue-800">
-                    <div><span className="text-blue-500">Date</span><div className="font-semibold mt-0.5">{candidat.entretien.date}</div></div>
-                    <div><span className="text-blue-500">Horaire</span><div className="font-semibold mt-0.5">{candidat.entretien.heureDebut} → {candidat.entretien.heureFin}</div></div>
-                    <div className="col-span-2"><span className="text-blue-500">Intervieweur</span><div className="font-semibold mt-0.5">{candidat.entretien.intervieweurNom}</div></div>
-                  </div>
-                  {notifyEmailHref && (
-                    <a href={notifyEmailHref}
-                      className="mt-3 flex items-center gap-2 text-xs font-semibold text-blue-700 hover:text-blue-900 transition-colors">
-                      <Mail size={12} /> Notifier l'intervieweur par email
-                    </a>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="px-6 pb-5 flex gap-2 flex-shrink-0 border-t border-border pt-4">
-              <button onClick={onDelete}
-                className="flex items-center gap-1.5 text-xs font-semibold text-rose-600 hover:text-rose-700 px-3 py-2 rounded-xl hover:bg-rose-50 transition-colors">
-                <Trash2 size={13} /> Supprimer
-              </button>
-              <div className="flex-1" />
-              <button onClick={onClose} className="btn-ghost text-sm">Fermer</button>
-            </div>
-          </motion.div>
-        </div>
-      </AnimatePresence>
-
-      {showEntretienModal && (
-        <EntretienModal
-          candidat={candidat}
-          employes={employes}
-          onClose={() => setShowEntretienModal(false)}
-          onSave={handleEntretienSave}
-        />
-      )}
-    </>
+          {mode === 'classe' && (
+            <RefusEmailPanel
+              candidat={candidature} poste={poste}
+              onBack={() => setMode(null)}
+              onConfirm={() => { onUpdate({ statut: 'refuse' }); onClose() }}
+            />
+          )}
+        </motion.div>
+      </div>
+    </AnimatePresence>
   )
 }
 
@@ -496,7 +688,8 @@ function CandidatDetailModal({ candidat, poste, employes, onClose, onUpdate, onD
 export default function RecruitmentDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { recrutements, employes, updateRecrutement, addCandidat, updateCandidat, deleteCandidat } = useData()
+  const { recrutements, employes, updateRecrutement, addCandidat, updateCandidat, deleteCandidat,
+    candidaturesSpont, updateCandidatureSpont, deleteCandidatureSpont, addEmploye } = useData()
 
   const poste = recrutements.find(r => r.id === id)
 
@@ -504,19 +697,64 @@ export default function RecruitmentDetailPage() {
   const [showAddCandidat, setShowAddCandidat] = useState(false)
   const [editingCandidat, setEditingCandidat] = useState(null)
   const [detailCandidat, setDetailCandidat] = useState(null)
+  const [detailPortfolio, setDetailPortfolio] = useState(null)
   const [filterStatut, setFilterStatut] = useState('tous')
+  const [openBadge, setOpenBadge] = useState(null)
+  const [badgePanel, setBadgePanel] = useState(null) // { cand, type: 'accepte'|'refuse' }
+  const [confirmModal, setConfirmModal] = useState(null) // cand to confirm
 
   const candidats = poste?.candidats || []
 
-  const stats = useMemo(() => ({
-    total: candidats.length,
-    recu: candidats.filter(c => c.statut === 'recu').length,
-    entretien: candidats.filter(c => c.statut === 'entretien').length,
-    accepte: candidats.filter(c => c.statut === 'accepte').length,
-    rejete: candidats.filter(c => c.statut === 'rejete').length,
-  }), [candidats])
+  const handleBadgeAccepter = (e, cand) => {
+    e.stopPropagation(); setOpenBadge(null)
+    setBadgePanel({ cand, type: 'accepte' })
+  }
 
-  const displayed = filterStatut === 'tous' ? candidats : candidats.filter(c => c.statut === filterStatut)
+  const handleBadgeRefuser = (e, cand) => {
+    e.stopPropagation(); setOpenBadge(null)
+    setBadgePanel({ cand, type: 'refuse' })
+  }
+
+  const handleBadgeConfirmer = (e, cand) => {
+    e.stopPropagation(); setOpenBadge(null)
+    setConfirmModal(cand)
+  }
+
+  const doConfirmer = (cand) => {
+    addEmploye({
+      prenom: cand.prenom, nom: cand.nom, email: cand.email,
+      telephone: cand.telephone || '', poste: poste.intitule,
+      dept: cand.departement || poste.dept || '', statut: 'Actif',
+      dateEntree: new Date().toISOString().split('T')[0],
+    })
+    if (cand._source === 'portfolio') updateCandidatureSpont(cand.id, { statut: 'confirme' })
+    else updateCandidat(poste.id, cand.id, { statut: 'confirme' })
+    setConfirmModal(null)
+    toast.success(`${cand.prenom} ${cand.nom} a rejoint l'équipe !`)
+    navigate('/app/team')
+  }
+
+  const portfolioCandidats = useMemo(() =>
+    (candidaturesSpont || [])
+      .filter(c => c.offreId === id)
+      .map(c => ({ ...c, _source: 'portfolio', _statutDisplay: PORTFOLIO_TO_DISPLAY[c.statut] || 'recu' })),
+    [candidaturesSpont, id]
+  )
+
+  const allCandidats = useMemo(() => [
+    ...candidats.map(c => ({ ...c, _source: 'interne', _statutDisplay: c.statut })),
+    ...portfolioCandidats,
+  ], [candidats, portfolioCandidats])
+
+  const stats = useMemo(() => ({
+    total: allCandidats.length,
+    recu: allCandidats.filter(c => c._statutDisplay === 'recu').length,
+    accepte: allCandidats.filter(c => c._statutDisplay === 'accepte').length,
+    refuse: allCandidats.filter(c => c._statutDisplay === 'refuse').length,
+    confirme: allCandidats.filter(c => c._statutDisplay === 'confirme').length,
+  }), [allCandidats])
+
+  const displayed = filterStatut === 'tous' ? allCandidats : allCandidats.filter(c => c._statutDisplay === filterStatut)
 
   if (!poste) {
     return (
@@ -530,46 +768,49 @@ export default function RecruitmentDetailPage() {
   const sp = STATUT_POSTE[poste.statut] || STATUT_POSTE.ouvert
 
   return (
-    <div className="p-4 lg:p-10 space-y-6">
-      <button onClick={() => navigate('/app/hr')} className="flex items-center gap-2 text-sm text-muted hover:text-ink transition-colors">
-        <ArrowLeft size={15} /> Retour à l'équipe
+    <div className="p-3 lg:p-10 space-y-3 lg:space-y-6">
+      <button onClick={() => navigate('/app/hr')} className="flex items-center gap-1.5 text-xs text-muted hover:text-ink transition-colors">
+        <ArrowLeft size={13} /> Retour à l'équipe
       </button>
 
-      {/* Post header */}
-      <div className="card p-5 lg:p-7">
-        <div className="flex flex-col lg:flex-row lg:items-start gap-5">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-electric/20 to-electric/5 border border-electric/20 flex items-center justify-center flex-shrink-0">
-            <Briefcase size={24} className="text-electric" strokeWidth={1.8} />
+      {/* Post header — compact on mobile */}
+      <div className="card p-4 lg:p-7">
+        <div className="flex items-start gap-3 lg:gap-5">
+          <div className="w-10 h-10 lg:w-14 lg:h-14 rounded-xl lg:rounded-2xl bg-gradient-to-br from-electric/20 to-electric/5 border border-electric/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <Briefcase size={18} className="text-electric" strokeWidth={1.8} />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 flex-wrap mb-1">
-              <h1 className="font-display text-2xl lg:text-3xl text-ink">{poste.intitule}</h1>
-              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${sp.bg} ${sp.text}`}>{sp.label}</span>
+            <div className="flex items-center gap-2 flex-wrap mb-0.5">
+              <h1 className="font-display text-xl lg:text-3xl text-ink leading-tight">{poste.intitule}</h1>
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${sp.bg} ${sp.text}`}>{sp.label}</span>
             </div>
-            {poste.dept && <div className="text-sm text-muted">{poste.dept}</div>}
-            {(poste.salaireMin || poste.salaireMax) && (
-              <div className="text-sm font-semibold text-ink mt-1">
-                {fmtSalary(poste.salaireMin)} — {fmtSalary(poste.salaireMax)}
-              </div>
-            )}
+            <div className="flex items-center gap-2 flex-wrap">
+              {poste.dept && <span className="text-xs text-muted">{poste.dept}</span>}
+              {(poste.salaireMin || poste.salaireMax) && (
+                <>
+                  <span className="text-muted text-xs">·</span>
+                  <span className="text-xs font-semibold text-ink">{fmtSalary(poste.salaireMin)} — {fmtSalary(poste.salaireMax)}</span>
+                </>
+              )}
+            </div>
           </div>
-          <button onClick={() => setShowEditPoste(true)} className="btn-ghost text-sm flex-shrink-0">
-            <Pencil size={13} /> Modifier
+          <button onClick={() => setShowEditPoste(true)} className="flex items-center gap-1 text-xs text-muted hover:text-ink px-2 py-1.5 rounded-lg hover:bg-paper-warm transition-colors flex-shrink-0">
+            <Pencil size={12} /> <span className="hidden sm:inline">Modifier</span>
           </button>
         </div>
 
         {(poste.description || poste.missions) && (
-          <div className="mt-5 pt-5 border-t border-border grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div className="mt-3 pt-3 border-t border-border grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-5">
             {poste.description && (
               <div>
-                <div className="label-text text-[10px] mb-1.5">Description</div>
-                <p className="text-sm text-ink whitespace-pre-line">{poste.description}</p>
+                <div className="label-text text-[10px] mb-1">Description</div>
+                <p className="text-xs text-ink whitespace-pre-line leading-relaxed">{poste.description}</p>
               </div>
             )}
             {poste.missions && (
               <div>
-                <div className="label-text text-[10px] mb-1.5">Missions</div>
-                <p className="text-sm text-ink whitespace-pre-line">{poste.missions}</p>
+                <div className="label-text text-[10px] mb-1">Missions</div>
+                <p className="text-xs text-ink whitespace-pre-line leading-relaxed">{poste.missions}</p>
               </div>
             )}
           </div>
@@ -577,34 +818,33 @@ export default function RecruitmentDetailPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+      <div className="grid grid-cols-4 gap-2 lg:gap-3">
         {[
-          { key: 'tous', label: 'Total', value: stats.total, color: 'bg-paper-warm border-border' },
-          { key: 'recu', label: 'Reçus', value: stats.recu, color: 'bg-paper-warm border-border' },
-          { key: 'entretien', label: 'Entretiens', value: stats.entretien, color: 'bg-blue-50 border-blue-100' },
-          { key: 'accepte', label: 'Acceptés', value: stats.accepte, color: 'bg-emerald-50 border-emerald-100' },
-          { key: 'rejete', label: 'Rejetés', value: stats.rejete, color: 'bg-rose-50 border-rose-100' },
+          { key: 'tous',     label: 'Reçus',     value: stats.total,    color: 'bg-paper-warm border-border' },
+          { key: 'accepte',  label: 'Acceptés',  value: stats.accepte,  color: 'bg-emerald-50 border-emerald-100' },
+          { key: 'confirme', label: 'Confirmés', value: stats.confirme, color: 'bg-violet-50 border-violet-100' },
+          { key: 'refuse',   label: 'Refusés',   value: stats.refuse,   color: 'bg-rose-50 border-rose-100' },
         ].map(s => (
           <button key={s.key} onClick={() => setFilterStatut(s.key)}
-            className={`card p-4 text-left border transition-all ${s.color} ${filterStatut === s.key ? 'ring-2 ring-electric' : ''}`}>
-            <div className="text-xs text-muted mb-1">{s.label}</div>
-            <div className="font-display text-3xl text-ink leading-none">{s.value}</div>
+            className={`card p-3 lg:p-4 text-left border transition-all ${s.color} ${filterStatut === s.key ? 'ring-2 ring-electric' : ''}`}>
+            <div className="text-[10px] lg:text-[11px] text-muted mb-1 leading-tight">{s.label}</div>
+            <div className="font-display text-2xl lg:text-3xl text-ink leading-none">{s.value}</div>
           </button>
         ))}
       </div>
 
       {/* Candidates */}
-      <div className="card p-5 lg:p-7">
-        <div className="flex items-center justify-between mb-5">
+      <div className="card p-4 lg:p-7">
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <div className="label-text mb-0.5">Candidatures</div>
-            <div className="font-display text-xl text-ink">
+            <div className="label-text text-[10px] mb-0.5">Candidatures</div>
+            <div className="font-display text-lg lg:text-xl text-ink leading-tight">
               {displayed.length} candidat{displayed.length !== 1 ? 's' : ''}
-              {filterStatut !== 'tous' && <span className="text-sm font-normal text-muted ml-2">· filtre : {STATUT_CAND[filterStatut]?.label}</span>}
+              {filterStatut !== 'tous' && <span className="text-xs font-normal text-muted ml-2">· {STATUT_CAND[filterStatut]?.label}</span>}
             </div>
           </div>
-          <button onClick={() => setShowAddCandidat(true)} className="btn-primary text-sm">
-            <Plus size={14} /> Ajouter
+          <button onClick={() => setShowAddCandidat(true)} className="btn-primary text-xs lg:text-sm">
+            <Plus size={13} /> Ajouter
           </button>
         </div>
 
@@ -617,30 +857,57 @@ export default function RecruitmentDetailPage() {
         ) : (
           <div className="space-y-2">
             {[...displayed].reverse().map(cand => {
-              const cs = STATUT_CAND[cand.statut] || STATUT_CAND.recu
+              const cs = STATUT_CAND[cand._statutDisplay] || STATUT_CAND.recu
               const CI = cs.icon
+              const isPortfolio = cand._source === 'portfolio'
               return (
                 <motion.div key={cand.id}
                   initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-                  onClick={() => setDetailCandidat(cand)}
+                  onClick={() => isPortfolio ? setDetailPortfolio(cand) : setDetailCandidat(cand)}
                   className="flex items-center gap-4 p-4 rounded-xl border border-border hover:bg-paper-warm cursor-pointer transition-colors group">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-ink/80 to-electric flex items-center justify-center flex-shrink-0">
-                    <span className="text-white text-xs font-bold">{(cand.prenom[0] + cand.nom[0]).toUpperCase()}</span>
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isPortfolio ? 'bg-gradient-to-br from-violet-600 to-violet-400' : 'bg-gradient-to-br from-ink/80 to-electric'}`}>
+                    <span className="text-white text-xs font-bold">{((cand.prenom?.[0] || '') + (cand.nom?.[0] || '')).toUpperCase()}</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-ink">{cand.prenom} {cand.nom}</div>
-                    <div className="text-xs text-muted truncate">{cand.etudes || cand.email || '—'}</div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-sm font-semibold text-ink">{cand.prenom} {cand.nom}</div>
+                      {isPortfolio && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-violet-50 text-violet-600">Portfolio</span>}
+                    </div>
+                    <div className="text-xs text-muted truncate">{cand.etudes || cand.departement || cand.email || '—'}</div>
                   </div>
                   {cand.pretentionSalariale && (
                     <div className="text-xs font-semibold text-ink hidden sm:block">{fmtSalary(cand.pretentionSalariale)}</div>
                   )}
                   <div className="flex items-center gap-1.5">
-                    {cand.cv && <FileText size={12} className="text-electric" title="CV joint" />}
-                    {cand.portfolio && <FileText size={12} className="text-violet-500" title="Portfolio joint" />}
+                    {(cand.cv || cand.cvUrl) && <FileText size={12} className="text-electric" title="CV joint" />}
+                    {(cand.portfolio || cand.portfolioUrl) && <Globe size={12} className="text-violet-500" title="Portfolio" />}
                   </div>
-                  <span className={`flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full border ${cs.bg} ${cs.text} ${cs.border}`}>
-                    <CI size={10} /> {cs.label}
-                  </span>
+                  <div className="relative" onClick={e => e.stopPropagation()}>
+                    <button
+                      onClick={e => { e.stopPropagation(); setOpenBadge(openBadge === cand.id ? null : cand.id) }}
+                      className={`flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full border ${cs.bg} ${cs.text} ${cs.border} hover:brightness-95 transition-all`}>
+                      <CI size={10} /> {cs.label} <ChevronDown size={9} />
+                    </button>
+                    {openBadge === cand.id && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setOpenBadge(null)} />
+                        <div className="absolute right-0 top-full mt-1 bg-white border border-border rounded-xl shadow-xl z-20 overflow-hidden min-w-[140px]">
+                          <button onClick={e => handleBadgeAccepter(e, cand)}
+                            className="w-full flex items-center gap-2 px-3 py-2.5 text-xs hover:bg-emerald-50 text-emerald-700 transition-colors border-b border-border/40">
+                            <CheckCircle size={12} /> Accepter
+                          </button>
+                          <button onClick={e => handleBadgeConfirmer(e, cand)}
+                            className="w-full flex items-center gap-2 px-3 py-2.5 text-xs hover:bg-violet-50 text-violet-700 transition-colors border-b border-border/40">
+                            <UserCheck size={12} /> Confirmer
+                          </button>
+                          <button onClick={e => handleBadgeRefuser(e, cand)}
+                            className="w-full flex items-center gap-2 px-3 py-2.5 text-xs hover:bg-rose-50 text-rose-600 transition-colors">
+                            <XCircle size={12} /> Refuser
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </motion.div>
               )
             })}
@@ -670,6 +937,127 @@ export default function RecruitmentDetailPage() {
           onClose={() => setEditingCandidat(null)}
           onAdd={data => { updateCandidat(poste.id, editingCandidat.id, data); toast.success('Candidat modifié'); setEditingCandidat(null) }}
         />
+      )}
+
+      {detailPortfolio && (
+        <PortfolioApplicantModal
+          candidature={(candidaturesSpont || []).find(c => c.id === detailPortfolio.id) || detailPortfolio}
+          poste={poste}
+          employes={employes}
+          onClose={() => setDetailPortfolio(null)}
+          onUpdate={updates => updateCandidatureSpont(detailPortfolio.id, updates)}
+          onDelete={() => {
+            toast((t) => (
+              <div className="flex items-center gap-3">
+                <span className="text-sm">Supprimer cette candidature ?</span>
+                <button onClick={() => { deleteCandidatureSpont(detailPortfolio.id); toast.dismiss(t.id); setDetailPortfolio(null) }}
+                  className="text-xs bg-rose-500 text-white px-3 py-1.5 rounded-lg font-semibold">Supprimer</button>
+                <button onClick={() => toast.dismiss(t.id)} className="text-xs text-muted">Annuler</button>
+              </div>
+            ), { duration: 6000 })
+          }}
+        />
+      )}
+
+      {confirmModal && (
+        <AnimatePresence>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/50 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92 }}
+              transition={{ type: 'spring', stiffness: 340, damping: 28 }}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+              {/* Accent top */}
+              <div className="h-1.5 w-full bg-gradient-to-r from-violet-500 to-violet-400" />
+              {/* Body */}
+              <div className="p-8 text-center">
+                {/* Avatar */}
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-violet-400 flex items-center justify-center mx-auto mb-5 shadow-lg shadow-violet-200">
+                  <span className="text-white text-xl font-bold">
+                    {((confirmModal.prenom?.[0] || '') + (confirmModal.nom?.[0] || '')).toUpperCase()}
+                  </span>
+                </div>
+                <div className="text-lg font-bold text-ink mb-1">{confirmModal.prenom} {confirmModal.nom}</div>
+                <div className="text-xs text-muted mb-1">{confirmModal.email}</div>
+                {(confirmModal.departement || poste.dept) && (
+                  <div className="text-xs font-semibold text-violet-600 mb-5">{confirmModal.departement || poste.dept}</div>
+                )}
+                <div className="bg-violet-50 border border-violet-100 rounded-xl px-4 py-3 mb-6">
+                  <p className="text-sm text-violet-800 leading-relaxed">
+                    Intégrer <strong>{confirmModal.prenom}</strong> à l'équipe en tant que{' '}
+                    <strong>{poste.intitule}</strong> ?
+                  </p>
+                  <p className="text-[11px] text-violet-500 mt-1.5">Un profil employé sera automatiquement créé.</p>
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={() => setConfirmModal(null)}
+                    className="flex-1 px-4 py-2.5 rounded-xl border border-border text-sm font-medium text-muted hover:bg-paper-warm transition-colors">
+                    Annuler
+                  </button>
+                  <button onClick={() => doConfirmer(confirmModal)}
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2">
+                    <UserCheck size={14} /> Confirmer
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </AnimatePresence>
+      )}
+
+      {badgePanel && (
+        <AnimatePresence>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/50 backdrop-blur-sm"
+            onClick={e => e.target === e.currentTarget && setBadgePanel(null)}>
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }} transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+              {/* Candidate header */}
+              <div className="flex items-center gap-3 px-6 py-4 border-b border-border flex-shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-ink/80 to-electric flex items-center justify-center flex-shrink-0">
+                  <span className="text-white text-xs font-bold">
+                    {((badgePanel.cand.prenom?.[0] || '') + (badgePanel.cand.nom?.[0] || '')).toUpperCase()}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-ink text-sm">{badgePanel.cand.prenom} {badgePanel.cand.nom}</div>
+                  <div className="text-xs text-muted">{badgePanel.cand.email}</div>
+                </div>
+                <button onClick={() => setBadgePanel(null)} className="w-7 h-7 rounded-lg hover:bg-paper-warm flex items-center justify-center text-muted">
+                  <X size={14} />
+                </button>
+              </div>
+              {badgePanel.type === 'accepte' && (
+                <AcceptEmailPanel
+                  candidat={badgePanel.cand}
+                  poste={poste}
+                  onBack={() => setBadgePanel(null)}
+                  onConfirm={() => {
+                    const c = badgePanel.cand
+                    if (c._source === 'portfolio') updateCandidatureSpont(c.id, { statut: 'accepte' })
+                    else updateCandidat(poste.id, c.id, { statut: 'accepte' })
+                    setBadgePanel(null)
+                    toast.success(`${c.prenom} accepté(e)`)
+                  }}
+                />
+              )}
+              {badgePanel.type === 'refuse' && (
+                <RefusEmailPanel
+                  candidat={badgePanel.cand}
+                  poste={poste}
+                  onBack={() => setBadgePanel(null)}
+                  onConfirm={() => {
+                    const c = badgePanel.cand
+                    if (c._source === 'portfolio') updateCandidatureSpont(c.id, { statut: 'refuse' })
+                    else updateCandidat(poste.id, c.id, { statut: 'refuse' })
+                    setBadgePanel(null)
+                  }}
+                />
+              )}
+            </motion.div>
+          </div>
+        </AnimatePresence>
       )}
 
       {detailCandidat && (

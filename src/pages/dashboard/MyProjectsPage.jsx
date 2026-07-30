@@ -65,7 +65,7 @@ function StatutDropdown({ statut, projectId, onUpdate }) {
             {ALL_STATUTS.map(sv => {
               const ss = STATUT_STYLES[sv]
               return (
-                <button key={sv} onClick={() => { onUpdate(projectId, { projetStatut: sv }); setOpen(false) }}
+                <button key={sv} onClick={() => { onUpdate(projectId, { statut: sv }); setOpen(false) }}
                   className={`w-full flex items-center gap-2 px-3 py-2.5 text-xs hover:bg-paper-warm transition-colors text-left ${statut === sv ? 'font-semibold bg-paper-warm' : ''}`}>
                   <span className={`w-2 h-2 rounded-full flex-shrink-0 ${ss.dot}`} />
                   <span className={ss.text}>{sv}</span>
@@ -205,7 +205,7 @@ function PersonnelModal({ project, myId, myNom, onClose }) {
   const deadlines = (project.missions || []).filter(m => m.type === 'deadline').sort((a, b) => new Date(a.date) - new Date(b.date))
   const rdvs      = (project.missions || []).filter(m => m.type === 'rdv').sort((a, b) => new Date(a.date) - new Date(b.date))
   const livrables = (project.livrables || [])
-  const cfg = STATUT_STYLES[project.projetStatut] || STATUT_STYLES['En cours']
+  const cfg = STATUT_STYLES[project.statut] || STATUT_STYLES['En cours']
 
   const tabs = [
     { id: 'gantt',     label: 'Gantt' },
@@ -228,7 +228,7 @@ function PersonnelModal({ project, myId, myNom, onClose }) {
               <div className="flex items-center gap-2 mb-1">
                 <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.text}`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-                  {project.projetStatut || 'En cours'}
+                  {project.statut || 'En cours'}
                 </span>
               </div>
               <h2 className="font-display text-2xl text-ink">{project.nom}</h2>
@@ -465,9 +465,9 @@ export default function MyProjectsPage() {
     : (activeTab === 'interne' && refInternal.length === 0) ? 'externe'
     : activeTab
 
-  const filteredExternal = (statusFilter === 'Tous' ? refExternal : refExternal.filter(p => (p.projetStatut || 'En cours') === statusFilter))
+  const filteredExternal = (statusFilter === 'Tous' ? refExternal : refExternal.filter(p => (p.statut || 'En cours') === statusFilter))
     .filter(p => !searchQuery || p.nom.toLowerCase().includes(searchQuery.toLowerCase()))
-  const filteredInternal = (statusFilter === 'Tous' ? refInternal : refInternal.filter(p => (p.projetStatut || 'En cours') === statusFilter))
+  const filteredInternal = (statusFilter === 'Tous' ? refInternal : refInternal.filter(p => (p.statut || 'En cours') === statusFilter))
     .filter(p => !searchQuery || p.nom.toLowerCase().includes(searchQuery.toLowerCase()))
 
   const hasNothing = myReferentProjects.length === 0 && myAssignedProjects.length === 0
@@ -596,7 +596,7 @@ export default function MyProjectsPage() {
                             {s}
                             {s !== 'Tous' && (
                               <span className={`text-[10px] ${isActive ? 'opacity-60' : 'opacity-50'}`}>
-                                {src.filter(p => (p.projetStatut || 'En cours') === s).length}
+                                {src.filter(p => (p.statut || 'En cours') === s).length}
                               </span>
                             )}
                           </button>
@@ -648,7 +648,7 @@ export default function MyProjectsPage() {
                             </div>
                             <ProgressBar value={p.avancement} />
                           </div>
-                          <StatutDropdown statut={p.projetStatut || 'En cours'} projectId={p.id} onUpdate={updateProject} />
+                          <StatutDropdown statut={p.statut || 'En cours'} projectId={p.id} onUpdate={updateProject} />
                           <div className="text-xs text-ink font-semibold whitespace-nowrap">
                             {totalTasks === 0 ? <span className="text-muted font-normal">—</span> : (
                               <><span className="text-emerald-600">{doneTasks}</span><span className="text-muted font-normal"> / {totalTasks} tâche{totalTasks !== 1 ? 's' : ''}</span></>
@@ -691,7 +691,7 @@ export default function MyProjectsPage() {
                               </div>
                               <div className="text-xs text-muted mt-0.5">{p.client}</div>
                             </div>
-                            <StatutDropdown statut={p.projetStatut || 'En cours'} projectId={p.id} onUpdate={updateProject} />
+                            <StatutDropdown statut={p.statut || 'En cours'} projectId={p.id} onUpdate={updateProject} />
                           </div>
                           <div className="mb-3">
                             <div className="flex justify-between text-xs mb-1.5">
@@ -740,7 +740,7 @@ export default function MyProjectsPage() {
                             <span className="text-xs text-muted">
                               {taskCount === 0 ? '—' : <><span className="text-emerald-600 font-semibold">{doneTasks}</span><span className="text-muted"> / {taskCount} tâche{taskCount !== 1 ? 's' : ''}</span></>}
                             </span>
-                            <StatutDropdown statut={p.projetStatut || 'En cours'} projectId={p.id} onUpdate={updateProject} />
+                            <StatutDropdown statut={p.statut || 'En cours'} projectId={p.id} onUpdate={updateProject} />
                           </div>
                           <div className="flex items-center justify-between text-xs mb-1">
                             <span className="text-muted">Avancement</span>
@@ -771,7 +771,7 @@ export default function MyProjectsPage() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {myAssignedProjects.map((p, i) => {
-                  const cfg = STATUT_STYLES[p.projetStatut] || STATUT_STYLES['En cours']
+                  const cfg = STATUT_STYLES[p.statut] || STATUT_STYLES['En cours']
                   const tasks = p.tasks || []
                   const done  = tasks.filter(t => t.statut === 'Done').length
                   const missions = (p.missions || []).filter(m => m.type === 'mission')
@@ -789,7 +789,7 @@ export default function MyProjectsPage() {
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.text}`}>
                               <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-                              {p.projetStatut || 'En cours'}
+                              {p.statut || 'En cours'}
                             </span>
                           </div>
                           <h3 className="font-semibold text-ink text-sm leading-tight truncate">{p.nom}</h3>

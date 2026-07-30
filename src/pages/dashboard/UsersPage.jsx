@@ -10,6 +10,7 @@ import { Avatar } from '../../components/ui'
 import { useData } from '../../context/DataContext'
 import { useAuth } from '../../context/AuthContext'
 import { ALL_MODULES } from '../../lib/modules'
+import { supabase } from '../../lib/supabase'
 
 function generatePassword() {
   const charset = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
@@ -118,7 +119,12 @@ function FilterPills({ options, value, onChange }) {
           }`}
         >
           {opt.icon && <opt.icon size={11} />}
-          {opt.label}
+          {opt.shortLabel ? (
+            <>
+              <span className="sm:hidden">{opt.shortLabel}</span>
+              <span className="hidden sm:inline">{opt.label}</span>
+            </>
+          ) : opt.label}
           <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
             value === opt.value ? 'bg-white/20 text-white' : 'bg-border text-muted'
           }`}>{opt.count}</span>
@@ -152,8 +158,12 @@ function EmployeeCard({ emp, onUpdateEmploye, onSetupPortal, onToggleBlock, isCr
     onSetupPortal(emp.id, { username, password })
   }
 
-  const refreshPassword = () => {
-    onUpdateEmploye(emp.id, { credentials: { ...emp.credentials, password: generatePassword() } })
+  const refreshPassword = async () => {
+    const newPassword = generatePassword()
+    onUpdateEmploye(emp.id, { credentials: { ...emp.credentials, password: newPassword } })
+    const email = emp.email || `${emp.credentials?.username}@clade.ma`
+    const { error } = await supabase.rpc('update_user_password', { user_email: email, new_password: newPassword })
+    if (error) console.warn('[Auth] Sync password échoué:', error.message)
     toast.success('Mot de passe mis à jour')
   }
 
@@ -352,16 +362,17 @@ export default function UsersPage() {
   const refreshClientPassword = async (group) => {
     const existing = group.find(p => p.clientCredentials)?.clientCredentials
     if (!existing) return
-    const newCreds = { ...existing, password: generatePassword() }
+    const newPassword = generatePassword()
+    const newCreds = { ...existing, password: newPassword }
     const rep = group[0]
     const groupKey = `${rep.prenom}_${rep.nom}`
     setLoadingPortal(groupKey)
     try {
       const withEmail = group.find(p => p.email) || group[0]
-      await setupClientPortal(withEmail.id, newCreds)
-      group.filter(p => p.id !== withEmail.id).forEach(p =>
-        updateProspect(p.id, { clientCredentials: newCreds })
-      )
+      const email = withEmail.email || `${existing.username}@clade.ma`
+      group.forEach(p => updateProspect(p.id, { clientCredentials: newCreds }))
+      const { error } = await supabase.rpc('update_user_password', { user_email: email, new_password: newPassword })
+      if (error) console.warn('[Auth] Sync password client échoué:', error.message)
       toast.success('Mot de passe mis à jour')
     } catch (err) {
       toast.error(`Erreur : ${err.message}`)
@@ -448,7 +459,6 @@ export default function UsersPage() {
             value={empFilter}
             onChange={setEmpFilter}
             options={[
-              { value: 'all',    label: 'Tous',    count: employes.length,    activeClass: 'bg-ink text-white' },
               { value: 'actif',  label: 'Actifs',  count: empActifs.length,   activeClass: 'bg-emerald-600 text-white', icon: Unlock },
               { value: 'bloque', label: 'Bloqués', count: empBloques.length,  activeClass: 'bg-rose-500 text-white',    icon: Lock },
             ]}
@@ -487,7 +497,6 @@ export default function UsersPage() {
             value={clientFilter}
             onChange={setClientFilter}
             options={[
-              { value: 'all',        label: 'Tous',        count: clientGroups.length,     activeClass: 'bg-ink text-white' },
               { value: 'actif',      label: 'Actifs',      count: clientsActifs.length,    activeClass: 'bg-emerald-600 text-white', icon: Unlock },
               { value: 'bloque',     label: 'Bloqués',     count: clientsBloques.length,   activeClass: 'bg-rose-500 text-white',    icon: Lock },
               { value: 'sans_acces', label: 'Sans accès',  count: clientsSansAcces.length, activeClass: 'bg-amber-500 text-white',   icon: Globe },

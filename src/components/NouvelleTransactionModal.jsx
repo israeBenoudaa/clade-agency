@@ -4,6 +4,7 @@ import { X, TrendingUp, TrendingDown, CheckCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useData } from '../context/DataContext'
 import { useAuth } from '../context/AuthContext'
+import SelectField from './SelectField'
 
 const CATS_ENTREE = ['Honoraires', 'Acompte', 'Remboursement', 'Subvention', 'Autre']
 const CATS_SORTIE = ['Logiciels', 'Fournitures', 'Déplacements', 'Formation', 'Loyer', 'Salaires', 'Sous-traitance', 'Autre']
@@ -98,9 +99,11 @@ export default function NouvelleTransactionModal({ onClose, defaultType = 'entre
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="label-text mb-1.5 block">Catégorie</label>
-                <select className="input-field" value={form.categorie} onChange={set('categorie')}>
-                  {(isE ? CATS_ENTREE : CATS_SORTIE).map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
+                <SelectField
+                  value={form.categorie}
+                  onChange={v => setForm(f => ({ ...f, categorie: v }))}
+                  options={isE ? CATS_ENTREE : CATS_SORTIE}
+                />
               </div>
               <div>
                 <label className="label-text mb-1.5 block">Date</label>

@@ -7,16 +7,18 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
+import { ClientLangProvider, useClientLang, CLIENT_LANGS } from '../context/ClientLangContext'
 import { Avatar } from '../components/ui'
-import { CladeLogo } from '../components/ui/Logo'
+import { CladeBrand } from '../components/ui/Logo'
+import OnboardingGuide from '../components/OnboardingGuide'
 import toast from 'react-hot-toast'
 
 const CLIENT_NAV = [
-  { to: '/client', label: 'Projets', icon: Home, end: true },
-  { to: '/client/concept', label: 'Concept', icon: Sparkles },
-  { to: '/client/livrables', label: 'Livrables', icon: FileText },
-  { to: '/client/depenses', label: 'Mes Dépenses', icon: Wallet },
-  { to: '/client/messages', label: 'Messages', icon: MessageSquare },
+  { to: '/client', key: 'nav.projects', icon: Home, end: true },
+  { to: '/client/concept', key: 'nav.concept', icon: Sparkles },
+  { to: '/client/livrables', key: 'nav.livrables', icon: FileText },
+  { to: '/client/depenses', key: 'nav.expenses', icon: Wallet },
+  { to: '/client/messages', key: 'nav.messages', icon: MessageSquare },
 ]
 
 function useClientNotifications(profile, projects) {
@@ -25,8 +27,7 @@ function useClientNotifications(profile, projects) {
     if (!profile?.prospectId) return notifs
 
     const project = projects?.find(p =>
-      p.prospectId === profile.prospectId ||
-      p.clientId === profile.id
+      p.prospectId === profile.prospectId
     )
     if (!project) return notifs
 
@@ -121,13 +122,14 @@ function NotificationsDropdown({ notifs, onClose, navigate, onMarkRead }) {
 function SearchOverlay({ onClose, navigate }) {
   const [query, setQuery] = useState('')
   const inputRef = useRef(null)
+  const { t } = useClientLang()
 
   const PAGES = [
-    { label: 'Mon Projet', desc: 'Vue d\'ensemble de votre projet', link: '/client', keywords: 'projet accueil home' },
-    { label: 'Concept', desc: 'Moodboard, programme et estimation', link: '/client/concept', keywords: 'concept programme estimation moodboard images inspiration' },
-    { label: 'Livrables', desc: 'Documents et plans livrés par l\'équipe', link: '/client/livrables', keywords: 'livrables documents plans fichiers' },
-    { label: 'Mes Dépenses', desc: 'Suivi de vos dépenses et factures', link: '/client/depenses', keywords: 'dépenses factures budget finances' },
-    { label: 'Messages', desc: 'Échangez avec l\'équipe CLADE', link: '/client/messages', keywords: 'messages messagerie communication équipe' },
+    { label: t('nav.projects'), desc: 'Vue d\'ensemble de votre projet', link: '/client', keywords: 'projet accueil home projects overview' },
+    { label: t('nav.concept'), desc: 'Moodboard, programme et estimation', link: '/client/concept', keywords: 'concept programme estimation moodboard images inspiration' },
+    { label: t('nav.livrables'), desc: 'Documents et plans livrés par l\'équipe', link: '/client/livrables', keywords: 'livrables documents plans fichiers documents files' },
+    { label: t('nav.expenses'), desc: 'Suivi de vos dépenses et factures', link: '/client/depenses', keywords: 'dépenses factures budget finances expenses' },
+    { label: t('nav.messages'), desc: 'Échangez avec l\'équipe CLADE', link: '/client/messages', keywords: 'messages messagerie communication équipe' },
   ]
 
   const results = query.trim().length < 1
@@ -167,7 +169,7 @@ function SearchOverlay({ onClose, navigate }) {
             ref={inputRef}
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Rechercher dans le portail…"
+            placeholder={t('search.placeholder')}
             className="flex-1 text-sm text-ink outline-none placeholder-muted/50 bg-transparent"
           />
           {query && (
@@ -178,7 +180,7 @@ function SearchOverlay({ onClose, navigate }) {
         </div>
         <div className="py-2 max-h-72 overflow-y-auto">
           {results.length === 0 ? (
-            <div className="px-4 py-6 text-center text-muted text-sm">Aucun résultat</div>
+            <div className="px-4 py-6 text-center text-muted text-sm">{t('search.no_results')}</div>
           ) : (
             results.map(r => (
               <button
@@ -196,20 +198,21 @@ function SearchOverlay({ onClose, navigate }) {
           )}
         </div>
         <div className="px-4 py-2.5 border-t border-border bg-paper-warm/30">
-          <span className="text-[10px] text-muted">Appuyez sur <kbd className="px-1 py-0.5 rounded bg-border/60 font-mono text-[10px]">Esc</kbd> pour fermer</span>
+          <span className="text-[10px] text-muted">Press <kbd className="px-1 py-0.5 rounded bg-border/60 font-mono text-[10px]">Esc</kbd> {t('search.close')}</span>
         </div>
       </motion.div>
     </motion.div>
   )
 }
 
-export default function ClientLayout() {
+function ClientLayoutInner() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [bellOpen, setBellOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const bellRef = useRef(null)
   const { profile, signOut, isDemoMode } = useAuth()
   const { projects, notifications, markNotificationsReadForTarget } = useData()
+  const { lang, setLang, t } = useClientLang()
   const navigate = useNavigate()
 
   // Track new livrables — count stored in localStorage, badge if count grew
@@ -305,16 +308,8 @@ export default function ClientLayout() {
       <header className="sticky top-0 z-30 bg-paper/85 backdrop-blur-xl border-b border-border">
         <div className="max-w-7xl mx-auto px-4 lg:px-8 py-4 flex items-center justify-between gap-4">
           {/* Logo */}
-          <div className="flex items-center gap-3">
-            <CladeLogo size={36} />
-            <div className="hidden sm:block">
-              <div className="font-display text-xl leading-none text-ink">
-                CLADE<span className="text-electric">.</span>
-              </div>
-              <div className="text-[10px] tracking-[0.2em] uppercase text-muted">
-                Portail Client
-              </div>
-            </div>
+          <div className="flex items-center">
+            <CladeBrand size="md" />
           </div>
 
           {/* Nav desktop */}
@@ -337,7 +332,7 @@ export default function ClientLayout() {
                   }
                 >
                   <Icon size={15} />
-                  {item.label}
+                  {t(item.key)}
                   {isLivrables && hasNewLivrables && (
                     <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white" />
                   )}
@@ -348,6 +343,24 @@ export default function ClientLayout() {
 
           {/* Actions */}
           <div className="flex items-center gap-2">
+
+            {/* Language switcher */}
+            <div className="flex items-center rounded-xl border border-border bg-white overflow-hidden">
+              {CLIENT_LANGS.map((l, i) => (
+                <button
+                  key={l}
+                  onClick={() => setLang(l)}
+                  className={`h-9 px-2.5 text-[11px] font-bold uppercase tracking-wider transition-colors ${
+                    lang === l
+                      ? 'bg-ink text-white'
+                      : 'text-muted hover:text-ink hover:bg-paper-warm'
+                  } ${i > 0 ? 'border-l border-border' : ''}`}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+
             {/* Search button */}
             <button
               onClick={() => setSearchOpen(true)}
@@ -428,7 +441,7 @@ export default function ClientLayout() {
               className="lg:hidden fixed inset-y-0 right-0 z-50 w-72 bg-ink-deep text-paper p-6 flex flex-col"
             >
               <div className="flex justify-between items-center mb-8">
-                <div className="font-display text-xl">CLADE<span className="text-electric">.</span></div>
+                <CladeBrand light size="sm" />
                 <button onClick={() => setMenuOpen(false)}><X size={20} /></button>
               </div>
               <nav className="flex-1 flex flex-col gap-1">
@@ -447,24 +460,40 @@ export default function ClientLayout() {
                       }
                     >
                       <Icon size={18} />
-                      {item.label}
+                      {t(item.key)}
                     </NavLink>
                   )
                 })}
               </nav>
-              <div className="border-t border-white/10 pt-4 mt-4">
-                <div className="flex items-center gap-3 mb-4">
+              <div className="border-t border-white/10 pt-4 mt-4 space-y-4">
+                {/* Language switcher in drawer */}
+                <div className="flex items-center gap-1 p-1 rounded-xl bg-white/5">
+                  {CLIENT_LANGS.map(l => (
+                    <button
+                      key={l}
+                      onClick={() => setLang(l)}
+                      className={`flex-1 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-colors ${
+                        lang === l
+                          ? 'bg-white/15 text-white'
+                          : 'text-paper/40 hover:text-paper/70'
+                      }`}
+                    >
+                      {l}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-3">
                   <Avatar initials={initials} size={36} />
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-semibold truncate">{profile?.full_name}</div>
-                    <div className="text-xs text-paper/50">Client</div>
+                    <div className="text-xs text-paper/50">{t('client')}</div>
                   </div>
                 </div>
                 <button
                   onClick={handleSignOut}
                   className="w-full flex items-center justify-center gap-2 bg-white/5 py-2.5 rounded-xl text-sm"
                 >
-                  <LogOut size={15} /> Déconnexion
+                  <LogOut size={15} /> {t('signout')}
                 </button>
               </div>
             </motion.aside>
@@ -503,7 +532,7 @@ export default function ClientLayout() {
                 {({ isActive }) => (
                   <>
                     <Icon size={20} strokeWidth={isActive ? 2.2 : 1.7} />
-                    <span>{item.label}</span>
+                    <span>{t(item.key)}</span>
                     {isActive && <span className="absolute top-0 w-8 h-0.5 bg-electric rounded-b" />}
                   </>
                 )}
@@ -515,6 +544,16 @@ export default function ClientLayout() {
 
       {/* Spacer mobile pour la bottom-nav */}
       <div className="lg:hidden h-16" />
+
+      <OnboardingGuide />
     </div>
+  )
+}
+
+export default function ClientLayout() {
+  return (
+    <ClientLangProvider>
+      <ClientLayoutInner />
+    </ClientLangProvider>
   )
 }

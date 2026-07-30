@@ -31,6 +31,21 @@ export async function createSupabaseUser({ email, password, role = 'architecte',
 }
 
 /**
+ * Vérifie le mot de passe d'un utilisateur Supabase via un client isolé
+ * (n'affecte pas la session active du directeur).
+ * Retourne true si correct, false sinon.
+ */
+export async function verifyDirectorPassword(email, password) {
+  if (!supabaseUrl || !supabaseAnonKey || !email || !password) return false
+  const tmp = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: { persistSession: false, storageKey: `_vpwd_${Date.now()}` },
+  })
+  const { error } = await tmp.auth.signInWithPassword({ email, password })
+  await tmp.auth.signOut()
+  return !error
+}
+
+/**
  * Met à jour le mot de passe d'un compte Supabase existant.
  * Ne peut être appelé que par l'utilisateur lui-même (session active requise).
  */

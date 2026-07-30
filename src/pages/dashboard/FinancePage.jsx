@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from 'react'
+﻿import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   TrendingUp, TrendingDown, Wallet, Clock, Scale,
@@ -16,9 +16,20 @@ import { useAuth } from '../../context/AuthContext'
 import NouvelleTransactionModal from '../../components/NouvelleTransactionModal'
 import NouvelleChargeFixeModal from '../../components/NouvelleChargeFixeModal'
 import { exportTransactionsExcel } from '../../utils/exportExcel'
+import FiscalCalendar from '../../components/FiscalCalendar'
+import { useFiscalDeadlines, getUpcomingAlerts } from '../../hooks/useFiscalDeadlines'
 
 const fmtMAD = (n) =>
   Number(n || 0).toLocaleString('fr-MA', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' MAD'
+
+const fmtMADShort = (n) => {
+  const v = Number(n || 0)
+  const abs = Math.abs(v)
+  const prefix = v < 0 ? '-' : ''
+  if (abs >= 1_000_000) return prefix + (abs / 1_000_000).toFixed(1).replace('.0', '') + 'M MAD'
+  if (abs >= 1_000) return prefix + Math.round(abs / 1_000) + 'k MAD'
+  return v.toLocaleString('fr-MA', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' MAD'
+}
 
 const fmtK = (n) => {
   if (!n) return '0'
@@ -111,14 +122,44 @@ function RentaTooltip({ active, payload, label }) {
 
 export default function FinancePage() {
   const {
-    projects, allTransactions, transactions, removeTransaction,
+    projects, allTransactions, transactions, addTransaction, removeTransaction,
     chargesFixe, deleteChargeFixe, employes,
-    tauxImpot, setTauxImpot, agenceSettings,
+    tauxImpot, setTauxImpot, agenceSettings, addNotification,
   } = useData()
   const { isDirector, isDirectorMode, profile } = useAuth()
   const byName = profile?.nom || profile?.full_name || ''
   const isDir = isDirector || isDirectorMode
   const navigate = useNavigate()
+
+  const { deadlines } = useFiscalDeadlines()
+
+  // Notifications fiscales dans la cloche
+  useEffect(() => {
+    if (!deadlines.length) return
+    const today = new Date().toISOString().slice(0, 10)
+    const storageKey = `fiscal_notif_${today}`
+    const already = JSON.parse(localStorage.getItem(storageKey) || '[]')
+    const alerts = getUpcomingAlerts(deadlines)
+    const newAlerts = alerts.filter(a => !already.includes(`${a.deadline.id}_${a.daysLeft}`))
+    newAlerts.forEach(({ deadline, daysLeft }) => {
+      const message = daysLeft < 0
+        ? `⚠️ Échéance en retard : "${deadline.title}" (${Math.abs(daysLeft)}j de retard)`
+        : daysLeft === 0
+          ? `🔴 Échéance aujourd'hui : "${deadline.title}"`
+          : `📅 Échéance dans ${daysLeft}j : "${deadline.title}"`
+      addNotification({ type: 'fiscal', message, link: '/app/finance', read: false })
+    })
+    if (newAlerts.length) {
+      localStorage.setItem(storageKey, JSON.stringify([
+        ...already,
+        ...newAlerts.map(a => `${a.deadline.id}_${a.daysLeft}`),
+      ]))
+    }
+  }, [deadlines]) // eslint-disable-line
+
+  const handleFiscalPaid = (tx) => {
+    addTransaction({ ...tx, id: `fiscal_${Date.now()}` }, byName)
+  }
 
   const [showTxModal, setShowTxModal] = useState(false)
   const [defaultType, setDefaultType] = useState('entree')
@@ -332,11 +373,11 @@ export default function FinancePage() {
   const totalChargesFixe = chargesFixe.reduce((s, c) => s + (c.montant || 0), 0)
 
   const KPIS = [
-    { label: 'Total produits', value: fmtMAD(totalEntrees), icon: TrendingUp, color: '#10B981', sub: 'Exercice en cours' },
-    { label: 'Total charges', value: fmtMAD(totalSorties), icon: TrendingDown, color: '#F43F5E', sub: 'Exercice en cours' },
-    { label: 'Résultat brut', value: fmtMAD(resultatBrut), icon: Wallet, color: resultatBrut >= 0 ? '#3B82F6' : '#F43F5E', sub: resultatBrut >= 0 ? 'Avant IS' : 'Déficit' },
-    { label: `Résultat net IS ${tauxImpot}%`, value: fmtMAD(resultatNet), icon: Scale, color: resultatNet >= 0 ? '#8B5CF6' : '#F43F5E', sub: resultatNet >= 0 ? 'Après impôt' : 'Déficit net' },
-    { label: 'Honoraires à encaisser', value: fmtMAD(pendingTotal), icon: Clock, color: '#F59E0B', sub: 'En attente / Non payés' },
+    { label: 'Total produits', value: fmtMADShort(totalEntrees), icon: TrendingUp, color: '#10B981', sub: 'Exercice en cours' },
+    { label: 'Total charges', value: fmtMADShort(totalSorties), icon: TrendingDown, color: '#F43F5E', sub: 'Exercice en cours' },
+    { label: 'Résultat brut', value: fmtMADShort(resultatBrut), icon: Wallet, color: resultatBrut >= 0 ? '#3B82F6' : '#F43F5E', sub: resultatBrut >= 0 ? 'Avant IS' : 'Déficit' },
+    { label: `Résultat net IS ${tauxImpot}%`, value: fmtMADShort(resultatNet), icon: Scale, color: resultatNet >= 0 ? '#8B5CF6' : '#F43F5E', sub: resultatNet >= 0 ? 'Après impôt' : 'Déficit net' },
+    { label: 'Honoraires à encaisser', value: fmtMADShort(pendingTotal), icon: Clock, color: '#F59E0B', sub: 'En attente / Non payés' },
   ]
 
   const objectifColor = pctObjectif >= 100 ? '#10B981' : pctObjectif >= 70 ? '#3B82F6' : pctObjectif >= 40 ? '#F59E0B' : '#F43F5E'
@@ -354,7 +395,7 @@ export default function FinancePage() {
           <div className="flex items-start justify-between">
             <div>
               <div className="label-text mb-0.5">Chiffre d'affaires {currentYear}</div>
-              <div className="font-display text-2xl text-ink leading-none">{fmtMAD(totalCaYear)}</div>
+              <div className="font-display text-2xl text-ink leading-none">{fmtMADShort(totalCaYear)}</div>
             </div>
             <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-electric/10">
               <TrendingUp size={15} className="text-electric" />
@@ -644,8 +685,8 @@ export default function FinancePage() {
                   </div>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <div className="text-sm font-semibold text-emerald-600">{fmtMAD(p.paidHon)}</div>
-                  <div className="text-[10px] text-muted">/ {fmtMAD(p.totalHon)}</div>
+                  <div className="text-sm font-semibold text-emerald-600">{fmtMADShort(p.paidHon)}</div>
+                  <div className="text-[10px] text-muted">/ {fmtMADShort(p.totalHon)}</div>
                 </div>
                 <ArrowRight size={15} className="text-muted group-hover:text-ink transition-colors flex-shrink-0" />
               </div>
@@ -689,25 +730,34 @@ export default function FinancePage() {
                 </button>
               </div>
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-            <div className="flex gap-2 items-center justify-center sm:justify-start">
-              {/* Filter icon — mobile only */}
+          {/* Toolbar — ligne unique sur mobile */}
+          <div className="flex items-center gap-2">
+            {/* Gauche : Entrée + Sortie */}
+            <button onClick={() => { setDefaultType('entree'); setShowTxModal(true) }}
+              className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">
+              <ChevronUp size={13} /> Entrée
+            </button>
+            <button onClick={() => { setDefaultType('sortie'); setShowTxModal(true) }}
+              className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl bg-rose-500 text-white hover:bg-rose-600 transition-colors">
+              <ChevronDown size={13} /> Sortie
+            </button>
+
+            {/* Droite : filtre + export (ml-auto pousse à droite) */}
+            <div className="flex items-center gap-2 ml-auto">
+              {/* Filter icon — mobile */}
               <div className="relative lg:hidden">
                 {showTxFilterMenu && (
                   <div className="fixed inset-0 z-10" onClick={() => setShowTxFilterMenu(false)} />
                 )}
                 <button
                   onClick={() => setShowTxFilterMenu(o => !o)}
-                  className={`flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-semibold border transition-all ${
+                  className={`flex items-center gap-1 h-9 w-9 justify-center rounded-xl text-xs font-semibold border transition-all ${
                     txFilter !== 'all'
                       ? 'bg-ink text-paper border-transparent'
                       : 'bg-paper-warm border-border text-muted hover:text-ink'
                   }`}
                 >
-                  <Filter size={13} />
-                  {txFilter !== 'all' && (
-                    <span>{{ all: 'Tout', entree: 'Entrées', sortie: 'Sorties' }[txFilter]}</span>
-                  )}
+                  <Filter size={15} />
                 </button>
                 <AnimatePresence>
                   {showTxFilterMenu && (
@@ -716,7 +766,7 @@ export default function FinancePage() {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -6, scale: 0.96 }}
                       transition={{ duration: 0.13 }}
-                      className="absolute top-full left-0 mt-1.5 bg-white border border-border rounded-2xl shadow-xl overflow-hidden z-20 w-36"
+                      className="absolute top-full right-0 mt-1.5 bg-white border border-border rounded-2xl shadow-xl overflow-hidden z-20 w-36"
                     >
                       {[
                         { key: 'all',    label: 'Tout',    dot: null },
@@ -751,20 +801,11 @@ export default function FinancePage() {
                     }`}>{f.label}</button>
                 ))}
               </div>
+              {/* Export — icône seule sur mobile, texte sur sm+ */}
               <button onClick={handleExport} disabled={exporting}
-                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl border border-border text-muted hover:text-ink hover:border-ink/30 transition-colors disabled:opacity-50">
-                <TableProperties size={13} /> Exporter bilan
-              </button>
-            </div>
-            {/* Entrée / Sortie — 2e ligne centrée sur mobile */}
-            <div className="flex gap-2 justify-center sm:justify-start">
-              <button onClick={() => { setDefaultType('entree'); setShowTxModal(true) }}
-                className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">
-                <ChevronUp size={13} /> Entrée
-              </button>
-              <button onClick={() => { setDefaultType('sortie'); setShowTxModal(true) }}
-                className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl bg-rose-500 text-white hover:bg-rose-600 transition-colors">
-                <ChevronDown size={13} /> Sortie
+                className="flex items-center gap-1.5 text-xs font-semibold h-9 px-2.5 rounded-xl border border-border text-muted hover:text-ink hover:border-ink/30 transition-colors disabled:opacity-50">
+                <TableProperties size={14} />
+                <span className="hidden sm:inline">Exporter bilan</span>
               </button>
             </div>
           </div>
@@ -789,10 +830,10 @@ export default function FinancePage() {
                       <span className="text-xs text-muted">{txs.length} opération{txs.length > 1 ? 's' : ''}</span>
                     </div>
                     <div className="flex items-center gap-4">
-                      <span className="text-xs font-semibold text-emerald-700 hidden sm:block">+{fmtMAD(entrees)}</span>
-                      <span className="text-xs font-semibold text-rose-700 hidden sm:block">-{fmtMAD(sorties)}</span>
+                      <span className="text-xs font-semibold text-emerald-700 hidden sm:block">+{fmtMADShort(entrees)}</span>
+                      <span className="text-xs font-semibold text-rose-700 hidden sm:block">-{fmtMADShort(sorties)}</span>
                       <span className={`text-xs font-bold ${solde >= 0 ? 'text-ink' : 'text-rose-600'}`}>
-                        {solde >= 0 ? '+' : ''}{fmtMAD(solde)}
+                        {solde >= 0 ? '+' : ''}{fmtMADShort(solde)}
                       </span>
                     </div>
                   </button>
@@ -906,7 +947,7 @@ export default function FinancePage() {
           <div className="flex items-center gap-2 mb-3">
             <Users size={14} className="text-muted" />
             <span className="label-text">Masse salariale — Personnel actif</span>
-            <span className="text-xs text-muted ml-auto">{fmtMAD(totalSalaires)} / mois</span>
+            <span className="text-xs text-muted ml-auto">{fmtMADShort(totalSalaires)} / mois</span>
           </div>
           {activeSalaries.length === 0 ? (
             <div className="text-sm text-muted py-3 text-center border border-dashed border-border rounded-xl">
@@ -942,7 +983,7 @@ export default function FinancePage() {
           <div className="flex items-center gap-2 mb-3">
             <Repeat size={14} className="text-muted" />
             <span className="label-text">Charges fixes manuelles</span>
-            <span className="text-xs text-muted ml-auto">{fmtMAD(totalChargesFixe)} / période</span>
+            <span className="text-xs text-muted ml-auto">{fmtMADShort(totalChargesFixe)} / période</span>
           </div>
           {chargesFixe.length === 0 ? (
             <div className="text-sm text-muted py-3 text-center border border-dashed border-border rounded-xl">
@@ -989,8 +1030,8 @@ export default function FinancePage() {
             <div className="font-display text-lg text-ink">Impôt sur les Sociétés (IS)</div>
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
-          <div className="flex flex-col items-center sm:items-start">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 items-end">
+          <div className="col-span-2 sm:col-span-1 flex flex-col items-center sm:items-start">
             <label className="label-text mb-1.5 block">Taux IS (%)</label>
             <div className="flex gap-2">
               <input type="number" min="0" max="100" step="0.5" className="input-field w-28"
@@ -1002,23 +1043,26 @@ export default function FinancePage() {
               </button>
             </div>
           </div>
-          <div className="bg-paper-warm border border-border rounded-xl px-4 py-3">
+          <div className="bg-paper-warm border border-border rounded-xl px-4 py-3 min-h-[72px] flex flex-col justify-center">
             <div className="text-[10px] font-semibold text-muted uppercase tracking-wide mb-0.5">Résultat brut (avant IS)</div>
             <div className={`font-display text-xl ${resultatBrut >= 0 ? 'text-ink' : 'text-rose-600'}`}>
-              {resultatBrut >= 0 ? '+' : ''}{fmtMAD(resultatBrut)}
+              {resultatBrut >= 0 ? '+' : ''}{fmtMADShort(resultatBrut)}
             </div>
           </div>
-          <div className="bg-violet-50 border border-violet-100 rounded-xl px-4 py-3">
+          <div className="bg-violet-50 border border-violet-100 rounded-xl px-4 py-3 min-h-[72px] flex flex-col justify-center">
             <div className="text-[10px] font-semibold text-violet-600 uppercase tracking-wide mb-0.5">
               Résultat net (après IS {tauxImpot}%)
             </div>
             <div className={`font-display text-xl ${resultatNet >= 0 ? 'text-violet-700' : 'text-rose-600'}`}>
-              {resultatNet >= 0 ? '+' : ''}{fmtMAD(resultatNet)}
+              {resultatNet >= 0 ? '+' : ''}{fmtMADShort(resultatNet)}
             </div>
-            {resultatBrut > 0 && <div className="text-[10px] text-violet-500 mt-0.5">IS : {fmtMAD(impot)}</div>}
+            {resultatBrut > 0 && <div className="text-[10px] text-violet-500 mt-0.5">IS : {fmtMADShort(impot)}</div>}
           </div>
         </div>
       </div>
+
+      {/* ── Calendrier Fiscal ── */}
+      <FiscalCalendar onTransactionAdd={handleFiscalPaid} />
 
       {/* ══ SYNTHÈSE PROJETS (directeur uniquement) ══ */}
       {isDir && (() => {

@@ -4,46 +4,69 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Lock, ArrowRight, Eye, EyeOff, User, Briefcase, ShieldCheck, ArrowLeft } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
-import { CladeBrand, CladeLogo } from '../../components/ui/Logo'
+import { CladeBrand } from '../../components/ui/Logo'
 
 function LeftPanel({ mouse }) {
   return (
-    <div className="hidden lg:flex lg:w-[55%] relative bg-gradient-ink overflow-hidden">
-      <div className="absolute mesh-blob rounded-full blur-3xl opacity-40"
-        style={{ width: 500, height: 500, background: 'radial-gradient(circle, #06B6D4 0%, transparent 70%)',
-          top: `${20 + mouse.y * 0.05}%`, left: `${10 + mouse.x * 0.05}%` }} />
-      <div className="absolute mesh-blob rounded-full blur-3xl opacity-30"
-        style={{ width: 400, height: 400, background: 'radial-gradient(circle, #3B82F6 0%, transparent 70%)',
-          bottom: `${15 + mouse.y * 0.03}%`, right: `${10 + mouse.x * 0.03}%`, animationDelay: '5s' }} />
-      <svg className="absolute inset-0 w-full h-full opacity-10" xmlns="http://www.w3.org/2000/svg">
+    <div className="hidden lg:flex lg:w-[52%] relative overflow-hidden" style={{ background: '#06101F' }}>
+      {/* Subtle radial glows */}
+      <div className="absolute rounded-full"
+        style={{ width: 600, height: 600, background: 'radial-gradient(circle, rgba(6,182,212,0.08) 0%, transparent 65%)',
+          top: `${-5 + mouse.y * 0.04}%`, left: `${-10 + mouse.x * 0.04}%`, pointerEvents: 'none' }} />
+      <div className="absolute rounded-full"
+        style={{ width: 400, height: 400, background: 'radial-gradient(circle, rgba(59,130,246,0.07) 0%, transparent 65%)',
+          bottom: `${10 + mouse.y * 0.025}%`, right: `${5 + mouse.x * 0.025}%`, pointerEvents: 'none' }} />
+
+      {/* Fine dot grid */}
+      <svg className="absolute inset-0 w-full h-full" style={{ opacity: 0.06 }} xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#06B6D4" strokeWidth="0.5" />
+          <pattern id="dots" width="28" height="28" patternUnits="userSpaceOnUse">
+            <circle cx="1" cy="1" r="0.8" fill="#06B6D4" />
           </pattern>
         </defs>
-        <rect width="100%" height="100%" fill="url(#grid)" />
+        <rect width="100%" height="100%" fill="url(#dots)" />
       </svg>
-      <svg className="absolute opacity-20" style={{ top: '20%', right: '10%', width: 400, height: 400 }} viewBox="0 0 200 200">
-        <rect x="20" y="40" width="160" height="120" fill="none" stroke="#06B6D4" strokeWidth="1.5" className="draw-line" />
-        <line x1="80" y1="40" x2="80" y2="100" stroke="#06B6D4" strokeWidth="1" className="draw-line" />
-        <line x1="80" y1="100" x2="140" y2="100" stroke="#06B6D4" strokeWidth="1" className="draw-line" />
-        <line x1="140" y1="100" x2="140" y2="160" stroke="#06B6D4" strokeWidth="1" className="draw-line" />
-        <line x1="20" y1="80" x2="20" y2="100" stroke="#FAFBFD" strokeWidth="2" />
-        <line x1="180" y1="120" x2="180" y2="140" stroke="#FAFBFD" strokeWidth="2" />
-        <line x1="20" y1="170" x2="180" y2="170" stroke="#FAFBFD" strokeWidth="0.5" strokeDasharray="2,2" />
-        <text x="100" y="180" fill="#FAFBFD" fontSize="6" textAnchor="middle" opacity="0.6">16.00 m</text>
+
+      {/* Architectural blueprint — floor plan */}
+      <svg className="absolute" style={{ bottom: '8%', right: '-2%', width: 340, height: 340, opacity: 0.13 }} viewBox="0 0 200 200">
+        <rect x="18" y="30" width="164" height="130" fill="none" stroke="#06B6D4" strokeWidth="1" />
+        <rect x="18" y="30" width="80" height="70"  fill="none" stroke="#06B6D4" strokeWidth="0.6" />
+        <rect x="98" y="30" width="84" height="50"  fill="none" stroke="#06B6D4" strokeWidth="0.6" />
+        <rect x="18" y="100" width="164" height="60" fill="none" stroke="#06B6D4" strokeWidth="0.6" />
+        <line x1="18"  y1="160" x2="182" y2="160" stroke="#FAFBFD" strokeWidth="0.4" strokeDasharray="3 3" />
+        <line x1="18"  y1="170" x2="182" y2="170" stroke="#FAFBFD" strokeWidth="0.4" />
+        <text x="100" y="180" fill="#FAFBFD" fontSize="5" textAnchor="middle" opacity="0.5" letterSpacing="1">16.00 m</text>
+        <line x1="8"  y1="30" x2="8"  y2="160" stroke="#FAFBFD" strokeWidth="0.4" />
+        <text x="4"  y="98" fill="#FAFBFD" fontSize="5" textAnchor="middle" opacity="0.5" transform="rotate(-90,4,98)" letterSpacing="1">8.60 m</text>
       </svg>
-      <div className="relative z-10 flex flex-col justify-between p-12 xl:p-16 text-paper w-full">
-        <div className="animate-fade-in"><CladeBrand light /></div>
-        <div className="max-w-lg animate-slide-up">
-          <div className="text-electric text-xs tracking-[0.3em] uppercase mb-6">◆ Plateforme de gestion intégrée</div>
-          <h1 className="font-display text-5xl xl:text-6xl leading-[1.05] tracking-tight mb-6">
+
+      {/* Thin vertical accent line */}
+      <div className="absolute top-0 bottom-0 left-0 w-px" style={{ background: 'linear-gradient(to bottom, transparent, rgba(6,182,212,0.3) 30%, rgba(6,182,212,0.3) 70%, transparent)' }} />
+
+      <div className="relative z-10 flex flex-col justify-between p-14 xl:p-18 w-full">
+        {/* Logo */}
+        <div className="animate-fade-in">
+          <CladeBrand light size="lg" />
+        </div>
+
+        {/* Headline */}
+        <div className="max-w-md animate-slide-up" style={{ marginBottom: '4rem' }}>
+          <div className="mb-5" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 20, height: 1, background: '#06B6D4', opacity: 0.7 }} />
+            <span style={{ fontFamily: "'Inter Tight', sans-serif", fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(6,182,212,0.8)' }}>
+              Plateforme de gestion intégrée
+            </span>
+          </div>
+          <h1 className="font-display text-paper leading-[1.08] tracking-tight" style={{ fontSize: 'clamp(2.4rem, 3.5vw, 3.6rem)' }}>
             Construire avec <em className="text-electric">précision</em>.<br />
             Gérer avec <em className="text-electric">intelligence</em>.
           </h1>
         </div>
-        <div className="flex items-center justify-between text-xs text-paper/40">
-          <span>© 2026 CLADE Architecture</span><span>v1.0 · Rabat, MA</span>
+
+        {/* Footer meta */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontFamily: "'Inter Tight', sans-serif", fontSize: 10, color: 'rgba(250,251,253,0.25)', letterSpacing: '0.06em' }}>
+          <span>© 2026 Clade Architecture</span>
+          <span>v1.0 · Rabat, MA</span>
         </div>
       </div>
     </div>
@@ -98,7 +121,7 @@ function MobileHero() {
       <div className="relative z-10 h-full flex flex-col px-6 pt-6 pb-8">
         <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.5 }}>
-          <CladeBrand light />
+          <CladeBrand light size="sm" />
         </motion.div>
         <div className="flex-1 flex flex-col justify-end">
           <motion.h2
@@ -194,11 +217,11 @@ export default function LoginPage() {
     }
   }
 
-  const submitPin = (pinStr) => {
+  const submitPin = async (pinStr) => {
     if (pinStr.length < 6) { toast.error('Saisissez les 6 chiffres du PIN'); return }
     setSubmitting(true)
     try {
-      verifyDirectorPin(pinStr)
+      await verifyDirectorPin(pinStr)
       toast.success('Bienvenue, Achraf Benouda')
     } catch (err) {
       toast.error(err.message || 'PIN incorrect')
@@ -232,8 +255,11 @@ export default function LoginPage() {
               className="w-full max-w-md">
 
               <div className="mb-8">
-                <div className="text-xs tracking-widest uppercase text-muted mb-3">◆ Espace privé</div>
-                <h2 className="font-display text-4xl text-ink leading-none mb-3">Bon retour.</h2>
+                <div className="flex items-center gap-2 mb-5">
+                  <div style={{ width: 16, height: 1, background: '#06B6D4' }} />
+                  <span className="text-[10px] tracking-[0.28em] uppercase text-muted font-medium">Espace privé</span>
+                </div>
+                <h2 className="font-display leading-none mb-2.5" style={{ fontSize: 'clamp(2rem, 4vw, 2.6rem)', color: '#0A1E3F' }}>Bon retour.</h2>
                 <p className="text-muted text-sm">Connectez-vous pour accéder à votre espace.</p>
               </div>
 

@@ -7,6 +7,7 @@ import {
 import toast from 'react-hot-toast'
 import { useData } from '../../context/DataContext'
 import NouveauCollaborateurModal, { VILLES_MAROC } from '../../components/NouveauCollaborateurModal'
+import SelectField from '../../components/SelectField'
 
 // Palette tournante pour les badges de catégorie
 const CAT_PALETTE = [
@@ -236,18 +237,15 @@ export default function CollaborateursPage() {
 
           <div className="flex items-center gap-2 flex-shrink-0">
             {/* City filter */}
-            <div className="relative">
-              <select
-                value={filterVille}
-                onChange={e => setFilterVille(e.target.value)}
-                className="input-field py-2 pr-9 text-xs appearance-none cursor-pointer min-w-[160px]">
-                <option value="">Toutes les villes</option>
-                {villesPresentes.map(v => (
-                  <option key={v} value={v}>{v}</option>
-                ))}
-              </select>
-              <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
-            </div>
+            <SelectField
+              value={filterVille}
+              onChange={v => setFilterVille(v)}
+              options={[
+                { value: '', label: 'Toutes les villes' },
+                ...villesPresentes.map(v => ({ value: v, label: v })),
+              ]}
+              className="min-w-[160px]"
+            />
             <button onClick={() => { setEditingCollab(null); setShowModal(true) }} className="btn-primary">
               <Plus size={14} /> <span className="hidden sm:inline">Nouveau</span>
             </button>

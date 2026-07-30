@@ -8,17 +8,15 @@ import {
 import { useData } from '../context/DataContext'
 import { useAuth } from '../context/AuthContext'
 import NouveauClientModal from './NouveauClientModal'
+import SelectField from './SelectField'
 import toast from 'react-hot-toast'
 
 const TYPES = [
-  'Résidentiel haut de gamme',
-  'Tertiaire / Bureaux',
-  'Logement collectif',
-  'Équipement public',
-  'Patrimoine / Rénovation',
-  'Hôtellerie / Hospitalité',
-  'Industriel',
-  'Autre',
+  'Architecture',
+  'Conservation',
+  'Paysage',
+  'Design',
+  'Éphémère',
 ]
 
 const toForm = (p) => p ? {
@@ -215,10 +213,13 @@ export default function NouveauProjetModal({ onClose, projet }) {
                   <input className={`input-field ${errors.nom ? 'border-rose-400' : ''}`} placeholder="Villa Contemporaine..." value={form.nom} onChange={set('nom')} />
                 </Field>
                 <Field label="Type de projet *" error={errors.type}>
-                  <select className={`input-field ${errors.type ? 'border-rose-400' : ''}`} value={form.type} onChange={set('type')}>
-                    <option value="">— Sélectionner —</option>
-                    {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
+                  <SelectField
+                    value={form.type}
+                    onChange={v => set('type')({ target: { value: v } })}
+                    options={TYPES}
+                    placeholder="— Sélectionner —"
+                    error={!!errors.type}
+                  />
                 </Field>
               </div>
 
@@ -268,27 +269,28 @@ export default function NouveauProjetModal({ onClose, projet }) {
               <div>
                 <div className="label-text mb-2"><Users size={11} className="inline mr-1" />Client du projet *</div>
                 <div className="space-y-2">
-                  <select
-                    className={`input-field ${errors.clientId ? 'border-rose-400' : ''}`}
+                  <SelectField
                     value={clientSelectValue}
-                    onChange={handleClientSelect}
-                  >
-                    <option value="">— Sélectionner un client —</option>
-                    {confirmedProspects.length > 0 && (
-                      <optgroup label="Clients confirmés (CRM)">
-                        {confirmedProspects.map(p => (
-                          <option key={p.id} value={`prospect:${p.id}`}>
-                            {p.prenom} {p.nom} — {p.typeProjet || ''}
-                          </option>
-                        ))}
-                      </optgroup>
-                    )}
-                    {clients.length > 0 && (
-                      <optgroup label="Clients existants">
-                        {clients.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
-                      </optgroup>
-                    )}
-                  </select>
+                    onChange={v => {
+                      if (String(v).startsWith('__sep__')) return
+                      handleClientSelect({ target: { value: v } })
+                    }}
+                    options={[
+                      ...(confirmedProspects.length > 0 ? [
+                        { value: '__sep__crm', label: '── Clients CRM ──' },
+                        ...confirmedProspects.map(p => ({
+                          value: `prospect:${p.id}`,
+                          label: `${p.prenom} ${p.nom} — ${p.typeProjet || ''}`,
+                        })),
+                      ] : []),
+                      ...(clients.length > 0 ? [
+                        { value: '__sep__clients', label: '── Clients existants ──' },
+                        ...clients.map(c => ({ value: String(c.id), label: c.nom })),
+                      ] : []),
+                    ]}
+                    placeholder="— Sélectionner un client —"
+                    error={!!errors.clientId}
+                  />
 
                   {selectedLabel && (
                     <div className="flex items-center gap-2 px-3 py-2 bg-electric/5 border border-electric/20 rounded-lg">
@@ -317,16 +319,17 @@ export default function NouveauProjetModal({ onClose, projet }) {
                 <label className="label-text mb-2 flex items-center gap-1">
                   <UserCircle size={11} className="inline mr-1" />Personnel référent
                 </label>
-                <select
-                  className="input-field"
+                <SelectField
                   value={form.architecteReferentId}
-                  onChange={set('architecteReferentId')}
-                >
-                  <option value="">— Aucun référent —</option>
-                  {employes.map(e => (
-                    <option key={e.id} value={e.id}>{e.nom}{e.isDirecteur ? ' — Directeur Général' : e.poste ? ` — ${e.poste}` : ''}</option>
-                  ))}
-                </select>
+                  onChange={v => set('architecteReferentId')({ target: { value: v } })}
+                  options={[
+                    { value: '', label: '— Aucun référent —' },
+                    ...employes.map(e => ({
+                      value: e.id,
+                      label: `${e.nom}${e.isDirecteur ? ' — Directeur Général' : e.poste ? ` — ${e.poste}` : ''}`,
+                    })),
+                  ]}
+                />
                 <p className="text-[10px] text-muted mt-1">Interlocuteur principal avec le client</p>
               </div>
             </form>

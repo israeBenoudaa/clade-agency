@@ -1,10 +1,11 @@
-﻿import { useState, useRef, useMemo } from 'react'
+﻿import { useState, useRef, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Users, CheckCircle2, Calendar, AlertTriangle, Plus, Trash2, BookOpen, X, ChevronDown, ChevronUp, Pencil, FileText, ClipboardList, Clock, Check, Ban, Paperclip, Building2, UserSearch, Filter, Sun, Inbox, ExternalLink, Send, CalendarCheck, ChevronRight, Mail, Download, Award } from 'lucide-react'
+import { Users, CheckCircle2, Calendar, AlertTriangle, Plus, Trash2, BookOpen, X, ChevronDown, ChevronUp, Pencil, FileText, ClipboardList, Clock, Check, Ban, Paperclip, Building2, UserSearch, Filter, Sun, Inbox, ExternalLink, Send, CalendarCheck, ChevronRight, Mail, Download, Award, Bold, Italic, Underline, List, ListOrdered, Undo2, PhoneCall, Globe } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useData } from '../../context/DataContext'
 import NouveauEmployeModal from '../../components/NouveauEmployeModal'
 import FormationModal from '../../components/FormationModal'
+import SelectField from '../../components/SelectField'
 import toast from 'react-hot-toast'
 
 const DEPT_PALETTE = [
@@ -27,14 +28,17 @@ function deptInitial(dept) {
 
 const DEMANDE_LABELS = {
   conge: 'Congé', absence: 'Absence', arret_maladie: 'Arrêt maladie',
-  attestation: 'Attestation de travail', autre: 'Autre demande',
+  attestation: 'Attestation de travail', attestation_salaire: 'Attestation de salaire',
+  autre: 'Autre demande', demission: 'Démission',
 }
 const DEMANDE_COLORS = {
   conge: 'bg-amber-100 text-amber-800',
   absence: 'bg-blue-100 text-blue-800',
   arret_maladie: 'bg-rose-100 text-rose-800',
   attestation: 'bg-violet-100 text-violet-800',
+  attestation_salaire: 'bg-purple-100 text-purple-800',
   autre: 'bg-gray-100 text-gray-700',
+  demission: 'bg-rose-100 text-rose-900',
 }
 const STATUT_COLORS = {
   en_attente: 'bg-amber-50 text-amber-700 border-amber-200',
@@ -44,15 +48,20 @@ const STATUT_COLORS = {
 const STATUT_LABELS = { en_attente: 'En attente', approuve: 'Approuvée', refuse: 'Refusée' }
 
 // ─── AttestationModal ─────────────────────────────────────────────────────────
-function AttestationModal({ employe, onClose }) {
-  const [type, setType] = useState('travail')
+function AttestationModal({ employe, onClose, initialType = 'travail' }) {
+  const [type, setType] = useState(initialType)
+  const editorRef = useRef(null)
 
   const today = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
   const year  = new Date().getFullYear()
-  const ref   = `ATT-${year}-${String(employe.id || '').slice(-4).padStart(4, '0')}`
+  const docRef = `ATT-${year}-${String(employe.id || '').slice(-4).padStart(4, '0')}`
 
-  const fullName = `${employe.prenom || ''} ${employe.nom || ''}`.trim()
-  const dateEmb  = employe.dateEmbauche
+  // Nom corrigé : utilise nomFamille si dispo pour éviter la duplication
+  const fullName = employe.nomFamille
+    ? `${employe.prenom || ''} ${employe.nomFamille}`.trim()
+    : employe.nom || ''
+
+  const dateEmb = employe.dateEmbauche
     ? new Date(employe.dateEmbauche).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
     : null
 
@@ -60,27 +69,63 @@ function AttestationModal({ employe, onClose }) {
     : employe.contrat === 'CDD' ? 'déterminée (CDD)'
     : (employe.contrat || 'indéterminée')
 
-  const travailBody = `Je soussigné, le Directeur Général du Cabinet d'Architecture CLADE, certifie que :
+  const travailHtml =
+    `<p>Je soussigné, le Directeur Général du Cabinet d'Architecture CLADE, certifie que :</p>` +
+    `<p>&nbsp;</p>` +
+    `<p><strong>M. / Mme ${fullName}</strong>${employe.cin ? `,<br>Porteur(e) de la CIN n° ${employe.cin},` : ','}</p>` +
+    `<p>&nbsp;</p>` +
+    `<p>Exerce la fonction de <strong>${employe.poste || '—'}</strong> au sein de notre cabinet` +
+    `${employe.dept ? `, au département <strong>${employe.dept}</strong>` : ''}` +
+    `${dateEmb ? `,<br>et ce depuis le ${dateEmb}` : ''},<br>` +
+    `dans le cadre d'un contrat à durée ${contratLabel}.</p>`
 
-M. / Mme ${fullName},${employe.cin ? `\nPorteur(e) de la CIN n° ${employe.cin},` : ''}
+  const salaireHtml =
+    `<p>Je soussigné, le Directeur Général du Cabinet d'Architecture CLADE, certifie que :</p>` +
+    `<p>&nbsp;</p>` +
+    `<p><strong>M. / Mme ${fullName}</strong>${employe.cin ? `,<br>Porteur(e) de la CIN n° ${employe.cin},` : ','}</p>` +
+    `<p>&nbsp;</p>` +
+    `<p>Exerce la fonction de <strong>${employe.poste || '—'}</strong> au sein de notre cabinet` +
+    `${employe.dept ? `, au département <strong>${employe.dept}</strong>` : ''}` +
+    `${dateEmb ? `, depuis le ${dateEmb}` : ''},<br>` +
+    `et perçoit à ce titre une rémunération mensuelle de :</p>` +
+    `<ul>` +
+    `<li>Salaire brut : <strong>${employe.salaireBrut ? `${Number(employe.salaireBrut).toLocaleString('fr-FR')} DH` : '— DH'}</strong></li>` +
+    `<li>Salaire net : <strong>${employe.salaireNet ? `${Number(employe.salaireNet).toLocaleString('fr-FR')} DH` : '— DH'}</strong></li>` +
+    `</ul>`
 
-Exerce la fonction de ${employe.poste || '—'} au sein de notre cabinet${employe.dept ? `, au département ${employe.dept}` : ''}${dateEmb ? `,\net ce depuis le ${dateEmb}` : ''},
-dans le cadre d'un contrat à durée ${contratLabel}.`
+  const getHtml = (t) => t === 'salaire' ? salaireHtml : travailHtml
+  const title   = type === 'travail' ? 'ATTESTATION DE TRAVAIL' : 'ATTESTATION DE SALAIRE'
 
-  const salaireBody = `Je soussigné, le Directeur Général du Cabinet d'Architecture CLADE, certifie que :
+  // Initialise le contenu de l'éditeur au montage
+  useEffect(() => {
+    if (editorRef.current) editorRef.current.innerHTML = getHtml(initialType)
+  }, []) // eslint-disable-line
 
-M. / Mme ${fullName},${employe.cin ? `\nPorteur(e) de la CIN n° ${employe.cin},` : ''}
+  const handleTypeChange = (newType) => {
+    setType(newType)
+    if (editorRef.current) editorRef.current.innerHTML = getHtml(newType)
+  }
 
-Exerce la fonction de ${employe.poste || '—'} au sein de notre cabinet${employe.dept ? `, au département ${employe.dept}` : ''}${dateEmb ? `, depuis le ${dateEmb}` : ''},
-et perçoit à ce titre une rémunération mensuelle de :
+  // Commandes de mise en forme
+  const exec = (cmd, value) => {
+    editorRef.current?.focus()
+    document.execCommand(cmd, false, value ?? null)
+  }
 
-  • Salaire brut : ${employe.salaireBrut ? `${Number(employe.salaireBrut).toLocaleString('fr-FR')} DH` : '— DH'}
-  • Salaire net  : ${employe.salaireNet  ? `${Number(employe.salaireNet).toLocaleString('fr-FR')} DH`  : '— DH'}`
-
-  const bodyText = type === 'travail' ? travailBody : salaireBody
-  const title    = type === 'travail' ? 'ATTESTATION DE TRAVAIL' : 'ATTESTATION DE SALAIRE'
+  const ToolBtn = ({ onClick, title: t, children, active }) => (
+    <button
+      onMouseDown={e => { e.preventDefault(); onClick() }}
+      title={t}
+      className={`w-7 h-7 flex items-center justify-center rounded-lg text-xs transition-colors ${
+        active ? 'bg-violet-100 text-violet-700' : 'text-muted hover:bg-paper-warm hover:text-ink'
+      }`}
+    >
+      {children}
+    </button>
+  )
 
   const handleExport = () => {
+    const content = editorRef.current?.innerHTML || ''
     const html = `<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -95,8 +140,11 @@ et perçoit à ce titre une rémunération mensuelle de :
   .ref { text-align:right; font-size:11px; color:#666; }
   .ttl { text-align:center; margin-bottom:36px; }
   .ttl span { font-size:17px; font-weight:700; letter-spacing:3px; text-transform:uppercase; border-bottom:2px solid #111; display:inline-block; padding-bottom:6px; }
-  .body { white-space:pre-line; margin-bottom:32px; }
-  .purpose { margin-bottom:52px; }
+  .body { margin-bottom:32px; }
+  .body p { margin-bottom:0.6em; }
+  .body ul,.body ol { margin:0.4em 0 0.6em 1.6em; }
+  .body li { margin-bottom:0.2em; }
+  .purpose { margin-bottom:52px; font-style:italic; color:#555; }
   .sig { text-align:right; }
   .sig-line { margin-top:44px; font-size:12px; color:#666; font-style:italic; }
   @media print { body { padding:40px 60px; } }
@@ -109,12 +157,12 @@ et perçoit à ce titre une rémunération mensuelle de :
     <div class="co-sub">Cabinet d'Architecture et d'Ingénierie</div>
   </div>
   <div class="ref">
-    <div>Réf. : ${ref}</div>
+    <div>Réf. : ${docRef}</div>
     <div>Casablanca, le ${today}</div>
   </div>
 </div>
 <div class="ttl"><span>${title}</span></div>
-<div class="body">${bodyText.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+<div class="body">${content}</div>
 <div class="purpose">La présente attestation est délivrée à l'intéressé(e) pour servir et valoir ce que de droit.</div>
 <div class="sig">
   <div>Le Directeur Général</div>
@@ -135,7 +183,7 @@ et perçoit à ce titre une rémunération mensuelle de :
       onClick={e => e.target === e.currentTarget && onClose()}>
       <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[92vh] flex flex-col overflow-hidden">
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden">
 
         {/* Header */}
         <div className="px-6 py-4 border-b border-border flex items-center justify-between flex-shrink-0">
@@ -154,13 +202,13 @@ et perçoit à ce titre une rémunération mensuelle de :
         </div>
 
         {/* Type tabs */}
-        <div className="px-6 pt-4 pb-3 flex-shrink-0">
+        <div className="px-6 pt-4 pb-0 flex-shrink-0">
           <div className="flex gap-1.5 bg-paper-warm rounded-xl p-1">
             {[
               { key: 'travail', label: 'Attestation de travail' },
               { key: 'salaire', label: 'Attestation de salaire' },
             ].map(t => (
-              <button key={t.key} onClick={() => setType(t.key)}
+              <button key={t.key} onClick={() => handleTypeChange(t.key)}
                 className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
                   type === t.key ? 'bg-white text-ink shadow-sm' : 'text-muted hover:text-ink'
                 }`}>
@@ -170,33 +218,59 @@ et perçoit à ce titre une rémunération mensuelle de :
           </div>
         </div>
 
-        {/* Document preview */}
-        <div className="flex-1 overflow-y-auto px-6 pb-4">
-          <div className="border border-border rounded-xl p-7 bg-white font-serif text-sm leading-7 text-ink">
-            {/* letterhead */}
+        {/* Barre d'outils */}
+        <div className="px-6 py-2 flex items-center gap-0.5 border-b border-border flex-shrink-0">
+          <ToolBtn onClick={() => exec('bold')} title="Gras (Ctrl+B)"><Bold size={13} /></ToolBtn>
+          <ToolBtn onClick={() => exec('italic')} title="Italique (Ctrl+I)"><Italic size={13} /></ToolBtn>
+          <ToolBtn onClick={() => exec('underline')} title="Souligné (Ctrl+U)"><Underline size={13} /></ToolBtn>
+          <div className="w-px h-4 bg-border mx-1" />
+          <ToolBtn onClick={() => exec('insertUnorderedList')} title="Liste à puces"><List size={13} /></ToolBtn>
+          <ToolBtn onClick={() => exec('insertOrderedList')} title="Liste numérotée"><ListOrdered size={13} /></ToolBtn>
+          <div className="w-px h-4 bg-border mx-1" />
+          <ToolBtn onClick={() => exec('justifyLeft')} title="Aligner à gauche">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
+          </ToolBtn>
+          <ToolBtn onClick={() => exec('justifyCenter')} title="Centrer">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+          </ToolBtn>
+          <div className="w-px h-4 bg-border mx-1" />
+          <ToolBtn onClick={() => exec('undo')} title="Annuler (Ctrl+Z)"><Undo2 size={13} /></ToolBtn>
+          <div className="flex-1" />
+          <span className="text-[10px] text-muted">Cliquez dans le texte pour modifier</span>
+        </div>
+
+        {/* Document éditable */}
+        <div className="flex-1 overflow-y-auto px-6 pb-4 pt-4">
+          <div className="border border-border rounded-xl p-7 bg-white font-serif text-sm leading-7 text-ink shadow-sm">
+            {/* En-tête */}
             <div className="flex justify-between items-end border-b-2 border-ink pb-4 mb-7">
               <div>
                 <div className="font-bold text-[17px] tracking-wide">CLADE ARCHITECTURE</div>
                 <div className="text-[11px] text-muted mt-1 font-sans">Cabinet d'Architecture et d'Ingénierie</div>
               </div>
               <div className="text-right text-[11px] text-muted font-sans">
-                <div>Réf. : {ref}</div>
+                <div>Réf. : {docRef}</div>
                 <div>Casablanca, le {today}</div>
               </div>
             </div>
-            {/* title */}
+            {/* Titre */}
             <div className="text-center mb-8">
               <span className="font-bold text-[15px] tracking-[3px] uppercase border-b-2 border-ink pb-1.5 inline-block">
                 {title}
               </span>
             </div>
-            {/* body */}
-            <p className="whitespace-pre-line mb-6">{bodyText}</p>
-            {/* purpose */}
-            <p className="mb-12">
+            {/* Corps — contenteditable */}
+            <div
+              ref={editorRef}
+              contentEditable
+              suppressContentEditableWarning
+              className="min-h-[120px] mb-6 outline-none focus:ring-1 focus:ring-violet-200 rounded-lg p-1 -mx-1 [&_ul]:list-disc [&_ul]:ml-5 [&_ol]:list-decimal [&_ol]:ml-5 [&_p]:mb-2"
+            />
+            {/* Finalité */}
+            <p className="mb-12 text-muted text-[13px] italic border-t border-border/50 pt-4">
               La présente attestation est délivrée à l'intéressé(e) pour servir et valoir ce que de droit.
             </p>
-            {/* signature */}
+            {/* Signature */}
             <div className="text-right">
               <div className="text-sm font-medium">Le Directeur Général</div>
               <div className="mt-10 text-xs text-muted font-sans italic">Cachet et signature</div>
@@ -326,7 +400,7 @@ function RequestModal({ demande, employe, onClose, onApprove, onRefuse, onAttest
           </div>
 
           {/* Attestation shortcut — visible for attestation type or any approved demande */}
-          {employe && (demande.type === 'attestation' || demande.statut === 'approuve') && (
+          {(demande.type === 'attestation' || demande.statut === 'approuve') && (
             <button
               onClick={onAttestation}
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold bg-violet-50 text-violet-700 border border-violet-200 hover:bg-violet-100 transition-colors">
@@ -384,7 +458,7 @@ function statutLabel(statut) {
 function NouveauPosteModal({ onClose, onAdd }) {
   const [form, setForm] = useState({
     intitule: '', description: '', missions: '',
-    salaireMin: '', salaireMax: '', dept: '',
+    salaireMin: '', salaireMax: '', dept: '', typeContrat: '',
   })
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }))
 
@@ -414,9 +488,25 @@ function NouveauPosteModal({ onClose, onAdd }) {
               <label className="label-text mb-1.5 block">Intitulé du poste *</label>
               <input className="input-field" placeholder="Architecte Senior, Chef de Projet…" value={form.intitule} onChange={set('intitule')} autoFocus />
             </div>
-            <div>
-              <label className="label-text mb-1.5 block">Département</label>
-              <input className="input-field" placeholder="Architecture, Structure…" value={form.dept} onChange={set('dept')} />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label-text mb-1.5 block">Département</label>
+                <input className="input-field" placeholder="Architecture, Structure…" value={form.dept} onChange={set('dept')} />
+              </div>
+              <div>
+                <label className="label-text mb-1.5 block">Type de contrat</label>
+                <SelectField
+                  value={form.typeContrat}
+                  onChange={v => set('typeContrat')({ target: { value: v } })}
+                  options={[
+                    { value: '', label: '— Choisir —' },
+                    { value: 'CDI', label: 'CDI' },
+                    { value: 'CDD', label: 'CDD' },
+                    { value: 'Stage', label: 'Stage' },
+                    { value: 'Freelance', label: 'Freelance' },
+                  ]}
+                />
+              </div>
             </div>
             <div>
               <label className="label-text mb-1.5 block">Description</label>
@@ -481,11 +571,11 @@ function CandidatureAddModal({ onClose, onAdd, employes }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-muted mb-1">Prénom *</label>
-              <input className="input w-full" value={form.prenom} onChange={e => f('prenom', e.target.value)} placeholder="Prénom" />
+              <input className="input w-full" value={form.prenom} onChange={e => f('prenom', e.target.value)} placeholder="ex: Jean" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-muted mb-1">Nom *</label>
-              <input className="input w-full" value={form.nom} onChange={e => f('nom', e.target.value)} placeholder="Nom" />
+              <input className="input w-full" value={form.nom} onChange={e => f('nom', e.target.value)} placeholder="ex: Dupont" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -505,10 +595,15 @@ function CandidatureAddModal({ onClose, onAdd, employes }) {
             </div>
             <div>
               <label className="block text-xs font-semibold text-muted mb-1">Département</label>
-              <select className="input w-full" value={form.departement} onChange={e => f('departement', e.target.value)}>
-                <option value="">— Choisir —</option>
-                {depts.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
+              <SelectField
+                value={form.departement}
+                onChange={v => f('departement', v)}
+                options={[
+                  { value: '', label: '— Choisir —' },
+                  ...depts.map(d => ({ value: d, label: d })),
+                ]}
+                className="w-full"
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -535,12 +630,20 @@ function CandidatureAddModal({ onClose, onAdd, employes }) {
   )
 }
 
-function CandidatureDetailModal({ candidature, employes, onClose, onUpdate, onDelete, addPlanningEvent }) {
+function CandidatureDetailModal({ candidature, employes, recrutements = [], onClose, onUpdate, onDelete, addPlanningEvent }) {
   const [mode, setMode] = useState(null) // null | 'classe' | 'entretien'
   const [entretienForm, setEntretienForm] = useState({ date: '', heureDebut: '10:00', heureFin: '11:00', interviewerId: '' })
+  const [portfolioEdit, setPortfolioEdit] = useState(false)
+  const [portfolioVal, setPortfolioVal] = useState('')
+  const savePortfolio = () => {
+    const url = portfolioVal.trim()
+    if (url) onUpdate(candidature.id, { portfolioUrl: url })
+    setPortfolioEdit(false)
+  }
   const ef = (k, v) => setEntretienForm(p => ({ ...p, [k]: v }))
 
   const fullName = `${candidature.prenom} ${candidature.nom}`
+  const offreLiee = candidature.offreId ? recrutements.find(r => r.id === candidature.offreId) : null
 
   const rejectionBody = `Bonjour ${fullName},\n\nNous vous remercions chaleureusement pour l'intérêt que vous portez à notre cabinet et pour le temps que vous avez consacré à nous faire parvenir votre candidature spontanée pour le poste de ${candidature.posteSouhaite}.\n\nNous avons étudié votre profil avec attention. Bien que votre candidature ne corresponde pas à nos besoins immédiats, nous la conservons précieusement dans notre base de données et n'hésiterons pas à vous recontacter si une opportunité en lien avec votre profil venait à se présenter.\n\nNous vous souhaitons beaucoup de succès dans vos recherches et espérons avoir l'occasion de collaborer avec vous à l'avenir.\n\nCordialement,\nL'équipe CLADE Architecture`
   const [classeBody, setClasseBody] = useState(rejectionBody)
@@ -604,162 +707,199 @@ function CandidatureDetailModal({ candidature, employes, onClose, onUpdate, onDe
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-paper rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="p-6 border-b border-border flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
+        className="bg-paper rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden">
+
+        {/* ── Header (always visible) ── */}
+        <div className="px-6 py-5 border-b border-border flex items-center justify-between gap-4 flex-shrink-0">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
             <div className="w-11 h-11 rounded-xl bg-violet-100 flex items-center justify-center flex-shrink-0">
               <span className="font-display text-violet-700 text-lg">{candidature.prenom[0]}{candidature.nom[0]}</span>
             </div>
-            <div>
-              <div className="font-display text-lg text-ink leading-tight">{fullName}</div>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-xs font-semibold text-muted">{candidature.posteSouhaite}</span>
-                {candidature.departement && <span className="text-muted">·</span>}
-                {candidature.departement && <span className="text-xs text-muted">{candidature.departement}</span>}
+            <div className="min-w-0">
+              <div className="font-display text-lg text-ink leading-tight truncate">{fullName}</div>
+              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                 <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${statut.cls}`}>{statut.label}</span>
+                {offreLiee && (
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-electric/10 text-electric">
+                    Offre : {offreLiee.intitule}
+                  </span>
+                )}
               </div>
             </div>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-paper-warm flex items-center justify-center text-muted flex-shrink-0"><X size={16} /></button>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-paper-warm flex items-center justify-center text-muted flex-shrink-0">
+            <X size={16} />
+          </button>
         </div>
 
-        <div className="p-6 space-y-5">
-          {/* Info row */}
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            {candidature.email && (
-              <div className="flex items-center gap-2 text-muted">
-                <Mail size={14} className="flex-shrink-0" />
-                <span className="truncate text-ink text-xs">{candidature.email}</span>
+        {/* ── Main info (mode === null) ── */}
+        {mode === null && (
+          <>
+            <div className="overflow-y-auto p-6 space-y-5 flex-1">
+              {(candidature.posteSouhaite || candidature.posteVise) && (
+                <div className="bg-violet-50 border border-violet-100 rounded-xl px-4 py-3">
+                  <div className="text-[10px] font-semibold text-violet-400 uppercase tracking-widest mb-1">Poste souhaité</div>
+                  <div className="text-sm font-semibold text-violet-900">{candidature.posteSouhaite || candidature.posteVise}</div>
+                  {candidature.departement && <div className="text-xs text-violet-500 mt-0.5">{candidature.departement}</div>}
+                </div>
+              )}
+              <div className="flex flex-wrap gap-5">
+                {candidature.email && (
+                  <div className="flex items-center gap-2 text-xs text-ink">
+                    <Mail size={13} className="text-muted flex-shrink-0" /><span>{candidature.email}</span>
+                  </div>
+                )}
+                {candidature.telephone && (
+                  <div className="flex items-center gap-2 text-xs text-ink">
+                    <PhoneCall size={13} className="text-muted flex-shrink-0" /><span>{candidature.telephone}</span>
+                  </div>
+                )}
               </div>
-            )}
-            {candidature.telephone && (
-              <div className="flex items-center gap-2 text-muted">
-                <span className="text-xs text-ink">{candidature.telephone}</span>
+              <div className="flex justify-center gap-3 flex-wrap">
+                {candidature.cvUrl && (
+                  <a href={candidature.cvUrl} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-4 py-2 bg-violet-50 text-violet-700 border border-violet-200 rounded-xl text-xs font-semibold hover:bg-violet-100 transition-colors">
+                    <FileText size={13} /> Voir le CV
+                  </a>
+                )}
+                {candidature.portfolioUrl ? (
+                  <a href={candidature.portfolioUrl} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-4 py-2 bg-violet-50 text-violet-700 border border-violet-200 rounded-xl text-xs font-semibold hover:bg-violet-100 transition-colors">
+                    <Globe size={13} /> Voir le portfolio
+                  </a>
+                ) : portfolioEdit ? (
+                  <div className="flex items-center gap-1.5">
+                    <input className="input text-xs flex-1 h-8 py-0" value={portfolioVal} onChange={e => setPortfolioVal(e.target.value)}
+                      placeholder="https://..." autoFocus
+                      onKeyDown={e => { if (e.key === 'Enter') savePortfolio(); if (e.key === 'Escape') setPortfolioEdit(false) }} />
+                    <button onClick={savePortfolio} className="text-xs text-violet-600 font-semibold px-2 py-1 rounded-lg hover:bg-violet-50">OK</button>
+                    <button onClick={() => setPortfolioEdit(false)} className="text-xs text-muted px-1"><X size={12} /></button>
+                  </div>
+                ) : (
+                  <button onClick={() => setPortfolioEdit(true)}
+                    className="flex items-center gap-1.5 text-muted hover:text-violet-600 text-xs border border-dashed border-border rounded-xl px-4 py-2 transition-colors">
+                    <Paperclip size={13} /> Ajouter un lien portfolio
+                  </button>
+                )}
               </div>
-            )}
-            {candidature.cvUrl && (
-              <a href={candidature.cvUrl} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 text-violet-600 hover:text-violet-700 text-xs font-medium">
-                <FileText size={14} /> Voir le CV <ExternalLink size={11} />
-              </a>
-            )}
-            {candidature.portfolioUrl && (
-              <a href={candidature.portfolioUrl} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 text-violet-600 hover:text-violet-700 text-xs font-medium">
-                <Paperclip size={14} /> Portfolio <ExternalLink size={11} />
-              </a>
-            )}
-          </div>
-          {candidature.message && (
-            <div className="bg-paper-warm rounded-xl p-4">
-              <div className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-2">Message de motivation</div>
-              <p className="text-xs text-ink leading-relaxed whitespace-pre-wrap">{candidature.message}</p>
+              {candidature.message && (
+                <div className="bg-paper-warm rounded-xl p-4">
+                  <div className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-2">Message de motivation</div>
+                  <p className="text-xs text-ink leading-relaxed whitespace-pre-wrap">{candidature.message}</p>
+                </div>
+              )}
+              <div className="text-[10px] text-muted">Reçue le {candidature.dateReception ? new Date(candidature.dateReception).toLocaleDateString('fr-FR') : '—'}</div>
             </div>
-          )}
-          <div className="text-[10px] text-muted">Reçue le {candidature.dateReception ? new Date(candidature.dateReception).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'}</div>
-
-          {/* Actions */}
-          {mode === null && (
-            <div className="flex gap-3 pt-1">
-              <button onClick={() => { setMode('classe'); setClasseBody(rejectionBody) }}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-sm font-medium text-gray-700 transition-colors">
-                <Check size={15} /> Classer
-              </button>
-              <button onClick={() => setMode('entretien')}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium transition-colors">
-                <CalendarCheck size={15} /> Proposer un entretien
-              </button>
-            </div>
-          )}
-
-          {/* Mode classé */}
-          {mode === 'classe' && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="text-xs font-semibold text-ink">Message de classement</div>
-                <button onClick={() => setMode(null)} className="text-xs text-muted hover:text-ink">← Retour</button>
-              </div>
-              <textarea
-                value={classeBody}
-                onChange={e => setClasseBody(e.target.value)}
-                className="input w-full h-48 resize-none text-xs leading-relaxed font-mono"
-              />
+            {/* Action buttons */}
+            <div className="px-6 pb-5 flex-shrink-0 border-t border-border pt-4 space-y-3">
               <div className="flex gap-3">
-                <button onClick={openMailClasse}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border hover:bg-paper-warm text-sm font-medium transition-colors">
-                  <Send size={14} /> Envoyer par mail
+                <button onClick={() => { setMode('classe'); setClasseBody(rejectionBody) }}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-sm font-medium text-gray-700 transition-colors">
+                  <Check size={15} /> Classer
                 </button>
-                <button onClick={confirmClasse}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gray-700 hover:bg-gray-800 text-white text-sm font-medium transition-colors">
-                  <Check size={14} /> Marquer comme classée
+                <button onClick={() => setMode('entretien')}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium transition-colors">
+                  <CalendarCheck size={15} /> Proposer un entretien
                 </button>
+              </div>
+              <div className="flex justify-between items-center">
+                <button onClick={() => { if (window.confirm('Supprimer cette candidature ?')) { onDelete(candidature.id); onClose() } }}
+                  className="flex items-center gap-1.5 text-xs text-rose-500 hover:text-rose-600 transition-colors px-2 py-1.5 rounded-xl hover:bg-rose-50">
+                  <Trash2 size={13} /> Supprimer
+                </button>
+                <button onClick={onClose} className="btn-ghost text-sm">Fermer</button>
               </div>
             </div>
-          )}
+          </>
+        )}
 
-          {/* Mode entretien */}
-          {mode === 'entretien' && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="text-xs font-semibold text-ink">Planifier l'entretien</div>
-                <button onClick={() => setMode(null)} className="text-xs text-muted hover:text-ink">← Retour</button>
+        {/* ── Panel: Classer ── */}
+        {mode === 'classe' && (
+          <div className="flex flex-col flex-1 overflow-hidden">
+            <div className="h-1 w-full bg-gray-400 flex-shrink-0" />
+            <div className="flex items-center gap-3 px-6 py-3 border-b border-border flex-shrink-0">
+              <button onClick={() => setMode(null)} className="flex items-center gap-1 text-xs text-muted hover:text-ink transition-colors">
+                <ChevronDown size={12} className="rotate-90" /> Retour
+              </button>
+              <div className="flex-1 text-center text-sm font-semibold text-ink">Classer la candidature</div>
+              <div className="w-14" />
+            </div>
+            <div className="overflow-y-auto p-6 space-y-4 flex-1">
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 flex items-center gap-2">
+                <Ban size={14} className="text-gray-500" />
+                <span className="text-xs font-medium text-gray-600">Un email de classement sera envoyé à {candidature.email}</span>
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="text-[10px] font-semibold uppercase tracking-widest mb-1.5 block text-gray-400">Corps de l'email</label>
+                <textarea value={classeBody} onChange={e => setClasseBody(e.target.value)} rows={11}
+                  className="input w-full resize-none text-xs leading-relaxed font-mono" />
+              </div>
+            </div>
+            <div className="px-6 pb-5 flex gap-3 border-t border-border pt-4 flex-shrink-0">
+              <button onClick={() => setMode(null)} className="btn-ghost text-sm flex-1 justify-center">Annuler</button>
+              <button onClick={() => { openMailClasse(); confirmClasse() }}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gray-700 hover:bg-gray-800 text-white text-sm font-semibold transition-colors">
+                <Send size={13} /> Envoyer et classer
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Panel: Entretien ── */}
+        {mode === 'entretien' && (
+          <div className="flex flex-col flex-1 overflow-hidden">
+            <div className="h-1 w-full bg-violet-500 flex-shrink-0" />
+            <div className="flex items-center gap-3 px-6 py-3 border-b border-border flex-shrink-0">
+              <button onClick={() => setMode(null)} className="flex items-center gap-1 text-xs text-muted hover:text-ink transition-colors">
+                <ChevronDown size={12} className="rotate-90" /> Retour
+              </button>
+              <div className="flex-1 text-center text-sm font-semibold text-ink">Proposer un entretien</div>
+              <div className="w-14" />
+            </div>
+            <div className="overflow-y-auto p-6 space-y-4 flex-1">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[10px] font-semibold text-muted mb-1 uppercase tracking-widest">Date *</label>
-                  <input type="date" className="input w-full text-xs" value={entretienForm.date} onChange={e => { ef('date', e.target.value); setEntretienBody('') }} />
+                  <label className="text-[10px] font-semibold text-violet-500 uppercase tracking-widest mb-1.5 block">Date *</label>
+                  <input type="date" className="input w-full" value={entretienForm.date}
+                    onChange={e => { ef('date', e.target.value); setEntretienBody('') }} />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-semibold text-muted mb-1 uppercase tracking-widest">Début</label>
-                  <input type="time" className="input w-full text-xs" value={entretienForm.heureDebut} onChange={e => ef('heureDebut', e.target.value)} />
+                  <label className="text-[10px] font-semibold text-violet-500 uppercase tracking-widest mb-1.5 block">Heure de début</label>
+                  <input type="time" className="input w-full" value={entretienForm.heureDebut} onChange={e => ef('heureDebut', e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-semibold text-muted mb-1 uppercase tracking-widest">Fin</label>
-                  <input type="time" className="input w-full text-xs" value={entretienForm.heureFin} onChange={e => ef('heureFin', e.target.value)} />
+                  <label className="text-[10px] font-semibold text-violet-500 uppercase tracking-widest mb-1.5 block">Heure de fin</label>
+                  <input type="time" className="input w-full" value={entretienForm.heureFin} onChange={e => ef('heureFin', e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold text-violet-500 uppercase tracking-widest mb-1.5 block">Interlocuteur *</label>
+                  <SelectField
+                    value={entretienForm.interviewerId}
+                    onChange={v => ef('interviewerId', v)}
+                    options={[
+                      { value: '', label: '— Choisir —' },
+                      ...employes.map(e => ({ value: String(e.id), label: `${e.prenom} ${e.nom}` })),
+                    ]}
+                    className="w-full"
+                  />
                 </div>
               </div>
               <div>
-                <label className="block text-[10px] font-semibold text-muted mb-1 uppercase tracking-widest">Interlocuteur *</label>
-                <select className="input w-full text-xs" value={entretienForm.interviewerId} onChange={e => ef('interviewerId', e.target.value)}>
-                  <option value="">— Choisir un membre de l'équipe —</option>
-                  {employes.filter(e => !e.isDirecteur).map(e => (
-                    <option key={e.id} value={String(e.id)}>{e.prenom} {e.nom}</option>
-                  ))}
-                </select>
-              </div>
-              {entretienForm.date && (
-                <>
-                  <div className="text-[10px] font-semibold text-muted uppercase tracking-widest">Message d'invitation</div>
-                  <textarea
-                    value={entretienBody || entretienBodyDefault}
-                    onChange={e => setEntretienBody(e.target.value)}
-                    className="input w-full h-48 resize-none text-xs leading-relaxed font-mono"
-                  />
-                </>
-              )}
-              <div className="flex gap-3">
-                <button onClick={openMailEntretien} disabled={!entretienForm.date}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border hover:bg-paper-warm text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-                  <Send size={14} /> Envoyer par mail
-                </button>
-                <button onClick={confirmEntretien}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium transition-colors">
-                  <CalendarCheck size={14} /> Confirmer & ajouter au planning
-                </button>
+                <label className="text-[10px] font-semibold text-violet-500 uppercase tracking-widest mb-1.5 block">Corps de l'email</label>
+                <textarea value={entretienBody || entretienBodyDefault} onChange={e => setEntretienBody(e.target.value)} rows={9}
+                  className="input w-full resize-none text-xs leading-relaxed font-mono focus:border-violet-200 focus:ring-1 focus:ring-violet-50" />
               </div>
             </div>
-          )}
-        </div>
+            <div className="px-6 pb-5 flex gap-3 border-t border-border pt-4 flex-shrink-0">
+              <button onClick={() => setMode(null)} className="btn-ghost text-sm flex-1 justify-center">Annuler</button>
+              <button onClick={() => { openMailEntretien(); confirmEntretien() }} disabled={!entretienForm.date}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold transition-colors disabled:opacity-40">
+                <Send size={13} /> Envoyer et planifier
+              </button>
+            </div>
+          </div>
+        )}
 
-        {/* Footer */}
-        <div className="p-6 pt-0 flex justify-between items-center">
-          <button onClick={() => { if (window.confirm('Supprimer cette candidature ?')) { onDelete(candidature.id); onClose() } }}
-            className="flex items-center gap-1.5 text-xs text-rose-500 hover:text-rose-600 transition-colors">
-            <Trash2 size={13} /> Supprimer
-          </button>
-          <button onClick={onClose} className="btn-secondary text-sm">Fermer</button>
-        </div>
       </motion.div>
     </div>
   )
@@ -814,9 +954,12 @@ function JourFerieModal({ onClose, onSave, event }) {
 export default function HRPage() {
   const { employes, updateEmploye, deleteEmploye, projects, formations, deleteFormation, demandesRH, updateDemandeRH, deleteDemandeRH,
     recrutements, addRecrutement, deleteRecrutement,
-    candidaturesSpont, addCandidatureSpont, updateCandidatureSpont, deleteCandidatureSpont,
+    candidaturesSpont, addCandidatureSpont, updateCandidatureSpont, deleteCandidatureSpont, refreshCandidatures,
     joursFerier, addJourFerie, updateJourFerie, deleteJourFerie,
     addPlanningEvent } = useData()
+
+  useEffect(() => { refreshCandidatures?.() }, [])
+
   const [showModal, setShowModal] = useState(false)
   const [showFormationModal, setShowFormationModal] = useState(false)
   const [expandedFormation, setExpandedFormation] = useState(null)
@@ -829,10 +972,15 @@ export default function HRPage() {
   const [showCandidatureAddModal, setShowCandidatureAddModal] = useState(false)
   const [showJourFerieModal, setShowJourFerieModal] = useState(false)
   const [editingJourFerie, setEditingJourFerie] = useState(null)
-  const [candidatureFilter, setCandidatureFilter] = useState('tous')
+  const [candidatureFilter, setCandidatureFilter] = useState(null)
+  const spontCandidatures = useMemo(() => candidaturesSpont.filter(c => !c.offreId), [candidaturesSpont])
   const [openDemandes, setOpenDemandes] = useState(true)
   const [openCandidatures, setOpenCandidatures] = useState(true)
   const [openJoursFerier, setOpenJoursFerier] = useState(true)
+  const [selectedYearJF, setSelectedYearJF] = useState(() => {
+    const now = new Date()
+    return now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1
+  })
   const navigate = useNavigate()
 
   const depts = useMemo(() => {
@@ -1360,7 +1508,7 @@ export default function HRPage() {
                         </div>
                       ), { duration: 6000 })
                     }}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg text-muted hover:text-rose-500 hover:bg-rose-50 transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-muted hover:text-rose-500 hover:bg-rose-50 transition-colors flex-shrink-0"
                   >
                     <Trash2 size={14} />
                   </button>
@@ -1480,13 +1628,13 @@ export default function HRPage() {
                 </div>
                 <div className="min-w-0">
                   <div className="font-display text-base text-ink leading-none">Candidatures spontanées</div>
-                  <div className="text-[10px] text-muted mt-0.5">{candidaturesSpont.filter(c => c.statut === 'nouveau').length > 0 ? `${candidaturesSpont.filter(c => c.statut === 'nouveau').length} nouvelle${candidaturesSpont.filter(c => c.statut === 'nouveau').length > 1 ? 's' : ''}` : 'Aucune candidature'}</div>
+                  <div className="text-[10px] text-muted mt-0.5">{spontCandidatures.filter(c => c.statut === 'nouveau').length > 0 ? `${spontCandidatures.filter(c => c.statut === 'nouveau').length} nouvelle${spontCandidatures.filter(c => c.statut === 'nouveau').length > 1 ? 's' : ''}` : 'Aucune candidature'}</div>
                 </div>
               </button>
               <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                {candidaturesSpont.filter(c => c.statut === 'nouveau').length > 0 && (
+                {spontCandidatures.filter(c => c.statut === 'nouveau').length > 0 && (
                   <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-violet-500 text-white text-[10px] font-bold flex items-center justify-center">
-                    {candidaturesSpont.filter(c => c.statut === 'nouveau').length}
+                    {spontCandidatures.filter(c => c.statut === 'nouveau').length}
                   </span>
                 )}
                 <button onClick={() => setShowCandidatureAddModal(true)}
@@ -1504,15 +1652,14 @@ export default function HRPage() {
                 <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }}
                   transition={{ duration: 0.2 }} className="overflow-hidden">
                   <div className="px-5 pb-5 space-y-3 pt-4">
-                    {candidaturesSpont.length > 0 && (
+                    {spontCandidatures.length > 0 && (
                       <div className="flex gap-1.5 flex-wrap justify-center">
                         {[
-                          { key: 'tous', label: 'Tous', count: candidaturesSpont.length },
-                          { key: 'nouveau', label: 'Nouvelles', count: candidaturesSpont.filter(c => c.statut === 'nouveau').length },
-                          { key: 'entretien_planifie', label: 'Entretien', count: candidaturesSpont.filter(c => c.statut === 'entretien_planifie').length },
-                          { key: 'classe', label: 'Classées', count: candidaturesSpont.filter(c => c.statut === 'classe').length },
+                          { key: 'nouveau', label: 'Nouvelles', count: spontCandidatures.filter(c => c.statut === 'nouveau').length },
+                          { key: 'entretien_planifie', label: 'Entretien', count: spontCandidatures.filter(c => c.statut === 'entretien_planifie').length },
+                          { key: 'classe', label: 'Classées', count: spontCandidatures.filter(c => c.statut === 'classe').length },
                         ].map(f => (
-                          <button key={f.key} onClick={() => setCandidatureFilter(f.key)}
+                          <button key={f.key} onClick={() => setCandidatureFilter(prev => prev === f.key ? null : f.key)}
                             className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold border transition-colors ${
                               candidatureFilter === f.key
                                 ? 'bg-violet-600 text-white border-violet-600'
@@ -1524,7 +1671,7 @@ export default function HRPage() {
                         ))}
                       </div>
                     )}
-                    {candidaturesSpont.length === 0 ? (
+                    {spontCandidatures.length === 0 ? (
                       <div className="text-center py-5">
                         <div className="w-10 h-10 rounded-xl bg-paper-warm flex items-center justify-center mx-auto mb-2">
                           <Inbox size={18} className="text-muted" />
@@ -1536,9 +1683,9 @@ export default function HRPage() {
                         </button>
                       </div>
                     ) : (() => {
-                      const filtered = candidatureFilter === 'tous'
-                        ? candidaturesSpont
-                        : candidaturesSpont.filter(c => c.statut === candidatureFilter)
+                      const filtered = candidatureFilter === null
+                        ? spontCandidatures
+                        : spontCandidatures.filter(c => c.statut === candidatureFilter)
                       return filtered.length === 0 ? (
                         <div className="text-center py-3 text-xs text-muted">Aucune candidature dans cette catégorie</div>
                       ) : (
@@ -1599,51 +1746,85 @@ export default function HRPage() {
             </div>
 
             <AnimatePresence initial={false}>
-              {openJoursFerier && (
-                <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }}
-                  transition={{ duration: 0.2 }} className="overflow-hidden">
-                  <div className="px-5 pb-5 pt-4">
-                    {joursFerier.length === 0 ? (
-                      <div className="text-center py-4">
-                        <p className="text-xs text-muted">Aucun jour férié configuré</p>
-                        <button onClick={() => setShowJourFerieModal(true)}
-                          className="mt-2 text-xs text-amber-600 hover:text-amber-700 font-medium">
-                          + Ajouter un jour férié
+              {openJoursFerier && (() => {
+                const now = new Date()
+                const curSY = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1
+                // Derive school-year start from a date: if month >= Sep → Y, else Y-1
+                const toSY = (d) => { const m = d.getMonth(); const y = d.getFullYear(); return m >= 8 ? y : y - 1 }
+                const sySet = new Set([curSY - 1, curSY, curSY + 1])
+                joursFerier.forEach(jf => { if (jf.date) sySet.add(toSY(new Date(jf.date + 'T00:00:00'))) })
+                const schoolYears = Array.from(sySet).sort((a, b) => a - b)
+                // Filter: a jf belongs to school year Y if (month>=8 && year===Y) || (month<8 && year===Y+1)
+                const filtered = joursFerier.filter(jf => {
+                  if (!jf.date) return false
+                  return toSY(new Date(jf.date + 'T00:00:00')) === selectedYearJF
+                }).sort((a, b) => new Date(a.date) - new Date(b.date))
+                return (
+                  <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }}
+                    transition={{ duration: 0.2 }} className="overflow-hidden">
+                    <div className="px-5 pb-5 pt-3">
+
+                      {/* Filtre années scolaires — navigation */}
+                      <div className="flex justify-center items-center gap-2 mb-3">
+                        <button onClick={() => setSelectedYearJF(y => y - 1)}
+                          className="w-8 h-8 rounded-lg border border-border bg-white hover:bg-paper-warm flex items-center justify-center text-muted hover:text-ink transition-colors">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                        </button>
+                        <div className="px-4 py-1.5 rounded-lg border border-border bg-white text-xs font-semibold text-ink min-w-[96px] text-center">
+                          {selectedYearJF}–{selectedYearJF + 1}
+                        </div>
+                        <button onClick={() => setSelectedYearJF(y => y + 1)}
+                          className="w-8 h-8 rounded-lg border border-border bg-white hover:bg-paper-warm flex items-center justify-center text-muted hover:text-ink transition-colors">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                         </button>
                       </div>
-                    ) : (
-                      <div className="space-y-1.5">
-                        {joursFerier.map(jf => (
-                          <div key={jf.id}
-                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-border hover:bg-paper-warm transition-colors group">
-                            <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
-                              <span className="text-[10px] font-bold text-amber-600 leading-none">
-                                {jf.date ? new Date(jf.date + 'T00:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : '—'}
-                              </span>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-xs font-semibold text-ink truncate">{jf.nom}</div>
-                              <div className="text-[10px] text-muted">
-                                {jf.date ? new Date(jf.date + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'long' }) : ''}
+
+                      {joursFerier.length === 0 ? (
+                        <div className="text-center py-4">
+                          <p className="text-xs text-muted">Aucun jour férié configuré</p>
+                          <button onClick={() => setShowJourFerieModal(true)}
+                            className="mt-2 text-xs text-amber-600 hover:text-amber-700 font-medium">
+                            + Ajouter un jour férié
+                          </button>
+                        </div>
+                      ) : filtered.length === 0 ? (
+                        <div className="text-center py-4 text-xs text-muted">
+                          Aucun jour férié pour {selectedYearJF}–{selectedYearJF + 1}
+                        </div>
+                      ) : (
+                        <div className="space-y-1.5">
+                          {filtered.map(jf => (
+                            <div key={jf.id}
+                              className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-border hover:bg-paper-warm transition-colors group">
+                              <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+                                <span className="text-[10px] font-bold text-amber-600 leading-none">
+                                  {new Date(jf.date + 'T00:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
+                                </span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-xs font-semibold text-ink truncate">{jf.nom}</div>
+                                <div className="text-[10px] text-muted">
+                                  {new Date(jf.date + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'long' })}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onClick={() => setEditingJourFerie(jf)}
+                                  className="w-6 h-6 rounded flex items-center justify-center text-muted hover:text-electric">
+                                  <Pencil size={11} />
+                                </button>
+                                <button onClick={() => deleteJourFerie(jf.id)}
+                                  className="w-6 h-6 rounded flex items-center justify-center text-muted hover:text-rose-500">
+                                  <Trash2 size={11} />
+                                </button>
                               </div>
                             </div>
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button onClick={() => setEditingJourFerie(jf)}
-                                className="w-6 h-6 rounded flex items-center justify-center text-muted hover:text-electric">
-                                <Pencil size={11} />
-                              </button>
-                              <button onClick={() => deleteJourFerie(jf.id)}
-                                className="w-6 h-6 rounded flex items-center justify-center text-muted hover:text-rose-500">
-                                <Trash2 size={11} />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
-              )}
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )
+              })()}
             </AnimatePresence>
           </div>
 
@@ -1673,6 +1854,7 @@ export default function HRPage() {
           <CandidatureDetailModal
             candidature={selectedCandidature}
             employes={employes}
+            recrutements={recrutements}
             onClose={() => setSelectedCandidature(null)}
             onUpdate={(id, updates) => { updateCandidatureSpont(id, updates); setSelectedCandidature(prev => ({ ...prev, ...updates })) }}
             onDelete={deleteCandidatureSpont}
@@ -1684,20 +1866,25 @@ export default function HRPage() {
         {selectedDemande && (
           <RequestModal
             demande={selectedDemande}
-            employe={employes.find(e => String(e.id) === String(selectedDemande.employeId))}
+            employe={
+              employes.find(e => String(e.id) === String(selectedDemande.employeId))
+              || employes.find(e => e.nom === selectedDemande.employeNom)
+            }
             onClose={() => setSelectedDemande(null)}
             onApprove={handleApprove}
             onRefuse={handleRefuse}
             onAttestation={() => {
               const emp = employes.find(e => String(e.id) === String(selectedDemande.employeId))
-              setAttestationEmploye(emp || null)
+                || employes.find(e => e.nom === selectedDemande.employeNom)
+              setAttestationEmploye({ employe: emp || null, type: selectedDemande.type === 'attestation_salaire' ? 'salaire' : 'travail' })
               setSelectedDemande(null)
             }}
           />
         )}
-        {attestationEmploye && (
+        {attestationEmploye?.employe && (
           <AttestationModal
-            employe={attestationEmploye}
+            employe={attestationEmploye.employe}
+            initialType={attestationEmploye.type}
             onClose={() => setAttestationEmploye(null)}
           />
         )}

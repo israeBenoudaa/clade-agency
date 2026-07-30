@@ -13,9 +13,8 @@ import {
   HeadingLevel,
 } from 'docx'
 import { useData } from '../../context/DataContext'
+import SelectField from '../../components/SelectField'
 import { useAuth } from '../../context/AuthContext'
-
-const DIR_PASSWORD = 'Achraf@123'
 
 // Category color palette (hex without #)
 const CAT_COLORS = [
@@ -320,7 +319,7 @@ export default function GestionWorkflowPage() {
   }
 
   const handleExport = async () => {
-    if (exportPwd !== DIR_PASSWORD) {
+    if (exportPwd !== import.meta.env.VITE_DIRECTOR_PWD) {
       setPwdError('Mot de passe incorrect')
       return
     }
@@ -378,17 +377,15 @@ export default function GestionWorkflowPage() {
           <CatSelect allCategories={allCategories} value={filterCat} onChange={setFilterCat} wrapClass="flex-1 sm:flex-none sm:flex-shrink-0" />
 
           {creators.length > 1 && (
-            <div className="relative flex-1 sm:flex-none">
-              <select
-                value={filterUser}
-                onChange={e => setFilterUser(e.target.value)}
-                className="input-field py-2.5 pl-3 pr-8 text-sm appearance-none cursor-pointer w-full"
-              >
-                <option value="">Tous les auteurs</option>
-                {creators.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
-              </select>
-              <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
-            </div>
+            <SelectField
+              value={filterUser}
+              onChange={v => setFilterUser(v)}
+              options={[
+                { value: '', label: 'Tous les auteurs' },
+                ...creators.map(c => ({ value: c.id, label: c.nom })),
+              ]}
+              className="flex-1 sm:flex-none sm:min-w-[170px]"
+            />
           )}
 
           <div className="hidden sm:block w-px h-7 bg-border flex-shrink-0" />

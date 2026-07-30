@@ -22,6 +22,8 @@ import CRMPage from './pages/dashboard/CRMPage'
 import ProspectDetailPage from './pages/dashboard/ProspectDetailPage'
 import UsersPage from './pages/dashboard/UsersPage'
 import DonneesPage from './pages/dashboard/DonneesPage'
+import SiteEditorPage from './pages/dashboard/SiteEditorPage'
+import PortfolioPreviewPage from './pages/dashboard/PortfolioPreviewPage'
 import CollaborateursPage from './pages/dashboard/CollaborateursPage'
 import MessagesPage from './pages/dashboard/MessagesPage'
 import MyTeamPage from './pages/dashboard/MyTeamPage'
@@ -123,6 +125,8 @@ export default function App() {
         <Route path="crm" element={<CRMPage />} />
         <Route path="crm/prospect/:id" element={<ProspectDetailPage />} />
         <Route path="collaborateurs" element={<CollaborateursPage />} />
+        <Route path="portfolio" element={<PortfolioPreviewPage />} />
+        <Route path="site-editor" element={<SiteEditorPage />} />
         <Route path="messages" element={<MessagesPage />} />
         <Route path="my-team" element={<MyTeamPage />} />
         <Route path="my-projects" element={<MyProjectsPage />} />
