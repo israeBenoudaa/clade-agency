@@ -312,11 +312,11 @@ export function DataProvider({ children }) {
     const load = async () => {
       try {
         const [
-          { data: dbClients },
-          { data: dbProspects },
-          { data: dbEmployes },
-          { data: dbProjects },
-          { data: dbTx },
+          { data: dbClients,   error: eClients },
+          { data: dbProspects, error: eProspects },
+          { data: dbEmployes,  error: eEmployes },
+          { data: dbProjects,  error: eProjects },
+          { data: dbTx,        error: eTx },
           { data: dbCharges },
           { data: dbMessages },
           { data: dbDemandesRH },
@@ -350,6 +350,13 @@ export function DataProvider({ children }) {
           supabase.from('agence_settings').select('*').eq('id', 1).single(),
           supabase.from('activity_log').select('*').order('timestamp', { ascending: false }).limit(500),
         ])
+
+        // Log Supabase errors so we can diagnose RLS / schema issues
+        if (eClients)   console.error('[Supabase] clients:', eClients.message)
+        if (eProspects) console.error('[Supabase] prospects:', eProspects.message)
+        if (eEmployes)  console.error('[Supabase] employes:', eEmployes.message)
+        if (eProjects)  console.error('[Supabase] projects:', eProjects.message)
+        if (eTx)        console.error('[Supabase] transactions:', eTx.message)
 
         if (dbClients?.length)   setClients(dbClients.map(fromDbClient))
         else if (mockClients?.length) {
