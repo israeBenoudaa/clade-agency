@@ -80,6 +80,7 @@ export default function StaffLayout() {
   const [demoConfirmOpen, setDemoConfirmOpen] = useState(false)
   const searchRef = useRef(null)
   const notifRef = useRef(null)
+  const sessionStartRef = useRef(Date.now())
 
   const { profile, signOut, isDirector, isDemoMode, isEmployeeMode, isDirectorMode } = useAuth()
   const { employes, projects, prospects, notifications, markAllNotificationsRead, deleteNotification, addDemandeRH, messages, msgReadState, demoCheckpoint, exitDemoMode, confirmDemoRestore, supaLoaded } = useData()
@@ -127,7 +128,7 @@ export default function StaffLayout() {
 
     let count = 0
     for (const convId of accessibleConvIds) {
-      const lastRead = myReadState[convId] || 0
+      const lastRead = myReadState[convId] || sessionStartRef.current
       const hasUnread = messages.some(
         m => m.conversationId === convId && m.senderId !== myId && new Date(m.timestamp) > new Date(lastRead)
       )
@@ -312,7 +313,10 @@ export default function StaffLayout() {
       seenNotifIds.current = new Set((visibleNotifications || []).map(n => n.id))
       return
     }
-    const newOnes = (visibleNotifications || []).filter(n => !seenNotifIds.current.has(n.id))
+    const newOnes = (visibleNotifications || []).filter(n =>
+      !seenNotifIds.current.has(n.id) &&
+      new Date(n.createdAt || 0).getTime() > sessionStartRef.current
+    )
     newOnes.slice(0, 3).forEach(n => {
       seenNotifIds.current.add(n.id)
       const cfg = NOTIF_CFG[n.type] || NOTIF_DEFAULT
