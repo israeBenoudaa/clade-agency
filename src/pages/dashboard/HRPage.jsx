@@ -908,12 +908,15 @@ function CandidatureDetailModal({ candidature, employes, recrutements = [], onCl
 // ─── JourFerieModal ───────────────────────────────────────────────────────────
 function JourFerieModal({ onClose, onSave, event }) {
   const isEdit = !!event
-  const [form, setForm] = useState({ nom: event?.nom || '', date: event?.date || '' })
+  const [form, setForm] = useState({ nom: event?.nom || '', date: event?.date || '', dateFin: event?.dateFin || '' })
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }))
   const submit = (e) => {
     e.preventDefault()
-    if (!form.nom.trim() || !form.date) { toast.error('Nom et date requis'); return }
-    onSave({ ...form, nom: form.nom.trim() })
+    if (!form.nom.trim() || !form.date) { toast.error('Nom et date de début requis'); return }
+    if (form.dateFin && form.dateFin < form.date) { toast.error('La date de fin doit être après la date de début'); return }
+    const data = { nom: form.nom.trim(), date: form.date }
+    if (form.dateFin && form.dateFin !== form.date) data.dateFin = form.dateFin
+    onSave(data)
   }
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4"
@@ -935,10 +938,17 @@ function JourFerieModal({ onClose, onSave, event }) {
             <label className="label-text mb-1.5 block">Nom *</label>
             <input className="input-field" placeholder="Aïd Al Fitr, Fête du Trône…" value={form.nom} onChange={set('nom')} autoFocus />
           </div>
-          <div>
-            <label className="label-text mb-1.5 block">Date *</label>
-            <input type="date" className="input-field" value={form.date} onChange={set('date')} />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label-text mb-1.5 block">Date début *</label>
+              <input type="date" className="input-field" value={form.date} onChange={set('date')} />
+            </div>
+            <div>
+              <label className="label-text mb-1.5 block">Date fin <span className="text-muted/60">(période)</span></label>
+              <input type="date" className="input-field" value={form.dateFin} onChange={set('dateFin')} min={form.date || undefined} />
+            </div>
           </div>
+          <p className="text-[10px] text-muted">Laissez la date de fin vide pour un jour unique.</p>
           <div className="flex gap-2 pt-1">
             <button type="button" onClick={onClose} className="btn-ghost flex-1 justify-center text-sm">Annuler</button>
             <button type="submit" className="btn-primary flex-1 justify-center text-sm">
@@ -1754,10 +1764,12 @@ export default function HRPage() {
                 const sySet = new Set([curSY - 1, curSY, curSY + 1])
                 joursFerier.forEach(jf => { if (jf.date) sySet.add(toSY(new Date(jf.date + 'T00:00:00'))) })
                 const schoolYears = Array.from(sySet).sort((a, b) => a - b)
-                // Filter: a jf belongs to school year Y if (month>=8 && year===Y) || (month<8 && year===Y+1)
+                // Filter: a jf belongs to school year Y if start or end date falls in that year
                 const filtered = joursFerier.filter(jf => {
                   if (!jf.date) return false
-                  return toSY(new Date(jf.date + 'T00:00:00')) === selectedYearJF
+                  const startSY = toSY(new Date(jf.date + 'T00:00:00'))
+                  const endSY = jf.dateFin ? toSY(new Date(jf.dateFin + 'T00:00:00')) : startSY
+                  return startSY === selectedYearJF || endSY === selectedYearJF
                 }).sort((a, b) => new Date(a.date) - new Date(b.date))
                 return (
                   <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }}
@@ -1804,7 +1816,10 @@ export default function HRPage() {
                               <div className="flex-1 min-w-0">
                                 <div className="text-xs font-semibold text-ink truncate">{jf.nom}</div>
                                 <div className="text-[10px] text-muted">
-                                  {new Date(jf.date + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'long' })}
+                                  {jf.dateFin
+                                    ? `${new Date(jf.date + 'T00:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })} → ${new Date(jf.dateFin + 'T00:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}`
+                                    : new Date(jf.date + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'long' })
+                                  }
                                 </div>
                               </div>
                               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

@@ -757,16 +757,17 @@ export default function MyTeamPage() {
 
   const navigate = useNavigate()
   const myId = String(profile?.id || '')
-  const me = employes.find(e => String(e.id) === myId)
+  const myEmpId = String(profile?.employe_id || profile?.id || '')
+  const me = employes.find(e => String(e.id) === myEmpId)
 
   // Projects where I'm the référent OR a team member — directors see all projects
   const myReferentProjects = useMemo(() => {
     if (isDirector || isDirectorMode) return projects
     return projects.filter(p =>
-      String(p.architecteReferentId) === myId ||
-      (p.equipeProjet || []).map(String).includes(myId)
+      String(p.architecteReferentId) === myEmpId ||
+      (p.equipeProjet || []).map(String).includes(myEmpId)
     )
-  }, [projects, myId, isDirector, isDirectorMode])
+  }, [projects, myEmpId, isDirector, isDirectorMode])
 
   // Union of all equipeProjet members + task assignees across my projects (deduplicated)
   const projectTeamMembers = useMemo(() => {
@@ -778,7 +779,7 @@ export default function MyTeamPage() {
     })
     ids.forEach(id => {
       const emp = employes.find(e => String(e.id) === id)
-      if (emp && !emp.isDirecteur && String(emp.id) !== myId) all.push(emp)
+      if (emp && !emp.isDirecteur && String(emp.id) !== myEmpId) all.push(emp)
     })
     return all
   }, [myReferentProjects, employes, myId])

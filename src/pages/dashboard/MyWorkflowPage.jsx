@@ -118,6 +118,7 @@ export default function MyWorkflowPage() {
   const { workflows } = useData()
 
   const myId = String(profile?.id || '')
+  const myEmpId = String(profile?.employe_id || '')
   const [search, setSearch] = useState('')
   const [filterCat, setFilterCat] = useState('')
 
@@ -130,9 +131,9 @@ export default function MyWorkflowPage() {
     workflows.filter(w =>
       String(w.createdById) !== myId &&
       !w.deletedAt &&
-      (w.sharedWith || []).map(String).includes(myId)
+      (w.sharedWith || []).map(String).includes(myEmpId)
     ),
-    [workflows, myId]
+    [workflows, myId, myEmpId]
   )
 
   const allCategories = useMemo(() => {

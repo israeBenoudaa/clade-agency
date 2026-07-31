@@ -163,7 +163,11 @@ function EmployeeCard({ emp, onUpdateEmploye, onSetupPortal, onToggleBlock, isCr
     onUpdateEmploye(emp.id, { credentials: { ...emp.credentials, password: newPassword } })
     const email = emp.email || `${emp.credentials?.username}@clade.ma`
     const { error } = await supabase.rpc('update_user_password', { user_email: email, new_password: newPassword })
-    if (error) console.warn('[Auth] Sync password échoué:', error.message)
+    if (error) {
+      console.warn('[Auth] Sync password échoué:', error.message)
+      toast.error('Mot de passe mis à jour localement mais non synchronisé. Contactez l\'administrateur.')
+      return
+    }
     toast.success('Mot de passe mis à jour')
   }
 

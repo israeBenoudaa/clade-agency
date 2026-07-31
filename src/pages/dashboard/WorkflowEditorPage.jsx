@@ -87,6 +87,7 @@ export default function WorkflowEditorPage() {
   const { workflows, addWorkflow, updateWorkflow, employes } = useData()
 
   const myId = String(profile?.id || '')
+  const myEmpId = String(profile?.employe_id || '')
   const myNom = profile?.full_name || profile?.nom || ''
   const isDir = isDirector || isDirectorMode || isDemoMode
   const isNew = id === 'new'
@@ -222,7 +223,7 @@ export default function WorkflowEditorPage() {
 
   // ── Share modal ─────────────────────────────────────────────────────────────
 
-  const staffList = employes.filter(e => String(e.id) !== myId)
+  const staffList = employes.filter(e => !myEmpId || String(e.id) !== myEmpId)
 
   const toggleShare = (empId) => {
     const sid = String(empId)

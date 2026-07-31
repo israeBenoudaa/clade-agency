@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, Download, FileText, Clock } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -120,6 +120,13 @@ export default function PayslipSection({ employe, addTransaction, updateEmploye 
   const tauxH      = salaireNet > 0 ? salaireNet / HEURES_MOIS : 0
 
   const monthKey = `${year}-${String(selMonth + 1).padStart(2, '0')}`
+
+  useEffect(() => {
+    const monthTotal = (employe.primes || [])
+      .filter(p => p.date?.startsWith(monthKey))
+      .reduce((sum, p) => sum + (Number(p.montant) || 0), 0)
+    setPrime(monthTotal > 0 ? String(monthTotal) : '')
+  }, [monthKey, employe.primes])
 
   const monthMs = (employe.workSessions || [])
     .filter(s => s.date?.startsWith(monthKey))
