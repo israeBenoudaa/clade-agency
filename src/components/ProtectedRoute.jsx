@@ -1,8 +1,10 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useData } from '../context/DataContext'
 
-export function ProtectedRoute({ children, requireStaff, requireClient, requireDirector, requireRoles }) {
+export function ProtectedRoute({ children, requireStaff, requireClient, requireDirector, requireRoles, requireModule }) {
   const { session, profile, loading, isStaff, isClient, isDirector, isDemoMode, pinPending } = useAuth()
+  const { employes } = useData()
   const location = useLocation()
 
   if (loading) {
@@ -54,7 +56,11 @@ export function ProtectedRoute({ children, requireStaff, requireClient, requireD
     return <Navigate to="/app" replace />
   }
 
-  if (requireRoles && !isDemoMode && !requireRoles.includes(profile.role)) {
+  const hasModuleGrant = requireModule
+    ? (employes?.find(e => String(e.id) === String(profile?.employe_id))?.permissions?.modules || []).includes(requireModule)
+    : false
+
+  if (requireRoles && !isDemoMode && !requireRoles.includes(profile.role) && !hasModuleGrant) {
     return <Navigate to="/app" replace />
   }
 
