@@ -1796,13 +1796,6 @@ export default function OverviewPage() {
                           <div className="text-sm font-semibold text-ink truncate">{dl.nom}</div>
                           <div className="text-[10px] text-rose-600 font-medium truncate">{dl.projectNom} · {isToday ? 'Aujourd\'hui' : dlFmt}</div>
                         </div>
-                        <button
-                          onClick={() => updateMission(dl.projectId, dl.id, { validated: true })}
-                          className="text-[10px] font-semibold px-2 py-1 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors flex-shrink-0"
-                          title="Valider ce deadline"
-                        >
-                          ✓ Valider
-                        </button>
                       </div>
                     )
                   })}
@@ -2271,14 +2264,6 @@ export default function OverviewPage() {
                         {rdv.format === 'presentiel' && <span className="text-muted font-medium">· 📍 Présentiel</span>}
                       </div>
                     </div>
-                    {isGanttDeadline && (
-                      <button
-                        onClick={() => updateMission(rdv.projectId, rdv.id, { validated: true })}
-                        className="text-[10px] font-semibold px-2 py-1 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100"
-                        title="Valider ce deadline">
-                        ✓ Valider
-                      </button>
-                    )}
                     {rdv.format === 'meet' && (
                       <a href="https://meet.google.com/new" target="_blank" rel="noreferrer"
                         className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 hover:bg-emerald-200 transition-colors flex-shrink-0"

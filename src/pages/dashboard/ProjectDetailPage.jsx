@@ -61,7 +61,7 @@ const APPROVAL_CFG = {
 }
 
 // ── Gantt component ────────────────────────────────────────────────────────────
-function GanttSection({ missions, onAdd, onEditMission, isManager, onValidate, onUnvalidate, onDeleteMission }) {
+function GanttSection({ missions, onAdd, onEditMission, isManager, onValidate, onUnvalidate, onDeleteMission, onValidateDeadline }) {
   const gantt = useMemo(() => {
     const dates = missions.flatMap(m => [m.debut, m.fin, m.date].filter(Boolean)).map(d => new Date(d))
     if (!dates.length) {
@@ -219,35 +219,49 @@ function GanttSection({ missions, onAdd, onEditMission, isManager, onValidate, o
             })}
 
             {/* Deadlines */}
-            {rowDeadlines.map((m) => (
-              <div key={m.id} className="grid items-center gap-3" style={{ gridTemplateColumns: `200px 1fr${isManager ? ' auto' : ''}` }}>
-                <div className="pr-3 flex items-center gap-1.5">
-                  <Flag size={12} className="text-rose-500 flex-shrink-0" />
-                  <div className="text-xs font-semibold text-rose-600 truncate">{m.nom}</div>
-                </div>
-                <div className="relative h-10 bg-paper-warm rounded-lg">
-                  <div
-                    className="absolute top-0 bottom-0 flex flex-col items-center"
-                    style={{ left: `${toLeft(m.date)}%`, transform: 'translateX(-50%)' }}
-                  >
-                    <div className="w-px flex-1 bg-rose-500 border-dashed" style={{ borderLeft: '2px dashed #F43F5E' }} />
-                    <span className="text-[9px] font-bold text-rose-600 bg-rose-50 px-1 rounded whitespace-nowrap">
-                      {fmtShort(m.date)}
-                    </span>
+            {rowDeadlines.map((m) => {
+              const isValidated = Boolean(m.validated)
+              return (
+                <div key={m.id} className={`grid items-center gap-3 rounded-xl ${isValidated ? 'opacity-60' : ''}`} style={{ gridTemplateColumns: `200px 1fr${isManager ? ' auto' : ''}` }}>
+                  <div className="pr-3 flex items-center gap-1.5">
+                    {isValidated
+                      ? <CheckCircle size={12} className="text-emerald-500 flex-shrink-0" />
+                      : <Flag size={12} className="text-rose-500 flex-shrink-0" />}
+                    <div className={`text-xs font-semibold truncate ${isValidated ? 'text-emerald-700 line-through' : 'text-rose-600'}`}>{m.nom}</div>
                   </div>
-                </div>
-                {isManager && (
-                  <div className="pl-3 w-44 flex-shrink-0 flex items-center gap-1.5">
-                    <button onClick={() => onEditMission(m)} className="w-7 h-7 flex items-center justify-center rounded-lg text-muted hover:text-electric hover:bg-electric/10 transition-colors" title="Modifier">
-                      <Pencil size={12} />
-                    </button>
-                    <button onClick={() => { if (window.confirm(`Supprimer "${m.nom}" ?`)) onDeleteMission(m.id) }} className="w-7 h-7 flex items-center justify-center rounded-lg text-muted hover:text-rose-500 hover:bg-rose-50 transition-colors" title="Supprimer">
-                      <Trash2 size={12} />
-                    </button>
+                  <div className="relative h-10 bg-paper-warm rounded-lg">
+                    <div
+                      className="absolute top-0 bottom-0 flex flex-col items-center"
+                      style={{ left: `${toLeft(m.date)}%`, transform: 'translateX(-50%)' }}
+                    >
+                      <div className="w-px flex-1" style={{ borderLeft: `2px dashed ${isValidated ? '#10B981' : '#F43F5E'}` }} />
+                      <span className={`text-[9px] font-bold px-1 rounded whitespace-nowrap ${isValidated ? 'text-emerald-700 bg-emerald-50' : 'text-rose-600 bg-rose-50'}`}>
+                        {fmtShort(m.date)}
+                      </span>
+                    </div>
                   </div>
-                )}
-              </div>
-            ))}
+                  {isManager && (
+                    <div className="pl-3 w-44 flex-shrink-0 flex items-center gap-1.5">
+                      {!isValidated && (
+                        <button
+                          onClick={() => onValidateDeadline?.(m.id)}
+                          className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
+                          title="Marquer comme atteint"
+                        >
+                          <CheckCircle size={11} /> Valider
+                        </button>
+                      )}
+                      <button onClick={() => onEditMission(m)} className="w-7 h-7 flex items-center justify-center rounded-lg text-muted hover:text-electric hover:bg-electric/10 transition-colors" title="Modifier">
+                        <Pencil size={12} />
+                      </button>
+                      <button onClick={() => { if (window.confirm(`Supprimer "${m.nom}" ?`)) onDeleteMission(m.id) }} className="w-7 h-7 flex items-center justify-center rounded-lg text-muted hover:text-rose-500 hover:bg-rose-50 transition-colors" title="Supprimer">
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
 
             {/* RDV */}
             {rowRdv.map((m) => (
@@ -1405,6 +1419,10 @@ export default function ProjectDetailPage({ backPath = '/app/projects' }) {
         onDeleteMission={(missionId) => {
           deleteMission(project.id, missionId)
           toast.success('Élément supprimé du Gantt')
+        }}
+        onValidateDeadline={(missionId) => {
+          updateMission(project.id, missionId, { validated: true })
+          toast.success('Deadline validé ✓')
         }}
       />
 
