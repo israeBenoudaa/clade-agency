@@ -32,7 +32,10 @@ const toForm = (item) => item ? {
   date:               item.date || '',
   couleur:            item.couleur || '#06B6D4',
   equipe:             item.equipe || '',
-  personnes:          item.personnes || '',
+  personnesIds:       item.personnesIds || [],
+  clientIds:          item.clientIds || [],
+  collabIds:          item.collabIds || [],
+  personnesExtra:     item.personnesExtra || (item.personnesIds?.length ? '' : (item.personnes || '')),
   description:        item.description || '',
   livrablesFiles:     item.livrables?.files || [],
   livrablesLinks:     item.livrables?.links || [],
@@ -40,13 +43,14 @@ const toForm = (item) => item ? {
   livrablesLinkInput: '',
 } : {
   nom: '', debut: '', fin: '', date: '',
-  couleur: '#06B6D4', equipe: '', personnes: '',
+  couleur: '#06B6D4', equipe: '',
+  personnesIds: [], clientIds: [], collabIds: [], personnesExtra: '',
   description: '',
   livrablesFiles: [], livrablesLinks: [], livrablesFromProject: [],
   livrablesLinkInput: '',
 }
 
-export default function AjouterGanttModal({ onClose, onAdd, onEdit, item, projectLivrables = [] }) {
+export default function AjouterGanttModal({ onClose, onAdd, onEdit, item, projectLivrables = [], employes = [], clients = [], collaborateurs = [] }) {
   const isEdit = Boolean(item)
   const [type, setType]   = useState(item?.type || 'mission')
   const [form, setForm]   = useState(() => toForm(item))
@@ -121,7 +125,21 @@ export default function AjouterGanttModal({ onClose, onAdd, onEdit, item, projec
         },
       }),
       ...(type !== 'mission' && { date: form.date }),
-      ...(type === 'rdv'     && { personnes: form.personnes.trim() }),
+      ...(type === 'rdv'     && {
+        personnesIds: form.personnesIds,
+        clientIds: form.clientIds,
+        collabIds: form.collabIds,
+        personnesExtra: form.personnesExtra.trim(),
+        personnes: [
+          ...employes.filter(e => form.personnesIds.map(String).includes(String(e.id)))
+            .map(e => `${e.prenom || ''} ${e.nom || ''}`.trim()),
+          ...clients.filter(c => form.clientIds.map(String).includes(String(c.id)))
+            .map(c => `${c.prenom || ''} ${c.nom || ''}`.trim()),
+          ...collaborateurs.filter(c => form.collabIds.map(String).includes(String(c.id)))
+            .map(c => c.nom || ''),
+          form.personnesExtra.trim(),
+        ].filter(Boolean).join(', '),
+      }),
     }
 
     if (isEdit) {
@@ -392,7 +410,143 @@ export default function AjouterGanttModal({ onClose, onAdd, onEdit, item, projec
             {type === 'rdv' && (
               <div>
                 <label className="label-text mb-1.5 flex items-center gap-1 block"><Users size={11} /> Personnes impliquées</label>
-                <input className="input-field" placeholder="Sophie Lambert, Client Bensouda..." value={form.personnes} onChange={set('personnes')} />
+
+                {/* Chips des employés sélectionnés */}
+                {form.personnesIds.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {form.personnesIds.map(id => {
+                      const emp = employes.find(e => String(e.id) === String(id))
+                      if (!emp) return null
+                      return (
+                        <span key={id} className="flex items-center gap-1 pl-2 pr-1 py-0.5 bg-electric/10 border border-electric/20 rounded-lg text-[11px] text-electric font-medium">
+                          {emp.prenom} {emp.nom}
+                          <button type="button"
+                            onClick={() => setForm(f => ({ ...f, personnesIds: f.personnesIds.filter(i => String(i) !== String(id)) }))}
+                            className="w-4 h-4 flex items-center justify-center rounded hover:text-rose-500 transition-colors">
+                            <X size={9} />
+                          </button>
+                        </span>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {/* Dropdown membres de l'équipe */}
+                {employes.length > 0 && (
+                  <select
+                    className="input-field mb-2"
+                    value=""
+                    onChange={e => {
+                      const id = e.target.value
+                      if (!id || form.personnesIds.map(String).includes(id)) return
+                      setForm(f => ({ ...f, personnesIds: [...f.personnesIds, id] }))
+                    }}
+                  >
+                    <option value="">Ajouter un membre de l'équipe…</option>
+                    {employes
+                      .filter(e => e.statut !== 'inactif' && !form.personnesIds.map(String).includes(String(e.id)))
+                      .map(e => (
+                        <option key={e.id} value={String(e.id)}>
+                          {e.prenom} {e.nom}{e.poste ? ` — ${e.poste}` : ''}
+                        </option>
+                      ))
+                    }
+                  </select>
+                )}
+
+                {/* Chips des clients sélectionnés */}
+                {form.clientIds.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {form.clientIds.map(id => {
+                      const cl = clients.find(c => String(c.id) === String(id))
+                      if (!cl) return null
+                      return (
+                        <span key={id} className="flex items-center gap-1 pl-2 pr-1 py-0.5 bg-sky-50 border border-sky-200 rounded-lg text-[11px] text-sky-700 font-medium">
+                          {cl.prenom} {cl.nom}
+                          <button type="button"
+                            onClick={() => setForm(f => ({ ...f, clientIds: f.clientIds.filter(i => String(i) !== String(id)) }))}
+                            className="w-4 h-4 flex items-center justify-center rounded hover:text-rose-500 transition-colors">
+                            <X size={9} />
+                          </button>
+                        </span>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {/* Dropdown clients (prospects) */}
+                {clients.length > 0 && (
+                  <select
+                    className="input-field mb-2"
+                    value=""
+                    onChange={e => {
+                      const id = e.target.value
+                      if (!id || form.clientIds.map(String).includes(id)) return
+                      setForm(f => ({ ...f, clientIds: [...f.clientIds, id] }))
+                    }}
+                  >
+                    <option value="">Ajouter un client…</option>
+                    {clients
+                      .filter(c => !form.clientIds.map(String).includes(String(c.id)))
+                      .map(c => (
+                        <option key={c.id} value={String(c.id)}>
+                          {c.prenom} {c.nom}
+                        </option>
+                      ))
+                    }
+                  </select>
+                )}
+
+                {/* Chips des collaborateurs sélectionnés */}
+                {form.collabIds.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {form.collabIds.map(id => {
+                      const co = collaborateurs.find(c => String(c.id) === String(id))
+                      if (!co) return null
+                      return (
+                        <span key={id} className="flex items-center gap-1 pl-2 pr-1 py-0.5 bg-violet-50 border border-violet-200 rounded-lg text-[11px] text-violet-700 font-medium">
+                          {co.nom}
+                          <button type="button"
+                            onClick={() => setForm(f => ({ ...f, collabIds: f.collabIds.filter(i => String(i) !== String(id)) }))}
+                            className="w-4 h-4 flex items-center justify-center rounded hover:text-rose-500 transition-colors">
+                            <X size={9} />
+                          </button>
+                        </span>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {/* Dropdown collaborateurs */}
+                {collaborateurs.length > 0 && (
+                  <select
+                    className="input-field mb-2"
+                    value=""
+                    onChange={e => {
+                      const id = e.target.value
+                      if (!id || form.collabIds.map(String).includes(id)) return
+                      setForm(f => ({ ...f, collabIds: [...f.collabIds, id] }))
+                    }}
+                  >
+                    <option value="">Ajouter un collaborateur externe…</option>
+                    {collaborateurs
+                      .filter(c => !form.collabIds.map(String).includes(String(c.id)))
+                      .map(c => (
+                        <option key={c.id} value={String(c.id)}>
+                          {c.nom}{c.specialite ? ` — ${c.specialite}` : ''}
+                        </option>
+                      ))
+                    }
+                  </select>
+                )}
+
+                {/* Texte libre pour autres participants */}
+                <input
+                  className="input-field"
+                  placeholder="Autres participants (texte libre)"
+                  value={form.personnesExtra}
+                  onChange={e => setForm(f => ({ ...f, personnesExtra: e.target.value }))}
+                />
               </div>
             )}
 

@@ -776,7 +776,7 @@ function StatutProjetModal({ currentStatut, onClose, onSave }) {
 export default function ProjectDetailPage({ backPath = '/app/projects' }) {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { projects, employes, addMission, addTask, updateTask, updateMission, deleteMission, validateMission, unvalidateMission, updateProject, updateProjectEquipe, updateEmploye, agenceSettings, markClientFeedbackRead, addLivrable, updateLivrable, deleteLivrable } = useData()
+  const { projects, employes, prospects, collaborateurs, addMission, addTask, updateTask, updateMission, deleteMission, validateMission, unvalidateMission, updateProject, updateProjectEquipe, updateEmploye, agenceSettings, markClientFeedbackRead, addLivrable, updateLivrable, deleteLivrable } = useData()
   const { profile, isDirector, isDirectorMode, isEmployeeMode } = useAuth()
   const [showTacheModal, setShowTacheModal] = useState(false)
   const [showGanttModal, setShowGanttModal] = useState(false)
@@ -807,6 +807,12 @@ export default function ProjectDetailPage({ backPath = '/app/projects' }) {
   const isInterne = project?.typeProjet === 'interne'
 
   const employe = employes?.find(e => String(e.id) === profile?.id)
+  const projectClients = useMemo(() => {
+    if (!project) return []
+    return prospects.filter(p =>
+      p.id === project.prospectId || p.id === project.clientId
+    )
+  }, [prospects, project])
   const allowedProjects = employe?.permissions?.allowedProjects ?? null
   const needsProjectGate = isEmployeeMode && !isDir && allowedProjects !== null && project
     && allowedProjects.map(String).includes(String(project.id))
@@ -1804,6 +1810,9 @@ export default function ProjectDetailPage({ backPath = '/app/projects' }) {
           onClose={() => setShowGanttModal(false)}
           onAdd={(item) => addMission(project.id, item)}
           projectLivrables={project.livrables || []}
+          employes={employes}
+          clients={projectClients}
+          collaborateurs={collaborateurs || []}
         />
       )}
       {editingMission && (
@@ -1815,6 +1824,9 @@ export default function ProjectDetailPage({ backPath = '/app/projects' }) {
             setEditingMission(null)
           }}
           projectLivrables={project.livrables || []}
+          employes={employes}
+          clients={projectClients}
+          collaborateurs={collaborateurs || []}
         />
       )}
       {showEditModal && isInterne && (

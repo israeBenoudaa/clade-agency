@@ -3,7 +3,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Home, FileText, Wallet, MessageSquare, LogOut, Menu, X, Bell, ArrowLeft, Sparkles,
-  Search, CheckCircle2, Layers, LayoutGrid, ChevronRight,
+  Search, CheckCircle2, Layers, LayoutGrid, ChevronRight, Calendar,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
@@ -16,6 +16,7 @@ import toast from 'react-hot-toast'
 const CLIENT_NAV = [
   { to: '/client', key: 'nav.projects', icon: Home, end: true },
   { to: '/client/concept', key: 'nav.concept', icon: Sparkles },
+  { to: '/client/rdvs', key: 'nav.rdvs', icon: Calendar },
   { to: '/client/livrables', key: 'nav.livrables', icon: FileText },
   { to: '/client/depenses', key: 'nav.expenses', icon: Wallet },
   { to: '/client/messages', key: 'nav.messages', icon: MessageSquare },
@@ -127,6 +128,7 @@ function SearchOverlay({ onClose, navigate }) {
   const PAGES = [
     { label: t('nav.projects'), desc: 'Vue d\'ensemble de votre projet', link: '/client', keywords: 'projet accueil home projects overview' },
     { label: t('nav.concept'), desc: 'Moodboard, programme et estimation', link: '/client/concept', keywords: 'concept programme estimation moodboard images inspiration' },
+    { label: t('nav.rdvs'), desc: 'Vos rendez-vous avec l\'équipe', link: '/client/rdvs', keywords: 'rdv rendez-vous réunion meeting calendar agenda' },
     { label: t('nav.livrables'), desc: 'Documents et plans livrés par l\'équipe', link: '/client/livrables', keywords: 'livrables documents plans fichiers documents files' },
     { label: t('nav.expenses'), desc: 'Suivi de vos dépenses et factures', link: '/client/depenses', keywords: 'dépenses factures budget finances expenses' },
     { label: t('nav.messages'), desc: 'Échangez avec l\'équipe CLADE', link: '/client/messages', keywords: 'messages messagerie communication équipe' },

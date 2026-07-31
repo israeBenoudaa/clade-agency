@@ -45,6 +45,7 @@ import ProgrammePage from './pages/dashboard/ProgrammePage'
 import EstimationPage from './pages/dashboard/EstimationPage'
 import ProjectBoardPage from './pages/dashboard/ProjectBoardPage'
 import ClientConceptPage from './pages/client/ClientConceptPage'
+import ClientRdvsPage from './pages/client/ClientRdvsPage'
 
 export default function App() {
   const location = useLocation()
@@ -170,6 +171,7 @@ export default function App() {
         <Route path="depenses" element={<ClientExpensesPage />} />
         <Route path="messages" element={<ClientMessagesPage />} />
         <Route path="concept" element={<ClientConceptPage />} />
+        <Route path="rdvs" element={<ClientRdvsPage />} />
       </Route>
 
       {/* Fallback : tout le reste redirige vers login */}

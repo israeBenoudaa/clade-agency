@@ -92,7 +92,7 @@ const fromDbProspect = (r) => ({ id: r.id, prenom: r.prenom, nom: r.nom, email: 
 const toDbEmploye = (e) => ({ id: String(e.id), nom: e.nom, prenom: e.prenom || null, nom_famille: e.nomFamille || null, poste: e.poste || null, dept: e.dept || null, email: e.email || null, telephone: e.telephone || null, cin: e.cin || null, adresse: e.adresse || null, contrat: e.contrat || null, salaire_net: Number(e.salaireNet) || 0, salaire_brut: Number(e.salaireBrut) || 0, statut: e.statut || 'actif', is_directeur: e.isDirecteur || false, manager_id: e.managerId ? String(e.managerId) : null, avatar: e.avatar || null, planning: e.planning || [], conges: e.conges || { solde: 25, history: [] }, work_sessions: e.workSessions || [], credentials: e.credentials || null, evaluations: e.evaluations || [], heures_sup_manual: e.heuresSupManual || [], from_recruitment: e.fromRecruitment || null, permissions: e.permissions || null })
 const fromDbEmploye = (r) => ({ id: r.id, nom: r.nom, prenom: r.prenom, nomFamille: r.nom_famille, poste: r.poste, dept: r.dept, email: r.email, telephone: r.telephone, cin: r.cin, adresse: r.adresse, contrat: r.contrat, salaireNet: r.salaire_net, salaireBrut: r.salaire_brut, statut: r.statut, isDirecteur: r.is_directeur, managerId: r.manager_id, avatar: r.avatar, planning: r.planning || [], conges: r.conges || { solde: 25, history: [] }, workSessions: r.work_sessions || [], credentials: r.credentials, evaluations: r.evaluations || [], heuresSupManual: r.heures_sup_manual || [], fromRecruitment: r.from_recruitment, permissions: r.permissions || null })
 
-const toDbProject = (p) => ({ id: p.id, nom: p.nom, client: p.client || null, client_id: p.clientId || null, prospect_id: p.prospectId || null, statut: p.statut || 'En cours', avancement: p.avancement ?? 0, type_projet: p.typeProjet || p.type || null, budget: p.budget ? String(p.budget) : null, date_debut: p.dateDebut || null, date_fin: p.dateFin || null, description: p.description || null, equipe: p.equipe ?? 0, equipe_projet: p.equipeProjet || [], missions: p.missions || [], tasks: p.tasks || [], livrables: p.livrables || [], finances: p.finances || { honoraires: {}, paiements: {} }, concept: p.concept || null, programme: p.programme || null, estimation: p.estimation || null, client_feedback: p.clientFeedback || [], architecte_referent_id: p.architecteReferentId || null, architecte_referent_nom: p.architecteReferentNom || null })
+const toDbProject = (p) => ({ id: p.id, nom: p.nom, client: p.client || null, client_id: p.clientId || null, prospect_id: p.prospectId || null, statut: p.statut || 'En cours', avancement: p.avancement ?? 0, type_projet: p.typeProjet || p.type || null, budget: p.budget ? String(p.budget) : null, date_debut: p.dateDebut || null, date_fin: p.dateFin || null, description: p.description || null, equipe: p.equipe ?? 0, equipe_projet: p.equipeProjet || [], missions: p.missions || [], tasks: p.tasks || [], livrables: p.livrables || [], finances: p.finances || { honoraires: {}, paiements: {} }, concept: p.concept ? { ...p.concept, images: (p.concept.images || []).map(img => ({ id: img.id, url: img.url || null, storagePath: img.storagePath || null, name: img.name })) } : null, programme: p.programme || null, estimation: p.estimation || null, client_feedback: p.clientFeedback || [], architecte_referent_id: p.architecteReferentId || null, architecte_referent_nom: p.architecteReferentNom || null })
 const fromDbProject = (r) => ({ id: r.id, nom: r.nom, client: r.client, clientId: r.client_id, prospectId: r.prospect_id, statut: r.statut, avancement: r.avancement ?? 0, typeProjet: r.type_projet, type: r.type_projet, budget: r.budget, dateDebut: r.date_debut, dateFin: r.date_fin, description: r.description, equipe: r.equipe ?? 0, equipeProjet: r.equipe_projet || [], missions: r.missions || [], tasks: r.tasks || [], livrables: r.livrables || [], finances: r.finances || { honoraires: {}, paiements: {} }, concept: r.concept, programme: r.programme, estimation: r.estimation, clientFeedback: r.client_feedback || [], architecteReferentId: r.architecte_referent_id || null, architecteReferentNom: r.architecte_referent_nom || null })
 
 const toDbTransaction = (t) => ({ id: t.id, type: t.type, montant: Number(t.montant) || 0, libelle: t.libelle || null, date: t.date, categorie: t.categorie || null, auto: t.auto || false, charge_id: t.chargeId || null, employe_id: t.employeId ? String(t.employeId) : null, project_id: t.projectId ? String(t.projectId) : null })
@@ -134,9 +134,11 @@ const toDbActivityLog = (e) => ({ id: e.id, action: e.action, details: e.details
 
 const sbUpsert = (table, data) => {
   if (!supabase) return
-  supabase.from(table).upsert(data, { onConflict: 'id' }).then(({ error }) => {
-    if (error) console.warn(`[Supabase upsert:${table}]`, error.message)
-  })
+  supabase.from(table).upsert(data, { onConflict: 'id' })
+    .then(({ error }) => {
+      if (error) console.warn(`[Supabase upsert:${table}]`, error.message)
+    })
+    .catch(err => console.warn(`[Supabase upsert:${table}] fetch error:`, err?.message))
 }
 
 const sbDelete = (table, id) => {
@@ -442,7 +444,11 @@ export function DataProvider({ children }) {
 
   useEffect(() => {
     if (!supaLoaded || !supabase || !syncReadyRef.current) return
-    const t = setTimeout(() => { if (projects.length) supabase.from('projects').upsert(projects.map(toDbProject), { onConflict: 'id' }) }, 1500)
+    const t = setTimeout(() => {
+      if (projects.length) supabase.from('projects').upsert(projects.map(toDbProject), { onConflict: 'id' })
+        .then(({ error }) => { if (error) console.warn('[Supabase projects sync]', error.message) })
+        .catch(err => console.warn('[Supabase projects sync] error:', err?.message))
+    }, 1500)
     return () => clearTimeout(t)
   }, [projects, supaLoaded])
 
@@ -1548,11 +1554,12 @@ export function DataProvider({ children }) {
   }
 
   const updateConceptImages = (projectId, images) => {
-    const next = projects.map(p => p.id === projectId ? { ...p, concept: { ...(p.concept || {}), images } } : p)
-    localStorage.setItem('clade_projects', JSON.stringify(next))
-    setProjects(next)
-    const updated = next.find(p => p.id === projectId)
-    if (updated) sbUpsert('projects', toDbProject(updated))
+    setProjects(prev => prev.map(p => {
+      if (p.id !== projectId) return p
+      const updated = { ...p, concept: { ...(p.concept || {}), images } }
+      sbUpsert('projects', toDbProject(updated))
+      return updated
+    }))
   }
 
   const updateConceptQuestions = (projectId, questions) => {

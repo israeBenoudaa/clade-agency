@@ -1,15 +1,40 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion'
 import { Heart, X, Star, CheckCircle, Download, Loader, ChevronRight, LayoutGrid, Ruler, Sparkles } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useData } from '../../context/DataContext'
 import { useAuth } from '../../context/AuthContext'
+import { supabase } from '../../lib/supabase'
 import { generateConceptPdf } from '../../utils/generateConceptPdf'
 import { exportProgrammeExcel, exportEstimationExcel } from '../../utils/exportTableExcel'
+
+// Refreshes a broken image URL using a signed URL when the bucket is private
+function useSignedUrl(image) {
+  const [src, setSrc] = useState(image?.url || image?.dataUrl || '')
+  const handleError = useCallback(async () => {
+    if (!supabase || !image?.storagePath || image?._signedRefreshed) return
+    try {
+      const { data } = await supabase.storage
+        .from('concept-images')
+        .createSignedUrl(image.storagePath, 315360000)
+      if (data?.signedUrl) {
+        image._signedRefreshed = true
+        setSrc(data.signedUrl)
+      }
+    } catch {}
+  }, [image])
+  return { src, handleError }
+}
+
+function ConceptImg({ image, className }) {
+  const { src, handleError } = useSignedUrl(image)
+  return <img src={src} alt={image?.name} className={className} onError={handleError} />
+}
 
 // ── Swipe card ────────────────────────────────────────────────────────────────
 
 function SwipeCard({ image, onSwipe, isTop, stackOffset }) {
+  const { src: imgSrc, handleError: handleImgError } = useSignedUrl(image)
   const x = useMotionValue(0)
   const y = useMotionValue(0)
   const rotate = useTransform(x, [-250, 250], [-18, 18])
@@ -42,7 +67,7 @@ function SwipeCard({ image, onSwipe, isTop, stackOffset }) {
         style={{ scale: 1 - stackOffset * 0.04, y: stackOffset * 14, zIndex: 10 - stackOffset }}
         transition={{ type: 'spring', stiffness: 300, damping: 25 }}
       >
-        <img src={image.dataUrl} alt={image.name} className="w-full h-full object-cover" draggable={false} />
+        <img src={imgSrc} alt={image.name} className="w-full h-full object-cover" draggable={false} onError={handleImgError} />
         <div className="absolute inset-0 bg-ink/20" />
       </motion.div>
     )
@@ -59,10 +84,11 @@ function SwipeCard({ image, onSwipe, isTop, stackOffset }) {
       whileDrag={{ scale: 1.02 }}
     >
       <img
-        src={image.dataUrl}
+        src={imgSrc}
         alt={image.name}
         className="w-full h-full object-cover pointer-events-none select-none"
         draggable={false}
+        onError={handleImgError}
       />
 
       {/* Bottom gradient */}
@@ -466,7 +492,7 @@ function DoneView({ concept, projectNom, project, onRestart }) {
               {imgs.map(img => (
                 <div key={img.id} className="flex-shrink-0" style={{ width: 90 }}>
                   <div className="aspect-[9/16] rounded-xl overflow-hidden border border-border shadow-sm">
-                    <img src={img.dataUrl} alt={img.name} className="w-full h-full object-cover" />
+                    <ConceptImg image={img} className="w-full h-full object-cover" />
                   </div>
                 </div>
               ))}

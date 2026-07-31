@@ -1135,7 +1135,7 @@ export default function OverviewPage() {
     projects, employes, transactions, prospects, collaborateurs,
     updateEmploye, addPlanningEvent, deletePlanningEvent, updatePlanningEvent,
     updateGroupPlanningEvent, deleteGroupPlanningEvent, addProspectRdv,
-    formations, updateTask, addTask, deleteTask, addTaskComment, demandesRH, deleteDemandeRH, addDemandeRH, addNotification,
+    formations, updateTask, updateMission, updateFormation, addTask, deleteTask, addTaskComment, demandesRH, deleteDemandeRH, addDemandeRH, addNotification,
     joursFerier,
   } = useData()
   const [taskWeekOffset, setTaskWeekOffset] = useState(0)
@@ -1155,6 +1155,15 @@ export default function OverviewPage() {
   }, [employes, profile, isEmployeeMode, isDir])
 
   const personalPlanning = employe ? (employe.planning || []) : []
+
+  const myProjects = useMemo(() => {
+    if (isDir) return projects
+    if (!employe) return []
+    return projects.filter(p =>
+      String(p.architecteReferentId) === String(employe.id) ||
+      (p.equipeProjet || []).map(String).includes(String(employe.id))
+    )
+  }, [isDir, projects, employe])
 
   // Formation events for this user (read-only in grid)
   const formationEvents = useMemo(() => {
@@ -1485,17 +1494,31 @@ export default function OverviewPage() {
   )
 
   // ── My RDVs ───────────────────────────────────────────────────────────────
-  // projectDayRdvs: all-day chips above the calendar (project missions only)
+  // projectDayRdvs: all-day chips above the calendar (project mission RDVs)
   const projectDayRdvs = useMemo(() => {
-    const nameKey = (employe?.nom || profile?.full_name || '').split(' ')[0]
-    return projects.flatMap(p =>
+    return myProjects.flatMap(p =>
       (p.missions || [])
-        .filter(m => m.type === 'rdv' && m.personnes?.includes(nameKey))
-        .map(m => ({ ...m, nom: m.nom, projectNom: p.nom }))
+        .filter(m => {
+          if (m.type !== 'rdv') return false
+          if (isDir) return true
+          if (m.personnesIds?.length) return m.personnesIds.map(String).includes(String(employe?.id))
+          const nameKey = (employe?.nom || profile?.full_name || '').split(' ')[0]
+          return nameKey && m.personnes?.includes(nameKey)
+        })
+        .map(m => ({ ...m, projectNom: p.nom }))
     )
-  }, [projects, employe, profile])
+  }, [myProjects, employe, profile, isDir])
 
-  // myRdvs: agenda section (project missions + prospect RDVs + planning rdvs)
+  // projectDeadlines: Gantt deadlines from my projects (for planning display)
+  const projectDeadlines = useMemo(() =>
+    myProjects.flatMap(p =>
+      (p.missions || [])
+        .filter(m => m.type === 'deadline')
+        .map(m => ({ ...m, projectId: p.id, projectNom: p.nom }))
+    )
+  , [myProjects])
+
+  // myRdvs: agenda section (project RDVs + deadlines + prospect RDVs + planning rdvs)
   const myRdvs = useMemo(() => {
     const prospectRdvs = (employe?.planning || [])
       .filter(ev => ev.type === 'rdv_prospect')
@@ -1504,9 +1527,9 @@ export default function OverviewPage() {
       .filter(ev => ev.type === 'rdv')
       .map(ev => ({ ...ev, nom: ev.titre, projectNom: '' }))
     return [...new Map(
-      [...projectDayRdvs, ...prospectRdvs, ...planningRdvs].map(r => [r.id, r])
+      [...projectDayRdvs, ...projectDeadlines, ...prospectRdvs, ...planningRdvs].map(r => [r.id, r])
     ).values()].sort((a, b) => (a.date || '').localeCompare(b.date || ''))
-  }, [projectDayRdvs, employe])
+  }, [projectDayRdvs, projectDeadlines, employe])
 
   const rdvWeekDays = useMemo(() => getWeekDates(rdvWeekOffset), [rdvWeekOffset])
   const filteredRdvs = useMemo(() => {
@@ -1515,6 +1538,23 @@ export default function OverviewPage() {
     return myRdvs.filter(rdv => rdv.date >= start && rdv.date <= end)
   }, [myRdvs, rdvWeekDays])
   const rdvWeekLabel = `${rdvWeekDays[0].toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })} — ${rdvWeekDays[6].toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })}`
+
+  // Task deadlines for non-approved tasks in my projects
+  const taskDeadlines = useMemo(() =>
+    myProjects.flatMap(p =>
+      (p.tasks || [])
+        .filter(t =>
+          t.deadline &&
+          t.approval !== 'Approved' &&
+          t.approval !== 'Great work' &&
+          t.statut !== 'Done'
+        )
+        .map(t => ({ ...t, projectId: p.id, projectNom: p.nom, _isTask: true }))
+    )
+  , [myProjects])
+
+  // Deadline filter for the agenda section
+  const [deadlineFilter, setDeadlineFilter] = useState('all')
 
   const handleRdvProspectUpdate = (updates) => {
     if (!employe || !editingRdvProspect) return
@@ -1613,13 +1653,6 @@ export default function OverviewPage() {
 
       {/* ── MISSIONS EN COURS + DEADLINES — director AND employee referents ── */}
       {(isDir || (isEmployeeMode && employe)) && (() => {
-        const myProjects = isDir
-          ? projects
-          : projects.filter(p =>
-              String(p.architecteReferentId) === String(employe.id) ||
-              (p.equipe || []).map(String).includes(String(employe.id))
-            )
-
         const _now = new Date()
         const _in7 = new Date(_now.getTime() + 7 * 86400000)
         const _todayStr = toISO(_now)
@@ -1634,8 +1667,17 @@ export default function OverviewPage() {
           : allMyTasks.filter(t => String(t.personnelId) === String(employe.id))
 
         const urgentTasks = deadlineTasks
-          .filter(t => t.statut !== 'Done' && t.deadline && t.deadline >= _todayStr && t.deadline <= _in7Str)
+          .filter(t =>
+            t.statut !== 'Done' &&
+            t.approval !== 'Approved' &&
+            t.approval !== 'Great work' &&
+            t.deadline && t.deadline >= _todayStr && t.deadline <= _in7Str
+          )
           .sort((a, b) => a.deadline.localeCompare(b.deadline))
+
+        const urgentGanttDeadlines = projectDeadlines
+          .filter(dl => !dl.validated && dl.date && dl.date >= _todayStr && dl.date <= _in7Str)
+          .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
 
         const stuckTasks = (isDir ? allMyTasks : deadlineTasks).filter(t => t.statut === 'Stuck')
 
@@ -1711,19 +1753,19 @@ export default function OverviewPage() {
                 <div className="flex-1 min-w-0">
                   <div className="label-text mb-0.5">Cette semaine</div>
                   <div className="font-display text-xl text-ink leading-tight">
-                    {urgentTasks.length > 0
-                      ? `${urgentTasks.length} deadline${urgentTasks.length > 1 ? 's' : ''} imminente${urgentTasks.length > 1 ? 's' : ''}`
+                    {(urgentTasks.length + urgentGanttDeadlines.length) > 0
+                      ? `${urgentTasks.length + urgentGanttDeadlines.length} deadline${urgentTasks.length + urgentGanttDeadlines.length > 1 ? 's' : ''} imminente${urgentTasks.length + urgentGanttDeadlines.length > 1 ? 's' : ''}`
                       : 'Deadlines imminentes'}
                   </div>
                 </div>
-                {(urgentTasks.length > 0 || stuckTasks.length > 0) && (
+                {(urgentTasks.length > 0 || urgentGanttDeadlines.length > 0 || stuckTasks.length > 0) && (
                   <span className="text-xs font-bold text-rose-600 bg-rose-50 px-2.5 py-1 rounded-full flex-shrink-0">
-                    {urgentTasks.length + stuckTasks.length}
+                    {urgentTasks.length + urgentGanttDeadlines.length + stuckTasks.length}
                   </span>
                 )}
               </div>
 
-              {urgentTasks.length === 0 && stuckTasks.length === 0 ? (
+              {urgentTasks.length === 0 && urgentGanttDeadlines.length === 0 && stuckTasks.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center gap-2 py-6">
                   <CheckCircle size={28} className="text-emerald-400" strokeWidth={1.5} />
                   <span className="text-xs text-muted">Aucune deadline imminente</span>
@@ -1742,6 +1784,28 @@ export default function OverviewPage() {
                       <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded-full flex-shrink-0">Bloqué</span>
                     </div>
                   ))}
+                  {urgentGanttDeadlines.map(dl => {
+                    const isToday = dl.date === _todayStr
+                    const dlFmt = new Date(dl.date + 'T00:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })
+                    return (
+                      <div key={dl.id} className="flex items-center gap-3 p-3 bg-rose-50/60 border border-rose-100 rounded-xl hover:bg-white hover:shadow-sm transition-all">
+                        <div className={`w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0 ${isToday ? 'bg-rose-200' : 'bg-rose-100'}`}>
+                          <span className="text-xs">🎯</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-semibold text-ink truncate">{dl.nom}</div>
+                          <div className="text-[10px] text-rose-600 font-medium truncate">{dl.projectNom} · {isToday ? 'Aujourd\'hui' : dlFmt}</div>
+                        </div>
+                        <button
+                          onClick={() => updateMission(dl.projectId, dl.id, { validated: true })}
+                          className="text-[10px] font-semibold px-2 py-1 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors flex-shrink-0"
+                          title="Valider ce deadline"
+                        >
+                          ✓ Valider
+                        </button>
+                      </div>
+                    )
+                  })}
                   {urgentTasks.map(t => {
                     const isToday = t.deadline === _todayStr
                     const dl = new Date(t.deadline + 'T00:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })
@@ -1792,7 +1856,8 @@ export default function OverviewPage() {
         <div className="flex items-center gap-4 mb-3 text-xs text-muted flex-wrap">
           <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-blue-400 inline-block" /> Événement</span>
           <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-violet-600 inline-block" /> Formation</span>
-          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-orange-400 inline-block" /> RDV</span>
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-orange-400 inline-block" /> RDV projet</span>
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-rose-500 inline-block" /> Deadline projet</span>
           <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-sky-400 inline-block" /> RDV prospect</span>
           <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-teal-600 inline-block" /> Autoformation</span>
           <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-amber-300 inline-block" /> Jour férié</span>
@@ -1808,6 +1873,7 @@ export default function OverviewPage() {
                 const iso = toISO(d)
                 const isToday = iso === todayISO
                 const dayRdvs = projectDayRdvs.filter(ev => ev.date === iso)
+                const dayDls  = projectDeadlines.filter(ev => ev.date === iso)
                 const dayFeriers = (joursFerier || []).filter(jf => jf.date === iso)
                 const isFerie = dayFeriers.length > 0
                 return (
@@ -1827,7 +1893,14 @@ export default function OverviewPage() {
                     {dayRdvs.map(rdv => (
                       <div key={rdv.id} title={`${rdv.nom} — ${rdv.projectNom}`}
                         className="text-[9px] bg-sky-100 text-sky-700 rounded px-1 py-0.5 truncate mb-0.5 leading-tight">
-                        {rdv.nom}
+                        📅 {rdv.nom}
+                      </div>
+                    ))}
+                    {/* All-day Deadline chips */}
+                    {dayDls.map(dl => (
+                      <div key={dl.id} title={`🎯 ${dl.nom} — ${dl.projectNom}`}
+                        className="text-[9px] bg-rose-100 text-rose-700 rounded px-1 py-0.5 truncate mb-0.5 leading-tight">
+                        🎯 {dl.nom}
                       </div>
                     ))}
                   </div>
@@ -2111,7 +2184,7 @@ export default function OverviewPage() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="label-text">Agenda</div>
-            <div className="font-display text-xl text-ink">Mes rendez-vous</div>
+            <div className="font-display text-xl text-ink">Mes RDVs & deadlines</div>
           </div>
           {employe && (
             <button onClick={() => setShowRdvModal(true)}
@@ -2138,49 +2211,95 @@ export default function OverviewPage() {
           </button>
         </div>
 
-        {filteredRdvs.length === 0 ? (
-          <div className="py-6 text-center text-sm text-muted">Aucun rendez-vous cette semaine</div>
-        ) : (
-          <div className="space-y-2">
-            {filteredRdvs.map(rdv => {
-              const canEdit = rdv.type === 'rdv' || rdv.type === 'rdv_prospect'
-              const dateBg = rdv.format === 'meet' ? 'bg-emerald-100 text-emerald-700' : rdv.type === 'rdv_prospect' ? 'bg-sky-100 text-sky-700' : 'bg-electric/10 text-electric'
-              return (
-                <div key={rdv.id} className="flex items-center gap-3 p-3 bg-paper-warm rounded-xl group">
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-sm font-bold ${dateBg}`}>
-                    {new Date(rdv.date).getDate()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-ink truncate">{rdv.nom}</div>
-                    <div className="text-xs text-muted flex items-center gap-1.5 flex-wrap">
-                      {rdv.projectNom && <><span>{rdv.projectNom}</span><span>·</span></>}
-                      <span>{fmtDate(rdv.date)}</span>
-                      {rdv.heureDebut && <><span>·</span><span>{rdv.heureDebut}</span></>}
-                      {rdv.format === 'meet' && <span className="text-emerald-600 font-medium">· 📹 Meet</span>}
-                      {rdv.format === 'telephonique' && <span className="text-sky-600 font-medium">· 📞 Tél.</span>}
-                      {rdv.format === 'presentiel' && <span className="text-muted font-medium">· 📍 Présentiel</span>}
+        {/* Filter tabs */}
+        <div className="flex gap-1 mb-3 bg-paper-warm rounded-xl p-1">
+          {[['all','Tout'],['gantt','Deadlines Gantt'],['tasks','Deadlines tâches']].map(([v, l]) => (
+            <button key={v} onClick={() => setDeadlineFilter(v)}
+              className={`flex-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold transition-colors ${deadlineFilter === v ? 'bg-white shadow-sm text-ink' : 'text-muted hover:text-ink'}`}>
+              {l}
+            </button>
+          ))}
+        </div>
+
+        {(() => {
+          const _rdvWeekStart = toISO(rdvWeekDays[0])
+          const _rdvWeekEnd   = toISO(rdvWeekDays[6])
+          const visibleItems = (() => {
+            if (deadlineFilter === 'gantt') {
+              return projectDeadlines.filter(dl => !dl.validated && dl.date >= _rdvWeekStart && dl.date <= _rdvWeekEnd)
+            }
+            if (deadlineFilter === 'tasks') {
+              return taskDeadlines.filter(t => t.deadline >= _rdvWeekStart && t.deadline <= _rdvWeekEnd)
+                .map(t => ({ ...t, date: t.deadline, nom: t.nom, _isTask: true }))
+            }
+            return [
+              ...filteredRdvs.filter(r => r.type !== 'deadline'),
+              ...projectDeadlines.filter(dl => !dl.validated && dl.date >= _rdvWeekStart && dl.date <= _rdvWeekEnd),
+              ...taskDeadlines.filter(t => t.deadline >= _rdvWeekStart && t.deadline <= _rdvWeekEnd)
+                .map(t => ({ ...t, date: t.deadline, _isTask: true })),
+            ].sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+          })()
+          if (visibleItems.length === 0) {
+            return <div className="py-6 text-center text-sm text-muted">Aucun élément cette semaine</div>
+          }
+          return (
+            <div className="space-y-2">
+              {visibleItems.map(rdv => {
+                const isTaskItem = rdv._isTask
+                const isGanttDeadline = rdv.type === 'deadline' && !isTaskItem
+                const canEdit = rdv.type === 'rdv' || rdv.type === 'rdv_prospect'
+                const dateBg = isGanttDeadline || isTaskItem
+                  ? 'bg-rose-100 text-rose-700'
+                  : rdv.format === 'meet' ? 'bg-emerald-100 text-emerald-700'
+                  : rdv.type === 'rdv_prospect' ? 'bg-sky-100 text-sky-700'
+                  : 'bg-electric/10 text-electric'
+                return (
+                  <div key={rdv.id} className={`flex items-center gap-3 p-3 rounded-xl group ${isGanttDeadline || isTaskItem ? 'bg-rose-50/60 border border-rose-100' : 'bg-paper-warm'}`}>
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-sm font-bold ${dateBg}`}>
+                      {isGanttDeadline ? '🎯' : isTaskItem ? '📋' : new Date(rdv.date).getDate()}
                     </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-ink truncate">{rdv.nom}</div>
+                      <div className="text-xs text-muted flex items-center gap-1.5 flex-wrap">
+                        {rdv.projectNom && <><span className={(isGanttDeadline || isTaskItem) ? 'text-rose-600 font-semibold' : ''}>{rdv.projectNom}</span><span>·</span></>}
+                        <span>{fmtDate(rdv.date)}</span>
+                        {isGanttDeadline && <span className="text-rose-600 font-semibold">· Deadline Gantt</span>}
+                        {isTaskItem && <span className="text-rose-600 font-semibold">· Deadline tâche</span>}
+                        {rdv.heureDebut && <><span>·</span><span>{rdv.heureDebut}</span></>}
+                        {rdv.format === 'meet' && <span className="text-emerald-600 font-medium">· 📹 Meet</span>}
+                        {rdv.format === 'telephonique' && <span className="text-sky-600 font-medium">· 📞 Tél.</span>}
+                        {rdv.format === 'presentiel' && <span className="text-muted font-medium">· 📍 Présentiel</span>}
+                      </div>
+                    </div>
+                    {isGanttDeadline && (
+                      <button
+                        onClick={() => updateMission(rdv.projectId, rdv.id, { validated: true })}
+                        className="text-[10px] font-semibold px-2 py-1 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100"
+                        title="Valider ce deadline">
+                        ✓ Valider
+                      </button>
+                    )}
+                    {rdv.format === 'meet' && (
+                      <a href="https://meet.google.com/new" target="_blank" rel="noreferrer"
+                        className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 hover:bg-emerald-200 transition-colors flex-shrink-0"
+                        title="Rejoindre Google Meet">
+                        <Video size={14} />
+                      </a>
+                    )}
+                    {canEdit && (
+                      <button
+                        onClick={() => rdv.type === 'rdv' ? setEditingRdv(rdv) : setEditingRdvProspect(rdv)}
+                        className="w-8 h-8 rounded-lg hover:bg-border/50 flex items-center justify-center text-muted hover:text-ink opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+                        title="Modifier">
+                        <Pencil size={13} />
+                      </button>
+                    )}
                   </div>
-                  {rdv.format === 'meet' && (
-                    <a href="https://meet.google.com/new" target="_blank" rel="noreferrer"
-                      className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 hover:bg-emerald-200 transition-colors flex-shrink-0"
-                      title="Rejoindre Google Meet">
-                      <Video size={14} />
-                    </a>
-                  )}
-                  {canEdit && (
-                    <button
-                      onClick={() => rdv.type === 'rdv' ? setEditingRdv(rdv) : setEditingRdvProspect(rdv)}
-                      className="w-8 h-8 rounded-lg hover:bg-border/50 flex items-center justify-center text-muted hover:text-ink opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
-                      title="Modifier">
-                      <Pencil size={13} />
-                    </button>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        )}
+                )
+              })}
+            </div>
+          )
+        })()}
       </div>
 
       {/* ── FORMATIONS ── */}

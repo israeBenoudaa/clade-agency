@@ -6,6 +6,7 @@ import {
   Clock, Download, Image, Loader, AlignLeft, List,
 } from 'lucide-react'
 import { useData } from '../../context/DataContext'
+import { supabase } from '../../lib/supabase'
 import { generateConceptPdf } from '../../utils/generateConceptPdf'
 import { compressImage } from '../../utils/compressImage'
 import toast from 'react-hot-toast'
@@ -39,29 +40,50 @@ export default function ConceptPage() {
   const handleImages = async (e) => {
     const files = Array.from(e.target.files || [])
     if (!files.length) return
-    const toastId = toast.loading(`Compression de ${files.length} image${files.length > 1 ? 's' : ''}…`)
-    const newImages = await Promise.all(files.map(file => new Promise((resolve) => {
-      const reader = new FileReader()
-      reader.onload = async (ev) => {
-        const compressed = await compressImage(ev.target.result)
-        resolve({
-          id: `img${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-          dataUrl: compressed,
-          name: file.name,
-        })
-      }
-      reader.readAsDataURL(file)
-    })))
+    const toastId = toast.loading(`Upload de ${files.length} image${files.length > 1 ? 's' : ''}…`)
     try {
+      const newImages = await Promise.all(files.map(async (file) => {
+        const dataUrl = await new Promise((resolve) => {
+          const reader = new FileReader()
+          reader.onload = (ev) => resolve(ev.target.result)
+          reader.readAsDataURL(file)
+        })
+        const compressed = await compressImage(dataUrl)
+        const blob = await fetch(compressed).then(r => r.blob())
+        const storagePath = `${project.id}/${Date.now()}_${Math.random().toString(36).slice(2, 7)}.jpg`
+        const { error: uploadError } = await supabase.storage
+          .from('concept-images')
+          .upload(storagePath, blob, { contentType: 'image/jpeg', upsert: false })
+        if (uploadError) throw uploadError
+        // Use signed URL (works for both public and private buckets)
+        const { data: signedData } = await supabase.storage
+          .from('concept-images')
+          .createSignedUrl(storagePath, 315360000) // ~10 years
+        const { data: { publicUrl } } = supabase.storage.from('concept-images').getPublicUrl(storagePath)
+        const url = signedData?.signedUrl || publicUrl
+        return { id: `img${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, url, storagePath, name: file.name }
+      }))
       updateConceptImages(project.id, [...concept.images, ...newImages])
       toast.success(`${newImages.length} image${newImages.length > 1 ? 's' : ''} ajoutée${newImages.length > 1 ? 's' : ''}`, { id: toastId })
-    } catch {
-      toast.error('Stockage insuffisant. Supprimez des images existantes.', { id: toastId })
+    } catch (err) {
+      console.error('[ConceptPage] image upload error:', err)
+      const msg = err?.message?.includes('Bucket not found') || err?.message?.includes('not found')
+        ? 'Bucket "concept-images" introuvable — crée-le dans Supabase Dashboard → Storage.'
+        : `Erreur upload : ${err?.message || 'inconnue'}`
+      toast.error(msg, { id: toastId })
     }
     e.target.value = ''
   }
 
-  const removeImage = (imgId) => {
+  const removeImage = async (imgId) => {
+    const img = concept.images.find(i => i.id === imgId)
+    if (img?.storagePath && supabase) {
+      try {
+        await supabase.storage.from('concept-images').remove([img.storagePath])
+      } catch (err) {
+        console.warn('[ConceptPage] storage remove error:', err?.message)
+      }
+    }
     updateConceptImages(project.id, concept.images.filter(i => i.id !== imgId))
   }
 
@@ -190,7 +212,7 @@ export default function ConceptPage() {
                   <div key={img.id} className="group relative">
                     <div className="aspect-[9/16] bg-paper-warm rounded-xl overflow-hidden relative border border-border">
                       <img
-                        src={img.dataUrl}
+                        src={img.url || img.dataUrl}
                         alt={img.name}
                         className="w-full h-full object-cover"
                       />
@@ -383,7 +405,7 @@ export default function ConceptPage() {
                             {imgs.map(img => (
                               <div key={img.id} className="flex-shrink-0 w-16">
                                 <div className="aspect-[9/16] rounded-lg overflow-hidden border border-border">
-                                  <img src={img.dataUrl} alt={img.name} className="w-full h-full object-cover" />
+                                  <img src={img.url || img.dataUrl} alt={img.name} className="w-full h-full object-cover" />
                                 </div>
                               </div>
                             ))}
