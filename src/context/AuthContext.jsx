@@ -120,6 +120,7 @@ export function AuthProvider({ children }) {
     }
 
     setProfile(prof)
+    setLoading(false)
     return { user: data.user }
   }
 
@@ -132,6 +133,7 @@ export function AuthProvider({ children }) {
     sessionStorage.setItem('clade_pin_ok', 'true')
     setPinPending(false)
     setProfile(prof)
+    setLoading(false)
   }
 
   // ── signOut ───────────────────────────────────────────────────────────────
