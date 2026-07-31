@@ -2220,34 +2220,15 @@ export default function OverviewPage() {
           </button>
         </div>
 
-        {/* Filter tabs */}
-        <div className="flex gap-1 mb-3 bg-paper-warm rounded-xl p-1">
-          {[['all','Tout'],['gantt','Deadlines Gantt'],['tasks','Deadlines tâches']].map(([v, l]) => (
-            <button key={v} onClick={() => setDeadlineFilter(v)}
-              className={`flex-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold transition-colors ${deadlineFilter === v ? 'bg-white shadow-sm text-ink' : 'text-muted hover:text-ink'}`}>
-              {l}
-            </button>
-          ))}
-        </div>
-
         {(() => {
           const _rdvWeekStart = toISO(rdvWeekDays[0])
           const _rdvWeekEnd   = toISO(rdvWeekDays[6])
-          const visibleItems = (() => {
-            if (deadlineFilter === 'gantt') {
-              return projectDeadlines.filter(dl => !dl.validated && dl.date >= _rdvWeekStart && dl.date <= _rdvWeekEnd)
-            }
-            if (deadlineFilter === 'tasks') {
-              return taskDeadlines.filter(t => t.deadline >= _rdvWeekStart && t.deadline <= _rdvWeekEnd)
-                .map(t => ({ ...t, date: t.deadline, nom: t.nom, _isTask: true }))
-            }
-            return [
-              ...filteredRdvs.filter(r => r.type !== 'deadline'),
-              ...projectDeadlines.filter(dl => !dl.validated && dl.date >= _rdvWeekStart && dl.date <= _rdvWeekEnd),
-              ...taskDeadlines.filter(t => t.deadline >= _rdvWeekStart && t.deadline <= _rdvWeekEnd)
-                .map(t => ({ ...t, date: t.deadline, _isTask: true })),
-            ].sort((a, b) => (a.date || '').localeCompare(b.date || ''))
-          })()
+          const visibleItems = [
+            ...filteredRdvs.filter(r => r.type !== 'deadline'),
+            ...projectDeadlines.filter(dl => !dl.validated && dl.date >= _rdvWeekStart && dl.date <= _rdvWeekEnd),
+            ...taskDeadlines.filter(t => t.deadline >= _rdvWeekStart && t.deadline <= _rdvWeekEnd)
+              .map(t => ({ ...t, date: t.deadline, _isTask: true })),
+          ].sort((a, b) => (a.date || '').localeCompare(b.date || ''))
           if (visibleItems.length === 0) {
             return <div className="py-6 text-center text-sm text-muted">Aucun élément cette semaine</div>
           }
