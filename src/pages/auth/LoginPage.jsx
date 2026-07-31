@@ -222,7 +222,7 @@ export default function LoginPage() {
     setSubmitting(true)
     try {
       await verifyDirectorPin(pinStr)
-      toast.success('Bienvenue, Achraf Benouda')
+      toast.success('Connexion réussie')
     } catch (err) {
       toast.error(err.message || 'PIN incorrect')
       setPin(['', '', '', '', '', ''])
@@ -338,7 +338,7 @@ export default function LoginPage() {
                 <div className="text-xs tracking-widest uppercase text-muted mb-2">◆ Double sécurité</div>
                 <h2 className="font-display text-3xl text-ink leading-none mb-2">Saisissez votre PIN</h2>
                 <p className="text-sm text-muted">
-                  Identifiant <strong className="text-ink">a.benouda</strong> · Entrez votre code PIN à 6 chiffres
+                  Identifiant <strong className="text-ink">{email}</strong> · Entrez votre code PIN à 6 chiffres
                 </p>
               </div>
 

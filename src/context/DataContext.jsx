@@ -92,8 +92,8 @@ const fromDbProspect = (r) => ({ id: r.id, prenom: r.prenom, nom: r.nom, email: 
 const toDbEmploye = (e) => ({ id: String(e.id), nom: e.nom, prenom: e.prenom || null, nom_famille: e.nomFamille || null, poste: e.poste || null, dept: e.dept || null, email: e.email || null, telephone: e.telephone || null, cin: e.cin || null, adresse: e.adresse || null, contrat: e.contrat || null, salaire_net: Number(e.salaireNet) || 0, salaire_brut: Number(e.salaireBrut) || 0, statut: e.statut || 'actif', is_directeur: e.isDirecteur || false, manager_id: e.managerId ? String(e.managerId) : null, avatar: e.avatar || null, planning: e.planning || [], conges: e.conges || { solde: 25, history: [] }, work_sessions: e.workSessions || [], credentials: e.credentials || null, evaluations: e.evaluations || [], heures_sup_manual: e.heuresSupManual || [], from_recruitment: e.fromRecruitment || null })
 const fromDbEmploye = (r) => ({ id: r.id, nom: r.nom, prenom: r.prenom, nomFamille: r.nom_famille, poste: r.poste, dept: r.dept, email: r.email, telephone: r.telephone, cin: r.cin, adresse: r.adresse, contrat: r.contrat, salaireNet: r.salaire_net, salaireBrut: r.salaire_brut, statut: r.statut, isDirecteur: r.is_directeur, managerId: r.manager_id, avatar: r.avatar, planning: r.planning || [], conges: r.conges || { solde: 25, history: [] }, workSessions: r.work_sessions || [], credentials: r.credentials, evaluations: r.evaluations || [], heuresSupManual: r.heures_sup_manual || [], fromRecruitment: r.from_recruitment })
 
-const toDbProject = (p) => ({ id: p.id, nom: p.nom, client: p.client || null, client_id: p.clientId || null, prospect_id: p.prospectId || null, statut: p.statut || 'En cours', avancement: p.avancement ?? 0, type_projet: p.typeProjet || p.type || null, budget: p.budget ? String(p.budget) : null, date_debut: p.dateDebut || null, date_fin: p.dateFin || null, description: p.description || null, equipe: p.equipe ?? 0, equipe_projet: p.equipeProjet || [], missions: p.missions || [], tasks: p.tasks || [], livrables: p.livrables || [], finances: p.finances || { honoraires: {}, paiements: {} }, concept: p.concept || null, programme: p.programme || null, estimation: p.estimation || null, client_feedback: p.clientFeedback || [] })
-const fromDbProject = (r) => ({ id: r.id, nom: r.nom, client: r.client, clientId: r.client_id, prospectId: r.prospect_id, statut: r.statut, avancement: r.avancement ?? 0, typeProjet: r.type_projet, type: r.type_projet, budget: r.budget, dateDebut: r.date_debut, dateFin: r.date_fin, description: r.description, equipe: r.equipe ?? 0, equipeProjet: r.equipe_projet || [], missions: r.missions || [], tasks: r.tasks || [], livrables: r.livrables || [], finances: r.finances || { honoraires: {}, paiements: {} }, concept: r.concept, programme: r.programme, estimation: r.estimation, clientFeedback: r.client_feedback || [] })
+const toDbProject = (p) => ({ id: p.id, nom: p.nom, client: p.client || null, client_id: p.clientId || null, prospect_id: p.prospectId || null, statut: p.statut || 'En cours', avancement: p.avancement ?? 0, type_projet: p.typeProjet || p.type || null, budget: p.budget ? String(p.budget) : null, date_debut: p.dateDebut || null, date_fin: p.dateFin || null, description: p.description || null, equipe: p.equipe ?? 0, equipe_projet: p.equipeProjet || [], missions: p.missions || [], tasks: p.tasks || [], livrables: p.livrables || [], finances: p.finances || { honoraires: {}, paiements: {} }, concept: p.concept || null, programme: p.programme || null, estimation: p.estimation || null, client_feedback: p.clientFeedback || [], architecte_referent_id: p.architecteReferentId || null, architecte_referent_nom: p.architecteReferentNom || null })
+const fromDbProject = (r) => ({ id: r.id, nom: r.nom, client: r.client, clientId: r.client_id, prospectId: r.prospect_id, statut: r.statut, avancement: r.avancement ?? 0, typeProjet: r.type_projet, type: r.type_projet, budget: r.budget, dateDebut: r.date_debut, dateFin: r.date_fin, description: r.description, equipe: r.equipe ?? 0, equipeProjet: r.equipe_projet || [], missions: r.missions || [], tasks: r.tasks || [], livrables: r.livrables || [], finances: r.finances || { honoraires: {}, paiements: {} }, concept: r.concept, programme: r.programme, estimation: r.estimation, clientFeedback: r.client_feedback || [], architecteReferentId: r.architecte_referent_id || null, architecteReferentNom: r.architecte_referent_nom || null })
 
 const toDbTransaction = (t) => ({ id: t.id, type: t.type, montant: Number(t.montant) || 0, libelle: t.libelle || null, date: t.date, categorie: t.categorie || null, auto: t.auto || false, charge_id: t.chargeId || null, employe_id: t.employeId ? String(t.employeId) : null, project_id: t.projectId ? String(t.projectId) : null })
 const fromDbTransaction = (r) => ({ id: r.id, type: r.type, montant: Number(r.montant) || 0, libelle: r.libelle, date: r.date, categorie: r.categorie, auto: r.auto, chargeId: r.charge_id, employeId: r.employe_id, projectId: r.project_id })
@@ -122,8 +122,8 @@ const fromDbCollaborateur = (r) => ({ id: r.id, nom: r.nom, specialite: r.specia
 const toDbJourFerie = (j) => ({ id: j.id, date: j.date, nom: j.nom })
 const fromDbJourFerie = (r) => ({ id: r.id, date: r.date, nom: r.nom })
 
-const toDbWorkflow = (w) => ({ id: w.id, title: w.title || null, description: w.description || null, blocks: w.blocks || [], shared_with: w.sharedWith || [], versions: w.versions || [], deleted_at: w.deletedAt || null, created_at: w.createdAt || new Date().toISOString(), updated_at: w.updatedAt || new Date().toISOString() })
-const fromDbWorkflow = (r) => ({ id: r.id, title: r.title, description: r.description, blocks: r.blocks || [], sharedWith: r.shared_with || [], versions: r.versions || [], deletedAt: r.deleted_at, createdAt: r.created_at, updatedAt: r.updated_at })
+const toDbWorkflow = (w) => ({ id: w.id, title: w.title || null, description: w.description || null, blocks: w.blocks || [], shared_with: w.sharedWith || [], versions: w.versions || [], deleted_at: w.deletedAt || null, created_at: w.createdAt || new Date().toISOString(), updated_at: w.updatedAt || new Date().toISOString(), created_by_id: w.createdById || null, created_by_nom: w.createdByNom || null, category: w.category || null })
+const fromDbWorkflow = (r) => ({ id: r.id, title: r.title, description: r.description, blocks: r.blocks || [], sharedWith: r.shared_with || [], versions: r.versions || [], deletedAt: r.deleted_at, createdAt: r.created_at, updatedAt: r.updated_at, createdById: r.created_by_id || null, createdByNom: r.created_by_nom || null, category: r.category || null })
 
 const toDbNotification = (n) => ({ id: n.id, type: n.type || null, message: n.message, target_user_id: n.targetUserId || null, read: n.read || false, link: n.link || null, for_hr: n.forHR || false, created_at: n.createdAt || new Date().toISOString() })
 const fromDbNotification = (r) => ({ id: r.id, type: r.type, message: r.message, targetUserId: r.target_user_id, read: r.read, link: r.link, forHR: r.for_hr, createdAt: r.created_at })
@@ -381,18 +381,18 @@ export function DataProvider({ children }) {
           supabase.from('projects').upsert(mockProjets.map(p => toDbProject(enrichMock(p))), { onConflict: 'id' })
         }
 
-        if (dbTx?.length)       setTransactions(dbTx.map(fromDbTransaction))
-        if (dbCharges?.length)  setChargesFixe(dbCharges.map(fromDbChargeFixe))
-        if (dbMessages?.length) setMessages(dbMessages.map(fromDbMessage))
-        if (dbDemandesRH?.length) setDemandesRH(dbDemandesRH.map(fromDbDemandeRH))
-        if (dbRecs?.length)     setRecrutements(dbRecs.map(fromDbRecrutement))
-        if (dbCands?.length)    setCandidaturesSpont(dbCands.map(fromDbCandidatureSpont))
-        if (dbFormations?.length) setFormations(dbFormations.map(fromDbFormation))
-        if (dbCollabs?.length)  setCollaborateurs(dbCollabs.map(fromDbCollaborateur))
-        if (dbCatCollabs?.length) setCategoriesCollab(dbCatCollabs)
-        if (dbJF?.length)       setJoursFerier(dbJF.map(fromDbJourFerie))
-        if (dbWF?.length)       setWorkflows(dbWF.map(fromDbWorkflow))
-        if (dbNotifs?.length)   setNotifications(dbNotifs.map(fromDbNotification))
+        if (dbTx)          setTransactions(dbTx.map(fromDbTransaction))
+        if (dbCharges)     setChargesFixe(dbCharges.map(fromDbChargeFixe))
+        if (dbMessages)    setMessages(dbMessages.map(fromDbMessage))
+        if (dbDemandesRH)  setDemandesRH(dbDemandesRH.map(fromDbDemandeRH))
+        if (dbRecs)        setRecrutements(dbRecs.map(fromDbRecrutement))
+        if (dbCands)       setCandidaturesSpont(dbCands.map(fromDbCandidatureSpont))
+        if (dbFormations)  setFormations(dbFormations.map(fromDbFormation))
+        if (dbCollabs)     setCollaborateurs(dbCollabs.map(fromDbCollaborateur))
+        if (dbCatCollabs)  setCategoriesCollab(dbCatCollabs)
+        if (dbJF)          setJoursFerier(dbJF.map(fromDbJourFerie))
+        if (dbWF)          setWorkflows(dbWF.map(fromDbWorkflow))
+        if (dbNotifs)      setNotifications(dbNotifs.map(fromDbNotification))
         if (dbSettings) {
           setAgenceSettingsState({ nbCollaborateurs: dbSettings.nb_collaborateurs ?? 5, heuresParAn: dbSettings.heures_par_an ?? 1500, tjh: dbSettings.tjh ?? 250 })
           setTauxImpotState(dbSettings.taux_impot ?? 20)
@@ -545,6 +545,84 @@ export function DataProvider({ children }) {
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
+  }, [supaLoaded]) // eslint-disable-line
+
+  // ── Realtime : sync core tables across all connected users ───────────────────
+  useEffect(() => {
+    if (!supaLoaded || !supabase) return
+    const ch = supabase
+      .channel('app-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, ({ eventType, new: row, old }) => {
+        if (eventType === 'DELETE') {
+          setProjects(prev => prev.filter(p => p.id !== old.id))
+        } else if (row?.id) {
+          setProjects(prev => [...prev.filter(p => p.id !== row.id), fromDbProject(row)])
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'employes' }, ({ eventType, new: row, old }) => {
+        if (eventType === 'DELETE') {
+          setEmployes(prev => prev.filter(e => e.id !== old.id))
+        } else if (row?.id) {
+          setEmployes(prev => [...prev.filter(e => e.id !== row.id), fromDbEmploye(row)])
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'workflows' }, ({ eventType, new: row, old }) => {
+        if (eventType === 'DELETE') {
+          setWorkflows(prev => prev.filter(w => w.id !== old.id))
+        } else if (row?.id) {
+          setWorkflows(prev => [...prev.filter(w => w.id !== row.id), fromDbWorkflow(row)])
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'formations' }, ({ eventType, new: row, old }) => {
+        if (eventType === 'DELETE') {
+          setFormations(prev => prev.filter(f => f.id !== old.id))
+        } else if (row?.id) {
+          setFormations(prev => [...prev.filter(f => f.id !== row.id), fromDbFormation(row)])
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, ({ eventType, new: row, old }) => {
+        if (eventType === 'DELETE') {
+          setTransactions(prev => prev.filter(t => t.id !== old.id))
+        } else if (row?.id) {
+          setTransactions(prev => [...prev.filter(t => t.id !== row.id), fromDbTransaction(row)])
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'demandes_rh' }, ({ eventType, new: row, old }) => {
+        if (eventType === 'DELETE') {
+          setDemandesRH(prev => prev.filter(d => d.id !== old.id))
+        } else if (row?.id) {
+          setDemandesRH(prev => [...prev.filter(d => d.id !== row.id), fromDbDemandeRH(row)])
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'charges_fixes' }, ({ eventType, new: row, old }) => {
+        if (eventType === 'DELETE') {
+          setChargesFixe(prev => prev.filter(c => c.id !== old.id))
+        } else if (row?.id) {
+          setChargesFixe(prev => [...prev.filter(c => c.id !== row.id), fromDbChargeFixe(row)])
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, ({ eventType, new: row, old }) => {
+        if (eventType === 'DELETE') {
+          setMessages(prev => prev.filter(m => m.id !== old.id))
+        } else if (row?.id) {
+          setMessages(prev => prev.some(m => m.id === row.id)
+            ? prev.map(m => m.id === row.id ? fromDbMessage(row) : m)
+            : [...prev, fromDbMessage(row)]
+          )
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, ({ eventType, new: row, old }) => {
+        if (eventType === 'DELETE') {
+          setNotifications(prev => prev.filter(n => n.id !== old.id))
+        } else if (row?.id) {
+          setNotifications(prev => prev.some(n => n.id === row.id)
+            ? prev.map(n => n.id === row.id ? fromDbNotification(row) : n)
+            : [fromDbNotification(row), ...prev]
+          )
+        }
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
   }, [supaLoaded]) // eslint-disable-line
 
   // ── Migration : créer les entrées clients manquantes pour les prospects contrat_signe ──

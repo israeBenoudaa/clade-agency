@@ -270,8 +270,9 @@ export default function MessagesPage() {
   const location = useLocation()
 
   const isDir = isDirector || isDirectorMode
-  const myId = String(profile?.id || 'unknown')
-  const myName = profile?.full_name || 'Moi'
+  const myId    = String(profile?.id || 'unknown')
+  const myEmpId = String(profile?.employe_id || profile?.id || '')
+  const myName  = profile?.full_name || 'Moi'
 
   const [activeConv, setActiveConv] = useState('team')
   const [mobileView, setMobileView] = useState('list')
@@ -345,14 +346,32 @@ export default function MessagesPage() {
     const dmConvIds = [...new Set(messages.filter(m => m.conversationId.startsWith('dm_')).map(m => m.conversationId))]
     dmConvIds.forEach(convId => {
       const empId = convId.replace('dm_', '')
-      const emp = employes.find(e => String(e.id) === empId)
-      const msgs = messages.filter(m => m.conversationId === convId)
+      const msgs  = messages.filter(m => m.conversationId === convId)
+      let displayName, displaySub, displayEmpId
+
+      if (myEmpId && empId === myEmpId) {
+        // Cette conv me cible comme destinataire — afficher l'expéditeur
+        const otherMsg = msgs.find(m => String(m.senderId) !== myId)
+        const otherEmp = employes.find(e => {
+          const full = [e.prenom, e.nom].filter(Boolean).join(' ')
+          return full === otherMsg?.senderName || e.nom === otherMsg?.senderName
+        })
+        displayName  = otherEmp?.nom || otherMsg?.senderName || 'Collaborateur'
+        displaySub   = otherEmp?.poste || 'Message direct'
+        displayEmpId = otherEmp ? String(otherEmp.id) : empId
+      } else {
+        const emp   = employes.find(e => String(e.id) === empId)
+        displayName  = emp?.nom || msgs.slice(-1)[0]?.senderName || 'Collaborateur'
+        displaySub   = emp?.poste || 'Message direct'
+        displayEmpId = empId
+      }
+
       list.push({
         id: convId,
-        name: emp?.nom || msgs.slice(-1)[0]?.senderName || 'Collaborateur',
-        sub: emp?.poste || 'Message direct',
+        name: displayName,
+        sub: displaySub,
         icon: 'dm',
-        empId,
+        empId: displayEmpId,
         lastMsg: msgs[msgs.length - 1] || null,
         deletable: true,
       })

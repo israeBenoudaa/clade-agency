@@ -117,16 +117,16 @@ export default function App() {
         <Route path="projects/:id/concept" element={<ConceptPage />} />
         <Route path="projects/:id/programme" element={<ProgrammePage />} />
         <Route path="projects/:id/estimation" element={<EstimationPage />} />
-        <Route path="hr" element={<HRPage />} />
-        <Route path="hr/:id" element={<EmployeDetailPage />} />
-        <Route path="hr/recruitment/:id" element={<RecruitmentDetailPage />} />
+        <Route path="hr" element={<ProtectedRoute requireRoles={['directeur', 'rh']}><HRPage /></ProtectedRoute>} />
+        <Route path="hr/:id" element={<ProtectedRoute requireRoles={['directeur', 'rh']}><EmployeDetailPage /></ProtectedRoute>} />
+        <Route path="hr/recruitment/:id" element={<ProtectedRoute requireRoles={['directeur', 'rh']}><RecruitmentDetailPage /></ProtectedRoute>} />
         <Route path="finance" element={<FinancePage />} />
         <Route path="finance/:id" element={<FinanceProjectDetailPage />} />
         <Route path="crm" element={<CRMPage />} />
         <Route path="crm/prospect/:id" element={<ProspectDetailPage />} />
-        <Route path="collaborateurs" element={<CollaborateursPage />} />
-        <Route path="portfolio" element={<PortfolioPreviewPage />} />
-        <Route path="site-editor" element={<SiteEditorPage />} />
+        <Route path="collaborateurs" element={<ProtectedRoute requireRoles={['directeur', 'rh']}><CollaborateursPage /></ProtectedRoute>} />
+        <Route path="portfolio" element={<ProtectedRoute requireDirector><PortfolioPreviewPage /></ProtectedRoute>} />
+        <Route path="site-editor" element={<ProtectedRoute requireDirector><SiteEditorPage /></ProtectedRoute>} />
         <Route path="messages" element={<MessagesPage />} />
         <Route path="my-team" element={<MyTeamPage />} />
         <Route path="my-projects" element={<MyProjectsPage />} />

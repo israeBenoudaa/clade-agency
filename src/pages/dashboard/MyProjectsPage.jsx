@@ -438,7 +438,7 @@ export default function MyProjectsPage() {
   const [showFilterMenu, setShowFilterMenu] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
-  const myId  = String(profile?.id || '')
+  const myId  = String(profile?.employe_id || profile?.id || '')
   const myNom = profile?.full_name || profile?.nom || ''
 
   // Projets dont je suis le référent

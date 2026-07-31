@@ -42,8 +42,8 @@ export function AuthProvider({ children }) {
 
   // ── Restauration de session au démarrage ──────────────────────────────────
   useEffect(() => {
-    // Mode démo (pas de Supabase)
-    if (localStorage.getItem('clade_demo') === 'true') {
+    // Mode démo uniquement en environnement de développement local
+    if (import.meta.env.DEV && localStorage.getItem('clade_demo') === 'true') {
       const role = localStorage.getItem('clade_demo_role') || 'directeur'
       setSession(DEMO_SESSION)
       setProfile(makeDemoProfile(role))
@@ -176,7 +176,7 @@ export function AuthProvider({ children }) {
     signOut,
     verifyDirectorPin,
     switchDemoRole,
-    isStaff:   profile && profile.role !== 'client',
+    isStaff:   profile && ['directeur', 'chef_projet', 'architecte', 'rh', 'finance', 'am'].includes(profile.role),
     isClient:  profile?.role === 'client',
     isDirector: profile?.role === 'directeur',
   }

@@ -131,11 +131,11 @@ export default function FinancePage() {
   const isDir = isDirector || isDirectorMode
   const navigate = useNavigate()
 
-  const { deadlines } = useFiscalDeadlines()
+  const { deadlines, loading: deadlinesLoading } = useFiscalDeadlines()
 
-  // Notifications fiscales dans la cloche
+  // Notifications fiscales dans la cloche — attendre Supabase avant de créer des alertes
   useEffect(() => {
-    if (!deadlines.length) return
+    if (deadlinesLoading || !deadlines.length) return
     const today = new Date().toISOString().slice(0, 10)
     const storageKey = `fiscal_notif_${today}`
     const already = JSON.parse(localStorage.getItem(storageKey) || '[]')
@@ -155,7 +155,7 @@ export default function FinancePage() {
         ...newAlerts.map(a => `${a.deadline.id}_${a.daysLeft}`),
       ]))
     }
-  }, [deadlines]) // eslint-disable-line
+  }, [deadlines, deadlinesLoading]) // eslint-disable-line
 
   const handleFiscalPaid = (tx) => {
     addTransaction({ ...tx, id: `fiscal_${Date.now()}` }, byName)

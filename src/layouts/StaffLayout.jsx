@@ -82,7 +82,7 @@ export default function StaffLayout() {
   const notifRef = useRef(null)
 
   const { profile, signOut, isDirector, isDemoMode, isEmployeeMode, isDirectorMode } = useAuth()
-  const { employes, projects, prospects, notifications, markAllNotificationsRead, deleteNotification, addDemandeRH, messages, msgReadState, demoCheckpoint, exitDemoMode, confirmDemoRestore } = useData()
+  const { employes, projects, prospects, notifications, markAllNotificationsRead, deleteNotification, addDemandeRH, messages, msgReadState, demoCheckpoint, exitDemoMode, confirmDemoRestore, supaLoaded } = useData()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -358,6 +358,12 @@ export default function StaffLayout() {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
+
+  // Lock body scroll when mobile drawer is open
+  useEffect(() => {
+    document.body.style.overflow = sidebarOpen ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [sidebarOpen])
 
   return (
     <div className="min-h-screen flex bg-paper bg-grid">
@@ -662,7 +668,13 @@ export default function StaffLayout() {
         </header>
 
         <div className="flex-1">
-          <Outlet />
+          {!supaLoaded ? (
+            <div className="flex items-center justify-center" style={{ minHeight: 320 }}>
+              <div className="w-7 h-7 rounded-full border-2 border-electric border-t-transparent animate-spin" />
+            </div>
+          ) : (
+            <Outlet />
+          )}
         </div>
       </main>
 
@@ -747,7 +759,7 @@ function Sidebar({ mobile, onClose, onSignOut, isDirector, profile, initials, na
   }
 
   return (
-    <div className="h-screen w-72 lg:w-64 bg-ink-deep text-paper flex flex-col py-7 px-4 lg:sticky lg:top-0">
+    <div className="w-72 lg:w-64 bg-ink-deep text-paper flex flex-col py-7 px-4 lg:sticky lg:top-0" style={{ height: '100dvh' }}>
       {/* Branding */}
       <div className="flex items-center justify-between mb-8 px-2 flex-shrink-0">
         <div className="flex items-center">

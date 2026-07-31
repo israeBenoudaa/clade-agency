@@ -7,6 +7,7 @@ import {
   MessageSquare, Send,
 } from 'lucide-react'
 import { useData } from '../../context/DataContext'
+import { useAuth } from '../../context/AuthContext'
 import { ProgressBar } from '../../components/ui'
 import toast from 'react-hot-toast'
 
@@ -43,9 +44,10 @@ export default function ClientProjectDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { projects, employes, addClientFeedback } = useData()
+  const { prospectId } = useAuth()
   const [feedbackDraft, setFeedbackDraft] = useState('')
 
-  const projet = projects.find(p => String(p.id) === id)
+  const projet = projects.find(p => String(p.id) === id && String(p.prospectId) === String(prospectId))
 
   if (!projet) {
     return (

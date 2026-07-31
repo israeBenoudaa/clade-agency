@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowLeft, CheckCircle2, Clock, AlertCircle, FileText, Wallet } from 'lucide-react'
 import { useData } from '../../context/DataContext'
+import { useAuth } from '../../context/AuthContext'
 
 const fmtDH = (n) =>
   Number(n || 0).toLocaleString('fr-MA', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' DH'
@@ -17,8 +18,9 @@ export default function ClientProjectFinancePage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { projects } = useData()
+  const { prospectId } = useAuth()
 
-  const projet = projects.find(p => String(p.id) === id)
+  const projet = projects.find(p => String(p.id) === id && String(p.prospectId) === String(prospectId))
 
   if (!projet) {
     return (
