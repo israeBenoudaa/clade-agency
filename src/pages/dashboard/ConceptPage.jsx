@@ -55,13 +55,8 @@ export default function ConceptPage() {
           .from('concept-images')
           .upload(storagePath, blob, { contentType: 'image/jpeg', upsert: false })
         if (uploadError) throw uploadError
-        // Use signed URL (works for both public and private buckets)
-        const { data: signedData } = await supabase.storage
-          .from('concept-images')
-          .createSignedUrl(storagePath, 315360000) // ~10 years
         const { data: { publicUrl } } = supabase.storage.from('concept-images').getPublicUrl(storagePath)
-        const url = signedData?.signedUrl || publicUrl
-        return { id: `img${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, url, storagePath, name: file.name }
+        return { id: `img${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, url: publicUrl, storagePath, name: file.name }
       }))
       updateConceptImages(project.id, [...concept.images, ...newImages])
       toast.success(`${newImages.length} image${newImages.length > 1 ? 's' : ''} ajoutée${newImages.length > 1 ? 's' : ''}`, { id: toastId })
@@ -212,7 +207,9 @@ export default function ConceptPage() {
                   <div key={img.id} className="group relative">
                     <div className="aspect-[9/16] bg-paper-warm rounded-xl overflow-hidden relative border border-border">
                       <img
-                        src={img.url || img.dataUrl}
+                        src={img.storagePath && supabase
+                          ? supabase.storage.from('concept-images').getPublicUrl(img.storagePath).data.publicUrl
+                          : (img.url || img.dataUrl || '')}
                         alt={img.name}
                         className="w-full h-full object-cover"
                       />

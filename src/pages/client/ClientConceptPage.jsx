@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo } from 'react'
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion'
 import { Heart, X, Star, CheckCircle, Download, Loader, ChevronRight, LayoutGrid, Ruler, Sparkles } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -8,33 +8,21 @@ import { supabase } from '../../lib/supabase'
 import { generateConceptPdf } from '../../utils/generateConceptPdf'
 import { exportProgrammeExcel, exportEstimationExcel } from '../../utils/exportTableExcel'
 
-// Refreshes a broken image URL using a signed URL when the bucket is private
-function useSignedUrl(image) {
-  const [src, setSrc] = useState(image?.url || image?.dataUrl || '')
-  const handleError = useCallback(async () => {
-    if (!supabase || !image?.storagePath || image?._signedRefreshed) return
-    try {
-      const { data } = await supabase.storage
-        .from('concept-images')
-        .createSignedUrl(image.storagePath, 315360000)
-      if (data?.signedUrl) {
-        image._signedRefreshed = true
-        setSrc(data.signedUrl)
-      }
-    } catch {}
-  }, [image])
-  return { src, handleError }
+function getImgUrl(image) {
+  if (image?.storagePath && supabase) {
+    return supabase.storage.from('concept-images').getPublicUrl(image.storagePath).data.publicUrl
+  }
+  return image?.url || image?.dataUrl || ''
 }
 
 function ConceptImg({ image, className }) {
-  const { src, handleError } = useSignedUrl(image)
-  return <img src={src} alt={image?.name} className={className} onError={handleError} />
+  return <img src={getImgUrl(image)} alt={image?.name} className={className} />
 }
 
 // ── Swipe card ────────────────────────────────────────────────────────────────
 
 function SwipeCard({ image, onSwipe, isTop, stackOffset }) {
-  const { src: imgSrc, handleError: handleImgError } = useSignedUrl(image)
+  const imgSrc = getImgUrl(image)
   const x = useMotionValue(0)
   const y = useMotionValue(0)
   const rotate = useTransform(x, [-250, 250], [-18, 18])
@@ -88,8 +76,7 @@ function SwipeCard({ image, onSwipe, isTop, stackOffset }) {
         alt={image.name}
         className="w-full h-full object-cover pointer-events-none select-none"
         draggable={false}
-        onError={handleImgError}
-      />
+             />
 
       {/* Bottom gradient */}
       <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />

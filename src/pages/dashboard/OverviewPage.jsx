@@ -58,6 +58,7 @@ function getEvColor(ev) {
   if (ev.isFormation) return '#7C3AED'
   switch (ev.type) {
     case 'rdv': return '#F97316'
+    case 'gantt_rdv': return ev.couleur || '#6366F1'
     case 'rdv_prospect': return '#0EA5E9'
     case 'autoformation': return '#0D9488'
     case 'autoformation_complete': return '#059669'
@@ -1195,10 +1196,25 @@ export default function OverviewPage() {
       })
   }, [formations, employe, isDir])
 
-  // All planning events = personal + formations
+  // Gantt RDVs with time → inject into calendar grid
+  const ganttRdvEvents = useMemo(() =>
+    projectDayRdvs
+      .filter(rdv => rdv.heureDebut && rdv.heureFin)
+      .map(rdv => ({
+        ...rdv,
+        id: `gantt_${rdv.id}`,
+        type: 'gantt_rdv',
+        titre: rdv.nom,
+        couleur: rdv.couleur || '#6366F1',
+        statut: 'confirmed',
+      })),
+    [projectDayRdvs]
+  )
+
+  // All planning events = personal + formations + timed gantt RDVs
   const allPlanningEvents = useMemo(() =>
-    [...personalPlanning, ...formationEvents],
-    [personalPlanning, formationEvents]
+    [...personalPlanning, ...formationEvents, ...ganttRdvEvents],
+    [personalPlanning, formationEvents, ganttRdvEvents]
   )
 
   const pendingCount = useMemo(() =>
@@ -1882,8 +1898,8 @@ export default function OverviewPage() {
                         <span>☀</span> {jf.nom}
                       </div>
                     ))}
-                    {/* All-day RDV chips */}
-                    {dayRdvs.map(rdv => (
+                    {/* All-day RDV chips — only for RDVs without a specific time */}
+                    {dayRdvs.filter(rdv => !rdv.heureDebut).map(rdv => (
                       <div key={rdv.id} title={`${rdv.nom} — ${rdv.projectNom}`}
                         className="text-[9px] bg-sky-100 text-sky-700 rounded px-1 py-0.5 truncate mb-0.5 leading-tight">
                         📅 {rdv.nom}
@@ -1925,12 +1941,13 @@ export default function OverviewPage() {
                       const { top, height } = evStyle(ev)
                       const isFormation = ev.isFormation
                       const isRdv = ev.type === 'rdv'
+                      const isGanttRdv = ev.type === 'gantt_rdv'
                       const isRdvProspect = ev.type === 'rdv_prospect'
                       const isAutoformation = ev.type === 'autoformation' || ev.type === 'autoformation_complete'
                       const isPending = ev.statut === 'pending'
-                      const isReadOnly = isFormation && !isPending
+                      const isReadOnly = (isFormation && !isPending) || isGanttRdv
                       const evColor = getEvColor(ev)
-                      const prefix = isFormation ? '📚 ' : isRdv ? '📅 ' : isRdvProspect ? '📞 ' : isAutoformation ? '🎓 ' : ''
+                      const prefix = isFormation ? '📚 ' : isRdv || isGanttRdv ? '📅 ' : isRdvProspect ? '📞 ' : isAutoformation ? '🎓 ' : ''
                       const confirmedOnDay = dayEvents.filter(e => e.statut !== 'pending')
                       const hasConflict = isPending && confirmedOnDay.some(ce => eventsOverlap(ev, ce))
                       return (

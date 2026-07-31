@@ -30,6 +30,8 @@ const toForm = (item) => item ? {
   debut:              item.debut || '',
   fin:                item.fin || '',
   date:               item.date || '',
+  heureDebut:         item.heureDebut || '09:00',
+  heureFin:           item.heureFin || '10:00',
   couleur:            item.couleur || '#06B6D4',
   equipe:             item.equipe || '',
   personnesIds:       item.personnesIds || [],
@@ -43,6 +45,7 @@ const toForm = (item) => item ? {
   livrablesLinkInput: '',
 } : {
   nom: '', debut: '', fin: '', date: '',
+  heureDebut: '09:00', heureFin: '10:00',
   couleur: '#06B6D4', equipe: '',
   personnesIds: [], clientIds: [], collabIds: [], personnesExtra: '',
   description: '',
@@ -126,6 +129,8 @@ export default function AjouterGanttModal({ onClose, onAdd, onEdit, item, projec
       }),
       ...(type !== 'mission' && { date: form.date }),
       ...(type === 'rdv'     && {
+        heureDebut: form.heureDebut || '09:00',
+        heureFin:   form.heureFin   || '10:00',
         personnesIds: form.personnesIds,
         clientIds: form.clientIds,
         collabIds: form.collabIds,
@@ -404,6 +409,19 @@ export default function AjouterGanttModal({ onClose, onAdd, onEdit, item, projec
                 <label className="label-text mb-1.5 flex items-center gap-1 block"><Calendar size={11} /> Date *</label>
                 <input type="date" className={`input-field ${errors.date ? 'border-rose-400' : ''}`} value={form.date} onChange={set('date')} />
                 {errors.date && <p className="text-xs text-rose-500 mt-1">{errors.date}</p>}
+              </div>
+            )}
+
+            {type === 'rdv' && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label-text mb-1.5 block">Heure début</label>
+                  <input type="time" className="input-field" value={form.heureDebut} onChange={set('heureDebut')} />
+                </div>
+                <div>
+                  <label className="label-text mb-1.5 block">Heure fin</label>
+                  <input type="time" className="input-field" value={form.heureFin} onChange={set('heureFin')} />
+                </div>
               </div>
             )}
 

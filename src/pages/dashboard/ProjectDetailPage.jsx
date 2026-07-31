@@ -61,7 +61,7 @@ const APPROVAL_CFG = {
 }
 
 // ── Gantt component ────────────────────────────────────────────────────────────
-function GanttSection({ missions, onAdd, onEditMission, isManager, onValidate, onUnvalidate, onDeleteMission, onValidateDeadline }) {
+function GanttSection({ missions, onAdd, onEditMission, isManager, onValidate, onUnvalidate, onDeleteMission, onValidateDeadline, onUnvalidateDeadline }) {
   const gantt = useMemo(() => {
     const dates = missions.flatMap(m => [m.debut, m.fin, m.date].filter(Boolean)).map(d => new Date(d))
     if (!dates.length) {
@@ -242,7 +242,15 @@ function GanttSection({ missions, onAdd, onEditMission, isManager, onValidate, o
                   </div>
                   {isManager && (
                     <div className="pl-3 w-44 flex-shrink-0 flex items-center gap-1.5">
-                      {!isValidated && (
+                      {isValidated ? (
+                        <button
+                          onClick={() => onUnvalidateDeadline?.(m.id)}
+                          className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-lg bg-rose-50 text-rose-500 hover:bg-rose-100 transition-colors"
+                          title="Annuler la validation"
+                        >
+                          <RotateCcw size={11} /> Annuler
+                        </button>
+                      ) : (
                         <button
                           onClick={() => onValidateDeadline?.(m.id)}
                           className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
@@ -1423,6 +1431,10 @@ export default function ProjectDetailPage({ backPath = '/app/projects' }) {
         onValidateDeadline={(missionId) => {
           updateMission(project.id, missionId, { validated: true })
           toast.success('Deadline validé ✓')
+        }}
+        onUnvalidateDeadline={(missionId) => {
+          updateMission(project.id, missionId, { validated: false })
+          toast.success('Deadline réouverte')
         }}
       />
 
