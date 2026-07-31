@@ -101,15 +101,15 @@ function AddExpenseModal({ onClose, onAdd }) {
 }
 
 export default function ClientExpensesPage() {
-  const { profile } = useAuth()
+  const { profile, prospectId } = useAuth()
   const { prospects, projects, addClientExpense, deleteClientExpense } = useData()
   const [showAddModal, setShowAddModal] = useState(false)
   const navigate = useNavigate()
 
   const prospect = useMemo(() => {
-    if (!profile?.prospectId) return prospects[0]
-    return prospects.find(p => p.id === profile.prospectId) || prospects[0]
-  }, [profile, prospects])
+    if (!prospectId) return prospects[0]
+    return prospects.find(p => p.id === prospectId) || prospects[0]
+  }, [prospectId, prospects])
 
   const clientProjects = useMemo(() => {
     if (!prospect) return []

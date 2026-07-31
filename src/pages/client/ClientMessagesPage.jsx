@@ -122,7 +122,7 @@ function NewGroupModal({ employes, onClose, onCreate }) {
 }
 
 export default function ClientMessagesPage() {
-  const { profile } = useAuth()
+  const { profile, prospectId } = useAuth()
   const { messages, addMessage, prospects, employes, projects, msgReadState, markConvRead, deleteConversation } = useData()
   const location = useLocation()
 
@@ -130,8 +130,8 @@ export default function ClientMessagesPage() {
   const myName = profile?.full_name || 'Client'
 
   const prospect = useMemo(() =>
-    profile?.prospectId ? prospects.find(p => p.id === profile.prospectId) : null
-    , [profile, prospects])
+    prospectId ? prospects.find(p => p.id === prospectId) : null
+    , [prospectId, prospects])
 
   const [activeConv, setActiveConv] = useState(null)
   const [deleteModal, setDeleteModal] = useState(null)

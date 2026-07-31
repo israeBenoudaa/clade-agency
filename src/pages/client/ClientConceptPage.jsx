@@ -514,10 +514,10 @@ function DoneView({ concept, projectNom, project, onRestart }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function ClientConceptPage() {
-  const { profile } = useAuth()
+  const { profile, prospectId } = useAuth()
   const { projects, prospects, saveConceptResponse, clearConceptResponse } = useData()
 
-  const prospect = profile?.prospectId ? prospects.find(p => p.id === profile.prospectId) : null
+  const prospect = prospectId ? prospects.find(p => p.id === prospectId) : null
 
   // Prefer prospectId exact match, then fall back to name/clientId match
   const project = useMemo(() => {

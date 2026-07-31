@@ -14,14 +14,14 @@ const STATUT_STYLE = {
 }
 
 export default function ClientProjectPage() {
-  const { profile } = useAuth()
+  const { profile, prospectId } = useAuth()
   const { projects, prospects } = useData()
   const navigate = useNavigate()
 
   const prospect = useMemo(() => {
-    if (!profile?.prospectId) return null
-    return prospects.find(p => p.id === profile.prospectId)
-  }, [profile, prospects])
+    if (!prospectId) return null
+    return prospects.find(p => p.id === prospectId)
+  }, [prospectId, prospects])
 
   const clientProjects = useMemo(() => {
     if (!prospect) return []
