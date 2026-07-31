@@ -358,8 +358,10 @@ export function DataProvider({ children }) {
         }
 
         if (dbProspects?.length) {
-          // DB a des données → utiliser uniquement la DB, sans mélanger les mocks
           setProspects(dbProspects.map(fromDbProspect))
+        } else if (prospects.length) {
+          // DB vide mais localStorage a des données réelles → synchroniser vers Supabase
+          supabase.from('prospects').upsert(prospects.map(toDbProspect), { onConflict: 'id' })
         } else {
           supabase.from('prospects').upsert(MOCK_PROSPECTS.map(toDbProspect), { onConflict: 'id' })
         }
@@ -367,14 +369,18 @@ export function DataProvider({ children }) {
         if (dbEmployes?.length) {
           const arr = dbEmployes.map(fromDbEmploye)
           setEmployes(arr.find(e => e.id === 'director-achraf') ? arr : [DIRECTOR_EMP_DEFAULT, ...arr])
+        } else if (employes.length) {
+          supabase.from('employes').upsert(employes.map(toDbEmploye), { onConflict: 'id' })
         } else {
           const dirSafe = { ...DIRECTOR_EMP_DEFAULT, credentials: null }
           supabase.from('employes').upsert([dirSafe, ...mockEmployes].map(toDbEmploye), { onConflict: 'id' })
         }
 
         if (dbProjects?.length) {
-          // DB a des données → utiliser uniquement la DB, sans mélanger les mocks
           setProjects(dbProjects.map(fromDbProject))
+        } else if (projects.length) {
+          // DB vide mais localStorage a des projets réels → les pousser vers Supabase
+          supabase.from('projects').upsert(projects.map(toDbProject), { onConflict: 'id' })
         } else {
           supabase.from('projects').upsert(mockProjets.map(p => toDbProject(enrichMock(p))), { onConflict: 'id' })
         }
@@ -407,18 +413,19 @@ export function DataProvider({ children }) {
     load()
   }, []) // eslint-disable-line
 
-  // Activate debounced sync 3s after initial DB load — then force a full sync to capture
-  // any changes made during the blackout window (e.g. project created within 3s of load)
+  // Activate debounced sync 3s after initial DB load — force full sync via stateRef
+  // (stateRef always holds latest state, avoiding stale closure issues)
   useEffect(() => {
     if (!supaLoaded || !supabase) return
     const t = setTimeout(() => {
       syncReadyRef.current = true
-      if (projects.length)     supabase.from('projects').upsert(projects.map(toDbProject), { onConflict: 'id' })
-      if (employes.length)     supabase.from('employes').upsert(employes.map(toDbEmploye), { onConflict: 'id' })
-      if (transactions.length) supabase.from('transactions').upsert(transactions.map(toDbTransaction), { onConflict: 'id' })
-      if (workflows.length)    supabase.from('workflows').upsert(workflows.map(toDbWorkflow), { onConflict: 'id' })
-      if (formations.length)   supabase.from('formations').upsert(formations.map(toDbFormation), { onConflict: 'id' })
-      if (demandesRH.length)   supabase.from('demandes_rh').upsert(demandesRH.map(toDbDemandeRH), { onConflict: 'id' })
+      const s = stateRef.current
+      if (s.projects?.length)     supabase.from('projects').upsert(s.projects.map(toDbProject), { onConflict: 'id' })
+      if (s.employes?.length)     supabase.from('employes').upsert(s.employes.map(toDbEmploye), { onConflict: 'id' })
+      if (s.transactions?.length) supabase.from('transactions').upsert(s.transactions.map(toDbTransaction), { onConflict: 'id' })
+      if (s.workflows?.length)    supabase.from('workflows').upsert(s.workflows.map(toDbWorkflow), { onConflict: 'id' })
+      if (s.formations?.length)   supabase.from('formations').upsert(s.formations.map(toDbFormation), { onConflict: 'id' })
+      if (s.demandesRH?.length)   supabase.from('demandes_rh').upsert(s.demandesRH.map(toDbDemandeRH), { onConflict: 'id' })
     }, 3000)
     return () => clearTimeout(t)
   }, [supaLoaded]) // eslint-disable-line
