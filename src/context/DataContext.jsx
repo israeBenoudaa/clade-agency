@@ -358,9 +358,8 @@ export function DataProvider({ children }) {
         }
 
         if (dbProspects?.length) {
-          const ids = new Set(dbProspects.map(p => p.id))
-          const missing = MOCK_PROSPECTS.filter(mp => !ids.has(mp.id))
-          setProspects([...missing, ...dbProspects.map(fromDbProspect)])
+          // DB a des données → utiliser uniquement la DB, sans mélanger les mocks
+          setProspects(dbProspects.map(fromDbProspect))
         } else {
           supabase.from('prospects').upsert(MOCK_PROSPECTS.map(toDbProspect), { onConflict: 'id' })
         }
@@ -374,9 +373,8 @@ export function DataProvider({ children }) {
         }
 
         if (dbProjects?.length) {
-          const ids = new Set(dbProjects.map(p => p.id))
-          const missing = mockProjets.filter(mp => !ids.has(mp.id)).map(enrichMock)
-          setProjects([...missing, ...dbProjects.map(fromDbProject)])
+          // DB a des données → utiliser uniquement la DB, sans mélanger les mocks
+          setProjects(dbProjects.map(fromDbProject))
         } else {
           supabase.from('projects').upsert(mockProjets.map(p => toDbProject(enrichMock(p))), { onConflict: 'id' })
         }
@@ -409,12 +407,21 @@ export function DataProvider({ children }) {
     load()
   }, []) // eslint-disable-line
 
-  // Activate debounced sync only 3s after initial DB load to avoid re-uploading freshly-read data
+  // Activate debounced sync 3s after initial DB load — then force a full sync to capture
+  // any changes made during the blackout window (e.g. project created within 3s of load)
   useEffect(() => {
-    if (!supaLoaded) return
-    const t = setTimeout(() => { syncReadyRef.current = true }, 3000)
+    if (!supaLoaded || !supabase) return
+    const t = setTimeout(() => {
+      syncReadyRef.current = true
+      if (projects.length)     supabase.from('projects').upsert(projects.map(toDbProject), { onConflict: 'id' })
+      if (employes.length)     supabase.from('employes').upsert(employes.map(toDbEmploye), { onConflict: 'id' })
+      if (transactions.length) supabase.from('transactions').upsert(transactions.map(toDbTransaction), { onConflict: 'id' })
+      if (workflows.length)    supabase.from('workflows').upsert(workflows.map(toDbWorkflow), { onConflict: 'id' })
+      if (formations.length)   supabase.from('formations').upsert(formations.map(toDbFormation), { onConflict: 'id' })
+      if (demandesRH.length)   supabase.from('demandes_rh').upsert(demandesRH.map(toDbDemandeRH), { onConflict: 'id' })
+    }, 3000)
     return () => clearTimeout(t)
-  }, [supaLoaded])
+  }, [supaLoaded]) // eslint-disable-line
 
   // ── SUPABASE SYNC (debounced, 1.5s) ───────────────────────────────────────
   // Upsert collections vers Supabase dès qu'elles changent (après le chargement initial)
