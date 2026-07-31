@@ -1196,25 +1196,9 @@ export default function OverviewPage() {
       })
   }, [formations, employe, isDir])
 
-  // Gantt RDVs with time → inject into calendar grid
-  const ganttRdvEvents = useMemo(() =>
-    projectDayRdvs
-      .filter(rdv => rdv.heureDebut && rdv.heureFin)
-      .map(rdv => ({
-        ...rdv,
-        id: `gantt_${rdv.id}`,
-        type: 'gantt_rdv',
-        titre: rdv.nom,
-        couleur: rdv.couleur || '#6366F1',
-        statut: 'confirmed',
-      })),
-    [projectDayRdvs]
-  )
-
-  // All planning events = personal + formations + timed gantt RDVs
   const allPlanningEvents = useMemo(() =>
-    [...personalPlanning, ...formationEvents, ...ganttRdvEvents],
-    [personalPlanning, formationEvents, ganttRdvEvents]
+    [...personalPlanning, ...formationEvents],
+    [personalPlanning, formationEvents]
   )
 
   const pendingCount = useMemo(() =>
@@ -1546,6 +1530,21 @@ export default function OverviewPage() {
       [...projectDayRdvs, ...projectDeadlines, ...prospectRdvs, ...planningRdvs].map(r => [r.id, r])
     ).values()].sort((a, b) => (a.date || '').localeCompare(b.date || ''))
   }, [projectDayRdvs, projectDeadlines, employe])
+
+  // Gantt RDVs with heureDebut/heureFin → timed calendar blocks
+  const ganttRdvEvents = useMemo(() =>
+    projectDayRdvs
+      .filter(rdv => rdv.heureDebut && rdv.heureFin)
+      .map(rdv => ({
+        ...rdv,
+        id: `gantt_${rdv.id}`,
+        type: 'gantt_rdv',
+        titre: rdv.nom,
+        couleur: rdv.couleur || '#6366F1',
+        statut: 'confirmed',
+      })),
+    [projectDayRdvs]
+  )
 
   const rdvWeekDays = useMemo(() => getWeekDates(rdvWeekOffset), [rdvWeekOffset])
   const filteredRdvs = useMemo(() => {
@@ -1881,7 +1880,7 @@ export default function OverviewPage() {
               {weekDays.map((d, i) => {
                 const iso = toISO(d)
                 const isToday = iso === todayISO
-                const dayRdvs = projectDayRdvs.filter(ev => ev.date === iso)
+                const dayRdvs = projectDayRdvs.filter(ev => ev.date === iso && !ev.heureDebut)
                 const dayDls  = projectDeadlines.filter(ev => ev.date === iso)
                 const dayFeriers = (joursFerier || []).filter(jf => jf.date === iso)
                 const isFerie = dayFeriers.length > 0
@@ -1926,7 +1925,7 @@ export default function OverviewPage() {
               </div>
               {weekDays.map((d, di) => {
                 const iso = toISO(d)
-                const dayEvents = allPlanningEvents.filter(ev => ev.date === iso)
+                const dayEvents = [...allPlanningEvents, ...ganttRdvEvents].filter(ev => ev.date === iso)
                 const isToday = iso === todayISO
                 const isFerieDay = (joursFerier || []).some(jf => jf.date === iso)
                 return (
