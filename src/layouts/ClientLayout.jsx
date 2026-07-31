@@ -213,7 +213,7 @@ function ClientLayoutInner() {
   const [searchOpen, setSearchOpen] = useState(false)
   const bellRef = useRef(null)
   const { profile, signOut, isDemoMode } = useAuth()
-  const { projects, notifications, markNotificationsReadForTarget } = useData()
+  const { projects, notifications, markNotificationsReadForTarget, supaLoaded } = useData()
   const { lang, setLang, t } = useClientLang()
   const navigate = useNavigate()
 
@@ -288,6 +288,17 @@ function ClientLayoutInner() {
   const initials = profile
     ? `${profile.full_name?.[0] || ''}${profile.full_name?.split(' ')[1]?.[0] || ''}`.toUpperCase()
     : '??'
+
+  if (!supaLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-paper">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-electric/20 border-t-electric rounded-full animate-spin" />
+          <span className="text-xs text-muted font-medium tracking-wide">Chargement…</span>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-paper bg-grid">

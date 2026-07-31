@@ -369,6 +369,17 @@ export default function StaffLayout() {
     return () => { document.body.style.overflow = '' }
   }, [sidebarOpen])
 
+  if (!supaLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-paper">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-electric/20 border-t-electric rounded-full animate-spin" />
+          <span className="text-xs text-muted font-medium tracking-wide">Synchronisation…</span>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen flex bg-paper bg-grid">
       {/* SIDEBAR DESKTOP — hidden on mobile, handled by drawer */}
