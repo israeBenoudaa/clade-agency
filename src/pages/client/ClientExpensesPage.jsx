@@ -1,9 +1,8 @@
 import { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Plus, Trash2, X, CheckCircle, Building2, Calendar,
-  AlertCircle, Clock, FileText, Wallet, ArrowRight, ArrowLeft, ChevronRight,
+  Plus, Trash2, X, CheckCircle, CheckCircle2, Building2, Calendar,
+  AlertCircle, Clock, FileText, Wallet, ArrowLeft, ChevronRight,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useData } from '../../context/DataContext'
@@ -16,16 +15,24 @@ const fmtDH = (n) =>
 const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'
 
+const PAIEMENT_STYLE = {
+  paye:     { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', label: 'Payé',       Icon: CheckCircle2, iconColor: '#059669' },
+  en_cours: { bg: 'bg-blue-50',    text: 'text-blue-700',    border: 'border-blue-200',    label: 'En cours',   Icon: Clock,        iconColor: '#2563EB' },
+  non_paye: { bg: 'bg-amber-50',   text: 'text-amber-700',   border: 'border-amber-200',   label: 'En attente', Icon: AlertCircle,  iconColor: '#D97706' },
+}
+
 function projectFinance(projet) {
   const missions = (projet.missions || []).filter(m => m.type === 'mission')
   const honoraires = projet.finances?.honoraires ?? {}
   const paiements  = projet.finances?.paiements ?? {}
-  const totalHT   = missions.reduce((s, m) => s + (honoraires[m.id] || 0), 0)
-  const paidHT    = missions.reduce((s, m) => paiements[m.id] === 'paye' ? s + (honoraires[m.id] || 0) : s, 0)
+  const totalHT    = missions.reduce((s, m) => s + (honoraires[m.id] || 0), 0)
+  const paidHT     = missions.reduce((s, m) => paiements[m.id] === 'paye' ? s + (honoraires[m.id] || 0) : s, 0)
   const remainingHT  = totalHT - paidHT
   const pendingCount = missions.filter(m => paiements[m.id] !== 'paye' && (honoraires[m.id] || 0) > 0).length
   return { totalHT, paidHT, remainingHT, pendingCount }
 }
+
+// ── Add Expense Modal ─────────────────────────────────────────────────────────
 
 function AddExpenseModal({ onClose, onAdd }) {
   const [form, setForm] = useState({ nom: '', entreprise: '', date: '', montant: '' })
@@ -107,25 +114,34 @@ function AddExpenseModal({ onClose, onAdd }) {
   )
 }
 
-// ── Project detail view ───────────────────────────────────────────────────────
+// ── Project expenses detail ───────────────────────────────────────────────────
 
-function ProjectExpensesContent({ projet, prospect, expenses, totalDepenses, handleAdd, handleDelete, showAddModal, setShowAddModal, t, navigate }) {
-  const { totalHT, paidHT, remainingHT, pendingCount } = projectFinance(projet)
-  const missions = (projet.missions || []).filter(m => m.type === 'mission')
+function ProjectExpensesContent({ projet, allExpenses, handleAdd, handleDelete, showAddModal, setShowAddModal, t }) {
+  const { totalHT, paidHT, remainingHT } = projectFinance(projet)
+  const missions   = (projet.missions || []).filter(m => m.type === 'mission')
   const honoraires = projet.finances?.honoraires ?? {}
   const paiements  = projet.finances?.paiements ?? {}
+  const factures   = projet.finances?.factures ?? []
+
+  // expenses specific to this project (or legacy expenses without projectId)
+  const expenses = allExpenses.filter(e => e.projectId === projet.id || !e.projectId)
+  const totalDepenses = expenses.reduce((s, e) => s + (e.montant || 0), 0)
+
+  const missionsWithHon = missions.filter(m => (honoraires[m.id] || 0) > 0)
 
   return (
     <div className="space-y-5 lg:space-y-7">
-      {/* KPI */}
+
+      {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="card p-5 flex items-center gap-4">
-          <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
-            <Wallet size={18} className="text-blue-600" />
+          <div className="w-11 h-11 rounded-xl bg-electric/10 flex items-center justify-center flex-shrink-0">
+            <Wallet size={18} className="text-electric" />
           </div>
           <div>
-            <div className="label-text mb-0.5">{t('expenses.total')}</div>
-            <div className="font-display text-2xl text-ink">{fmtDH(totalDepenses)}</div>
+            <div className="label-text mb-0.5">{t('expenses.fees_section')}</div>
+            <div className="font-display text-2xl text-electric">{fmtDH(totalHT)}</div>
+            <div className="text-xs text-muted">Total honoraires HT</div>
           </div>
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="card p-5 flex items-center gap-4">
@@ -141,53 +157,100 @@ function ProjectExpensesContent({ projet, prospect, expenses, totalDepenses, han
           </div>
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card p-5 flex items-center gap-4">
-          <div className="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
-            <FileText size={18} className="text-emerald-600" />
+          <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+            <FileText size={18} className="text-blue-600" />
           </div>
           <div>
-            <div className="label-text mb-0.5">{t('expenses.fees_section')}</div>
-            <div className="font-display text-2xl text-ink">{fmtDH(totalHT)}</div>
+            <div className="label-text mb-0.5">{t('expenses.total')}</div>
+            <div className="font-display text-2xl text-ink">{fmtDH(totalDepenses)}</div>
+            <div className="text-xs text-muted">{t('expenses.tracking_section')}</div>
           </div>
         </motion.div>
       </div>
 
-      {/* Honoraires section */}
-      {totalHT > 0 && (
+      {/* ── Honoraires section ── */}
+      {missionsWithHon.length > 0 && (
         <div className="card p-5 lg:p-7">
           <div className="mb-5">
             <div className="label-text mb-1">{t('expenses.fees_section')}</div>
             <div className="font-display text-xl text-ink">{t('expenses.echeances_title')}</div>
           </div>
           <div className="space-y-3">
-            {missions.filter(m => (honoraires[m.id] || 0) > 0).map((mission, i) => {
-              const isPaid = paiements[mission.id] === 'paye'
-              const amount = honoraires[mission.id] || 0
+            {missionsWithHon.map((m, i) => {
+              const montant = honoraires[m.id] || 0
+              const statut  = paiements[m.id] || 'non_paye'
+              const style   = PAIEMENT_STYLE[statut] || PAIEMENT_STYLE.non_paye
+              const { Icon, iconColor } = style
               return (
-                <motion.button key={mission.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
-                  onClick={() => navigate(`/client/projects/${projet.id}/finance`)}
-                  className={`w-full text-left flex items-center gap-4 p-4 rounded-xl border transition-all group
-                    ${!isPaid ? 'bg-amber-50/60 border-amber-200 hover:bg-amber-50' : 'bg-emerald-50/40 border-emerald-200 hover:bg-emerald-50/60'}`}>
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${!isPaid ? 'bg-amber-100' : 'bg-emerald-100'}`}>
-                    {!isPaid ? <AlertCircle size={18} className="text-amber-600" /> : <CheckCircle size={18} className="text-emerald-600" />}
+                <motion.div key={m.id}
+                  initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
+                  className={`flex items-center gap-4 p-4 rounded-xl border ${style.bg} ${style.border}`}
+                >
+                  <div className="w-10 h-10 rounded-xl bg-white/60 flex items-center justify-center flex-shrink-0">
+                    <Icon size={18} style={{ color: iconColor }} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-ink truncate">{mission.nom}</div>
-                    <div className={`text-xs mt-0.5 ${!isPaid ? 'text-amber-700' : 'text-emerald-700'}`}>
-                      {isPaid ? t('expenses.all_paid') : t('expenses.pending').replace('{n}', 1)}
-                    </div>
+                    <div className="text-sm font-semibold text-ink truncate">{m.nom}</div>
+                    <div className={`text-xs mt-0.5 ${style.text}`}>{style.label}</div>
                   </div>
-                  <div className="flex items-center gap-3 flex-shrink-0">
-                    <div className={`font-display text-lg ${!isPaid ? 'text-amber-700' : 'text-emerald-700'}`}>{fmtDH(amount)}</div>
-                    <ArrowRight size={16} className="text-muted group-hover:text-ink transition-colors" />
+                  <div className="flex-shrink-0 text-right">
+                    <div className={`font-display text-xl ${style.text}`}>{fmtDH(montant)}</div>
+                    <div className="text-xs text-muted">TTC: {fmtDH(montant * 1.2)}</div>
                   </div>
-                </motion.button>
+                </motion.div>
               )
             })}
+
+            {/* Bilan honoraires */}
+            <div className="flex items-center justify-between px-4 pt-4 border-t border-border">
+              <div>
+                <div className="text-sm font-semibold text-ink">Total HT</div>
+                {paidHT > 0 && <div className="text-xs text-emerald-700 font-semibold">Réglé : {fmtDH(paidHT)}</div>}
+                {remainingHT > 0 && <div className="text-xs text-amber-700 font-semibold">Restant : {fmtDH(remainingHT)}</div>}
+              </div>
+              <div className="text-right">
+                <div className="font-display text-2xl text-electric">{fmtDH(totalHT)}</div>
+                <div className="text-xs text-muted">TTC : {fmtDH(totalHT * 1.2)}</div>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Personal expenses */}
+      {/* ── Factures section ── */}
+      {factures.length > 0 && (
+        <div className="card p-5 lg:p-7">
+          <div className="mb-5">
+            <div className="label-text mb-1">Documents</div>
+            <div className="font-display text-xl text-ink">Factures</div>
+          </div>
+          <div className="space-y-3">
+            {factures.map((f, i) => (
+              <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-border/50 hover:bg-paper-warm transition-colors">
+                <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center flex-shrink-0">
+                  <FileText size={16} className="text-rose-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-ink truncate">{f.nom || f.numero || `Facture ${i + 1}`}</div>
+                  {f.date && <div className="text-xs text-muted">{fmtDate(f.date)}</div>}
+                  {f.montant && <div className="text-xs text-muted font-semibold">{fmtDH(f.montant)}</div>}
+                </div>
+                {f.statut && (
+                  <div className={`text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ${
+                    f.statut === 'paye' ? 'bg-emerald-100 text-emerald-700'
+                    : f.statut === 'en_cours' ? 'bg-blue-100 text-blue-700'
+                    : 'bg-amber-100 text-amber-700'
+                  }`}>
+                    {f.statut === 'paye' ? 'Payé' : f.statut === 'en_cours' ? 'En cours' : 'En attente'}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Dépenses personnelles ── */}
       <div className="card p-5 lg:p-7">
         <div className="flex items-center justify-between mb-5">
           <div>
@@ -268,7 +331,6 @@ export default function ClientExpensesPage() {
   const { prospects, projects, addClientExpense, deleteClientExpense } = useData()
   const [showAddModal, setShowAddModal] = useState(false)
   const [selectedProject, setSelectedProject] = useState(null)
-  const navigate = useNavigate()
   const { t } = useClientLang()
 
   const prospect = useMemo(() => {
@@ -284,12 +346,14 @@ export default function ClientExpensesPage() {
     )
   }, [prospect, projects])
 
-  const expenses = prospect?.clientExpenses || []
-  const totalDepenses = expenses.reduce((s, e) => s + (e.montant || 0), 0)
+  const allExpenses = prospect?.clientExpenses || []
 
   const handleAdd = (expense) => {
     if (!prospect) return
-    addClientExpense(prospect.id, expense)
+    const withProject = selectedProject
+      ? { ...expense, projectId: selectedProject.id }
+      : expense
+    addClientExpense(prospect.id, withProject)
     setShowAddModal(false)
     toast.success(t('expenses.added'))
   }
@@ -308,8 +372,10 @@ export default function ClientExpensesPage() {
 
   if (!prospect) return <div className="p-10 text-center text-muted">{t('no_data')}</div>
 
-  // Project detail view
+  // ── Project detail view ──
   if (selectedProject) {
+    // Sync project from live data (finance may have updated)
+    const liveProject = projects.find(p => p.id === selectedProject.id) || selectedProject
     return (
       <div className="space-y-5 lg:space-y-7">
         <button onClick={() => setSelectedProject(null)} className="flex items-center gap-2 text-sm text-muted hover:text-ink transition-colors">
@@ -317,26 +383,24 @@ export default function ClientExpensesPage() {
         </button>
         <div>
           <div className="label-text mb-2">{t('expenses.label')}</div>
-          <h1 className="font-display text-3xl lg:text-5xl text-ink leading-none">{selectedProject.nom}</h1>
+          <h1 className="font-display text-3xl lg:text-5xl text-ink leading-none">{liveProject.nom}</h1>
           <p className="text-muted text-sm mt-3 max-w-xl">{t('expenses.subtitle')}</p>
         </div>
         <ProjectExpensesContent
-          projet={selectedProject}
-          prospect={prospect}
-          expenses={expenses}
-          totalDepenses={totalDepenses}
+          projet={liveProject}
+          allExpenses={allExpenses}
           handleAdd={handleAdd}
           handleDelete={handleDelete}
           showAddModal={showAddModal}
           setShowAddModal={setShowAddModal}
           t={t}
-          navigate={navigate}
         />
       </div>
     )
   }
 
-  // Project picker
+  // ── Project picker ──
+  const totalDepenses = allExpenses.reduce((s, e) => s + (e.montant || 0), 0)
   const totalRemaining = clientProjects.reduce((s, p) => s + projectFinance(p).remainingHT, 0)
 
   return (
@@ -347,6 +411,7 @@ export default function ClientExpensesPage() {
         <p className="text-muted text-sm mt-3 max-w-xl">{t('project.select_expenses')}</p>
       </div>
 
+      {/* Global KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="card p-5 flex items-center gap-4">
           <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
@@ -380,9 +445,12 @@ export default function ClientExpensesPage() {
         </div>
       </div>
 
+      {/* Project cards */}
       <div className="space-y-3">
         {clientProjects.map((projet, i) => {
-          const { totalHT, remainingHT, pendingCount } = projectFinance(projet)
+          const { totalHT, remainingHT, paidHT } = projectFinance(projet)
+          const factures = projet.finances?.factures ?? []
+          const projectExpenses = allExpenses.filter(e => e.projectId === projet.id || !e.projectId)
 
           return (
             <motion.button
@@ -416,9 +484,14 @@ export default function ClientExpensesPage() {
                           : t('expenses.all_paid')}
                       </span>
                     )}
-                    {expenses.length > 0 && (
+                    {factures.length > 0 && (
+                      <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-rose-100 text-rose-700">
+                        {factures.length} facture{factures.length > 1 ? 's' : ''}
+                      </span>
+                    )}
+                    {projectExpenses.length > 0 && (
                       <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-electric/10 text-electric">
-                        {expenses.length} dépense{expenses.length > 1 ? 's' : ''}
+                        {projectExpenses.length} dépense{projectExpenses.length > 1 ? 's' : ''}
                       </span>
                     )}
                   </div>

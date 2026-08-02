@@ -515,11 +515,9 @@ function ConceptView({ project }) {
         {visibleCards.slice(1).reverse().map((img, si) => (
           <SwipeCard key={`bg_${img.id}`} image={img} onSwipe={() => {}} isTop={false} stackOffset={visibleCards.length - 1 - si} />
         ))}
-        <AnimatePresence>
-          {visibleCards[0] && (
-            <SwipeCard ref={topCardRef} key={`top_${currentIdx}`} image={visibleCards[0]} onSwipe={handleSwipe} isTop stackOffset={0} />
-          )}
-        </AnimatePresence>
+        {visibleCards[0] && (
+          <SwipeCard ref={topCardRef} key={`top_${currentIdx}`} image={visibleCards[0]} onSwipe={handleSwipe} isTop stackOffset={0} />
+        )}
       </div>
       <div className="flex items-center justify-center gap-5">
         <button onClick={() => topCardRef.current?.flyOut('dislike')}
