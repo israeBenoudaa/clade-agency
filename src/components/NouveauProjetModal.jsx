@@ -54,6 +54,8 @@ export default function NouveauProjetModal({ onClose, projet }) {
   const { profile } = useAuth()
   const byName = profile?.nom || profile?.full_name || ''
   const confirmedProspects = (prospects || []).filter(p => p.statut === 'contrat_signe')
+  // Exclude clients already shown via CRM (those created from a prospect)
+  const pureClients = (clients || []).filter(c => !confirmedProspects.find(p => p.id === c.prospectId))
   const isEdit = Boolean(projet)
   const [form, setForm] = useState(() => toForm(projet))
   const [errors, setErrors] = useState({})
@@ -283,9 +285,9 @@ export default function NouveauProjetModal({ onClose, projet }) {
                           label: `${p.prenom} ${p.nom} — ${p.typeProjet || ''}`,
                         })),
                       ] : []),
-                      ...(clients.length > 0 ? [
+                      ...(pureClients.length > 0 ? [
                         { value: '__sep__clients', label: '── Clients existants ──' },
-                        ...clients.map(c => ({ value: String(c.id), label: c.nom })),
+                        ...pureClients.map(c => ({ value: String(c.id), label: c.nom })),
                       ] : []),
                     ]}
                     placeholder="— Sélectionner un client —"

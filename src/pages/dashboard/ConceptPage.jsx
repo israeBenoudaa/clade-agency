@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowLeft, Upload, X, Plus, Trash2, CheckCircle,
-  Clock, Download, Image, Loader, AlignLeft, List,
+  Clock, Download, Image, Loader, AlignLeft, List, Link,
 } from 'lucide-react'
 import { useData } from '../../context/DataContext'
 import { supabase } from '../../lib/supabase'
@@ -24,6 +24,8 @@ export default function ConceptPage() {
   const [newQText, setNewQText] = useState('')
   const [newQOptions, setNewQOptions] = useState(['', ''])
   const [isGenerating, setIsGenerating] = useState(false)
+  const [urlInput, setUrlInput] = useState('')
+  const [showUrlInput, setShowUrlInput] = useState(false)
   const fileRef = useRef()
 
   if (!project) {
@@ -80,6 +82,22 @@ export default function ConceptPage() {
       }
     }
     updateConceptImages(project.id, concept.images.filter(i => i.id !== imgId))
+  }
+
+  const handleAddUrl = () => {
+    const trimmed = urlInput.trim()
+    if (!trimmed) { toast.error('Collez une URL d\'image'); return }
+    if (!/^https?:\/\/.+/.test(trimmed)) { toast.error('URL invalide — doit commencer par http(s)://'); return }
+    const newImg = {
+      id: `img${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      url: trimmed,
+      storagePath: null,
+      name: trimmed.split('/').pop().split('?')[0] || 'Image URL',
+    }
+    updateConceptImages(project.id, [...concept.images, newImg])
+    setUrlInput('')
+    setShowUrlInput(false)
+    toast.success('Image ajoutée par lien')
   }
 
   const addQuestion = () => {
@@ -185,7 +203,7 @@ export default function ConceptPage() {
       <AnimatePresence mode="wait">
         {tab === 'images' && (
           <motion.div key="images" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
-            <div className="card p-5">
+            <div className="card p-5 space-y-3">
               <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handleImages} />
               <button
                 onClick={() => fileRef.current?.click()}
@@ -199,6 +217,34 @@ export default function ConceptPage() {
                   <div className="text-xs text-muted mt-1">PNG, JPG, WEBP — affichées en portrait 9:16</div>
                 </div>
               </button>
+
+              {/* URL input */}
+              {!showUrlInput ? (
+                <button
+                  onClick={() => setShowUrlInput(true)}
+                  className="w-full flex items-center justify-center gap-2 text-sm text-muted hover:text-ink border border-border/60 rounded-xl py-2.5 hover:bg-paper-warm transition-all"
+                >
+                  <Link size={14} /> Ajouter par lien URL
+                </button>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={urlInput}
+                    onChange={e => setUrlInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleAddUrl(); if (e.key === 'Escape') { setShowUrlInput(false); setUrlInput('') } }}
+                    placeholder="https://example.com/image.jpg"
+                    autoFocus
+                    className="flex-1 px-3 py-2 text-sm rounded-xl border border-border bg-paper-warm focus:outline-none focus:ring-2 focus:ring-electric/40"
+                  />
+                  <button onClick={handleAddUrl} className="px-4 py-2 text-sm font-semibold rounded-xl bg-electric text-white hover:bg-electric/90 transition-colors">
+                    Ajouter
+                  </button>
+                  <button onClick={() => { setShowUrlInput(false); setUrlInput('') }} className="px-3 py-2 rounded-xl border border-border hover:bg-paper-warm transition-colors">
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
             </div>
 
             {concept.images.length > 0 ? (
@@ -221,8 +267,15 @@ export default function ConceptPage() {
                           <Trash2 size={15} />
                         </button>
                       </div>
-                      <div className="absolute top-2 left-2 w-5 h-5 rounded-full bg-ink/60 text-white text-[9px] font-bold flex items-center justify-center">
-                        {idx + 1}
+                      <div className="absolute top-2 left-2 flex items-center gap-1">
+                        <div className="w-5 h-5 rounded-full bg-ink/60 text-white text-[9px] font-bold flex items-center justify-center">
+                          {idx + 1}
+                        </div>
+                        {!img.storagePath && (
+                          <div className="w-5 h-5 rounded-full bg-electric/80 text-white flex items-center justify-center" title="Image par lien URL">
+                            <Link size={9} />
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="text-[9px] text-muted truncate mt-1 px-0.5">{img.name}</div>

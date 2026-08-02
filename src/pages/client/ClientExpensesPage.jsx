@@ -192,9 +192,9 @@ export default function ClientExpensesPage() {
             <AlertCircle size={18} className="text-amber-600" />
           </div>
           <div>
-            <div className="label-text mb-0.5">Reste à régler</div>
+            <div className="label-text mb-0.5">{t('expenses.reste_a_regler')}</div>
             <div className="font-display text-2xl text-amber-600">{fmtDH(totalRemaining)}</div>
-            <div className="text-xs text-muted">honoraires agence</div>
+            <div className="text-xs text-muted">{t('expenses.agency_fees')}</div>
           </div>
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
@@ -203,7 +203,7 @@ export default function ClientExpensesPage() {
             <FileText size={18} className="text-emerald-600" />
           </div>
           <div>
-            <div className="label-text mb-0.5">Projets actifs</div>
+            <div className="label-text mb-0.5">{t('expenses.active_projects')}</div>
             <div className="font-display text-2xl text-ink">{clientProjects.length}</div>
           </div>
         </motion.div>
@@ -212,11 +212,9 @@ export default function ClientExpensesPage() {
       {/* Échéances honoraires synced with finance */}
       <div className="card p-5 lg:p-7">
         <div className="mb-5">
-          <div className="label-text mb-1">Honoraires</div>
-          <div className="font-display text-xl text-ink">Échéances à régler</div>
-          <p className="text-xs text-muted mt-1">
-            Cliquez sur un projet pour consulter le détail des missions et leur statut de paiement.
-          </p>
+          <div className="label-text mb-1">{t('expenses.fees_section')}</div>
+          <div className="font-display text-xl text-ink">{t('expenses.echeances_title')}</div>
+          <p className="text-xs text-muted mt-1">{t('expenses.echeances_sub')}</p>
         </div>
 
         {projectsFinance.length === 0 ? (
@@ -224,10 +222,8 @@ export default function ClientExpensesPage() {
             <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center mx-auto mb-3">
               <Clock size={18} className="text-amber-500" />
             </div>
-            <div className="text-sm font-semibold text-ink mb-1">Aucune échéance pour l'instant</div>
-            <p className="text-xs text-muted">
-              Les échéances d'honoraires apparaîtront ici dès qu'elles sont configurées par votre agence.
-            </p>
+            <div className="text-sm font-semibold text-ink mb-1">{t('expenses.no_echeances')}</div>
+            <p className="text-xs text-muted">{t('expenses.no_echeances_sub')}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -253,8 +249,8 @@ export default function ClientExpensesPage() {
                   <div className="text-sm font-semibold text-ink truncate">{projet.nom}</div>
                   <div className={`text-xs mt-0.5 ${remainingHT > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
                     {remainingHT > 0
-                      ? `${pendingCount} échéance${pendingCount > 1 ? 's' : ''} en attente`
-                      : 'Tous les honoraires réglés'}
+                      ? t('expenses.pending').replace('{n}', pendingCount)
+                      : t('expenses.all_paid')}
                   </div>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
@@ -262,7 +258,7 @@ export default function ClientExpensesPage() {
                     {remainingHT > 0 && (
                       <>
                         <div className="font-display text-lg text-amber-700">{fmtDH(remainingHT)}</div>
-                        <div className="text-[10px] text-muted">sur {fmtDH(totalHT)}</div>
+                        <div className="text-[10px] text-muted">{t('expenses.on_total')} {fmtDH(totalHT)}</div>
                       </>
                     )}
                     {remainingHT === 0 && (
@@ -281,11 +277,11 @@ export default function ClientExpensesPage() {
       <div className="card p-5 lg:p-7">
         <div className="flex items-center justify-between mb-5">
           <div>
-            <div className="label-text mb-1">Suivi</div>
-            <div className="font-display text-xl text-ink">Mes dépenses projet</div>
+            <div className="label-text mb-1">{t('expenses.tracking_section')}</div>
+            <div className="font-display text-xl text-ink">{t('expenses.project_expenses')}</div>
           </div>
           <button onClick={() => setShowAddModal(true)} className="btn-primary text-xs">
-            <Plus size={13} /> Ajouter
+            <Plus size={13} /> {t('expenses.add_btn')}
           </button>
         </div>
 
@@ -298,10 +294,10 @@ export default function ClientExpensesPage() {
             {/* Desktop */}
             <div className="hidden lg:block">
               <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr_44px] gap-4 px-4 pb-3 border-b border-border">
-                <div className="label-text">Dépense</div>
-                <div className="label-text">Entreprise</div>
-                <div className="label-text">Date</div>
-                <div className="label-text">Montant</div>
+                <div className="label-text">{t('expenses.col_expense')}</div>
+                <div className="label-text">{t('expenses.col_company')}</div>
+                <div className="label-text">{t('expenses.col_date')}</div>
+                <div className="label-text">{t('expenses.col_amount')}</div>
                 <div />
               </div>
               {expenses.map(exp => (
@@ -324,7 +320,7 @@ export default function ClientExpensesPage() {
                 </div>
               ))}
               <div className="flex items-center justify-between px-4 pt-4 mt-1 border-t border-border">
-                <span className="text-sm font-semibold text-ink">Total</span>
+                <span className="text-sm font-semibold text-ink">{t('expenses.total_row')}</span>
                 <span className="font-display text-xl text-ink">{fmtDH(totalDepenses)}</span>
               </div>
             </div>

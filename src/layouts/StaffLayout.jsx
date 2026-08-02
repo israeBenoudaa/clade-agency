@@ -13,6 +13,7 @@ import { useData } from '../context/DataContext'
 import { ROLE_LABELS } from '../lib/supabase'
 import { PATH_MODULE_MAP, ALL_MODULES } from '../lib/modules'
 import { Avatar } from '../components/ui'
+import { CladeLogo } from '../components/ui/Logo'
 import { CladeBrand } from '../components/ui/Logo'
 import EmployeeRequestModal from '../components/EmployeeRequestModal'
 import OnboardingGuide from '../components/OnboardingGuide'
@@ -372,9 +373,8 @@ export default function StaffLayout() {
   if (!supaLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-paper">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-electric/20 border-t-electric rounded-full animate-spin" />
-          <span className="text-xs text-muted font-medium tracking-wide">Synchronisation…</span>
+        <div className="animate-pulse">
+          <CladeLogo size={56} />
         </div>
       </div>
     )

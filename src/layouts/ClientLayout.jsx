@@ -9,7 +9,7 @@ import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
 import { ClientLangProvider, useClientLang, CLIENT_LANGS } from '../context/ClientLangContext'
 import { Avatar } from '../components/ui'
-import { CladeBrand } from '../components/ui/Logo'
+import { CladeBrand, CladeLogo } from '../components/ui/Logo'
 import OnboardingGuide from '../components/OnboardingGuide'
 import toast from 'react-hot-toast'
 
@@ -292,9 +292,8 @@ function ClientLayoutInner() {
   if (!supaLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-paper">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-electric/20 border-t-electric rounded-full animate-spin" />
-          <span className="text-xs text-muted font-medium tracking-wide">Chargement…</span>
+        <div className="animate-pulse">
+          <CladeLogo size={56} />
         </div>
       </div>
     )
@@ -357,8 +356,8 @@ function ClientLayoutInner() {
           {/* Actions */}
           <div className="flex items-center gap-2">
 
-            {/* Language switcher */}
-            <div className="flex items-center rounded-xl border border-border bg-white overflow-hidden">
+            {/* Language switcher — desktop only */}
+            <div className="hidden lg:flex items-center rounded-xl border border-border bg-white overflow-hidden">
               {CLIENT_LANGS.map((l, i) => (
                 <button
                   key={l}
@@ -485,6 +484,20 @@ function ClientLayoutInner() {
                     <div className="text-sm font-semibold truncate">{profile?.full_name}</div>
                     <div className="text-xs text-paper/50">{t('client')}</div>
                   </div>
+                </div>
+                {/* Language switcher in drawer */}
+                <div className="flex items-center gap-1 p-1 rounded-xl bg-white/5">
+                  {CLIENT_LANGS.map(l => (
+                    <button
+                      key={l}
+                      onClick={() => setLang(l)}
+                      className={`flex-1 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-colors ${
+                        lang === l ? 'bg-white text-ink' : 'text-paper/50 hover:text-paper'
+                      }`}
+                    >
+                      {l}
+                    </button>
+                  ))}
                 </div>
                 <button
                   onClick={handleSignOut}

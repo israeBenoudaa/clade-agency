@@ -1,6 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
+import { CladeLogo } from './ui/Logo'
 
 export function ProtectedRoute({ children, requireStaff, requireClient, requireDirector, requireRoles, requireModule }) {
   const { session, profile, loading, isStaff, isClient, isDirector, isDemoMode, pinPending } = useAuth()
@@ -10,10 +11,8 @@ export function ProtectedRoute({ children, requireStaff, requireClient, requireD
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-paper">
-        <div className="flex items-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-electric animate-pulse" />
-          <div className="w-2 h-2 rounded-full bg-electric animate-pulse" style={{ animationDelay: '150ms' }} />
-          <div className="w-2 h-2 rounded-full bg-electric animate-pulse" style={{ animationDelay: '300ms' }} />
+        <div className="animate-pulse">
+          <CladeLogo size={56} />
         </div>
       </div>
     )

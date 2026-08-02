@@ -437,7 +437,7 @@ export default function AjouterGanttModal({ onClose, onAdd, onEdit, item, projec
                       if (!emp) return null
                       return (
                         <span key={id} className="flex items-center gap-1 pl-2 pr-1 py-0.5 bg-electric/10 border border-electric/20 rounded-lg text-[11px] text-electric font-medium">
-                          {emp.prenom} {emp.nom}
+                          {emp.nom}
                           <button type="button"
                             onClick={() => setForm(f => ({ ...f, personnesIds: f.personnesIds.filter(i => String(i) !== String(id)) }))}
                             className="w-4 h-4 flex items-center justify-center rounded hover:text-rose-500 transition-colors">
@@ -465,7 +465,7 @@ export default function AjouterGanttModal({ onClose, onAdd, onEdit, item, projec
                       .filter(e => e.statut !== 'inactif' && !form.personnesIds.map(String).includes(String(e.id)))
                       .map(e => (
                         <option key={e.id} value={String(e.id)}>
-                          {e.prenom} {e.nom}{e.poste ? ` — ${e.poste}` : ''}
+                          {e.nom}{e.poste ? ` — ${e.poste}` : ''}
                         </option>
                       ))
                     }

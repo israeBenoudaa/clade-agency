@@ -5,7 +5,7 @@ import {
   ArrowLeft, Phone, Mail, MapPin, Building2, Ruler, Wallet,
   Calculator, FileText, Plus, Trash2, Download, Loader,
   CheckCircle2, Clock, AlertTriangle, Info, RotateCcw, ChevronDown,
-  Pencil, X, CheckCircle, GripVertical,
+  Pencil, X, CheckCircle, GripVertical, Calendar, Receipt,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useData } from '../../context/DataContext'
@@ -21,6 +21,12 @@ function generateUsername(prenom, nom) {
 
 const fmtMAD = (n) =>
   Number(n || 0).toLocaleString('fr-MA', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' MAD'
+
+const fmtDH = (n) =>
+  Number(n || 0).toLocaleString('fr-MA', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' DH'
+
+const fmtDate = (d) =>
+  d ? new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'
 
 const fmtN = (n) => Number(n || 0).toLocaleString('fr-FR')
 
@@ -244,7 +250,7 @@ function EditableCell({ value, onSave, placeholder = '', type = 'text', classNam
 export default function ProspectDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { prospects, updateProspect, chargesFixe, employes, agenceSettings } = useData()
+  const { prospects, updateProspect, chargesFixe, employes, agenceSettings, projects } = useData()
   const prospect = prospects.find(p => p.id === id)
 
   // ── TJH auto-calculé depuis les charges réelles ──────────────────────────
@@ -468,6 +474,7 @@ export default function ProspectDetailPage() {
         {[
           { key: 'simulateur', label: 'Simulateur d\'honoraires', icon: Calculator },
           { key: 'devis', label: 'Création de devis', icon: FileText },
+          { key: 'depenses', label: 'Dépenses projet', icon: Receipt, badge: (prospect.clientExpenses || []).length || null },
         ].map(t => {
           const Icon = t.icon
           return (
@@ -476,6 +483,11 @@ export default function ProspectDetailPage() {
                 tab === t.key ? 'bg-white shadow-sm text-ink' : 'text-muted hover:text-ink'
               }`}>
               <Icon size={14} className="flex-shrink-0" /> <span>{t.label}</span>
+              {t.badge ? (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${tab === t.key ? 'bg-electric/15 text-electric' : 'bg-border text-muted'}`}>
+                  {t.badge}
+                </span>
+              ) : null}
             </button>
           )
         })}
@@ -869,6 +881,153 @@ export default function ProspectDetailPage() {
             </div>
           </motion.div>
         )}
+
+        {/* ── Dépenses projet ── */}
+        {tab === 'depenses' && (() => {
+          const expenses = prospect.clientExpenses || []
+          const clientProjects = (projects || []).filter(p =>
+            p.prospectId === prospect.id ||
+            p.clientId === prospect.id ||
+            p.client === `${prospect.prenom} ${prospect.nom}`
+          )
+          const total = expenses.reduce((s, e) => s + (e.montant || 0), 0)
+
+          return (
+            <motion.div key="depenses" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.18 }} className="space-y-4">
+
+              {/* KPIs */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="card p-4 lg:p-5 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+                    <Wallet size={17} className="text-blue-600" />
+                  </div>
+                  <div>
+                    <div className="label-text mb-0.5">Total dépenses</div>
+                    <div className="font-display text-xl text-ink">{fmtDH(total)}</div>
+                  </div>
+                </div>
+                <div className="card p-4 lg:p-5 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center flex-shrink-0">
+                    <Receipt size={17} className="text-violet-600" />
+                  </div>
+                  <div>
+                    <div className="label-text mb-0.5">Nb de dépenses</div>
+                    <div className="font-display text-xl text-ink">{expenses.length}</div>
+                  </div>
+                </div>
+                <div className="card p-4 lg:p-5 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                    <FileText size={17} className="text-emerald-600" />
+                  </div>
+                  <div>
+                    <div className="label-text mb-0.5">Projets liés</div>
+                    <div className="font-display text-xl text-ink">{clientProjects.length}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Projets liés */}
+              {clientProjects.length > 0 && (
+                <div className="card p-5">
+                  <div className="label-text mb-3">Projets du client</div>
+                  <div className="space-y-2">
+                    {clientProjects.map(p => (
+                      <div key={p.id} className="flex items-center gap-3 px-3 py-2.5 bg-paper-warm rounded-xl border border-border/50">
+                        <div className="w-2 h-2 rounded-full bg-electric flex-shrink-0" />
+                        <span className="text-sm font-semibold text-ink flex-1">{p.nom}</span>
+                        <span className="text-xs text-muted">{p.type || '—'}</span>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                          p.statut === 'en_cours' ? 'bg-blue-50 text-blue-700' :
+                          p.statut === 'termine' ? 'bg-emerald-50 text-emerald-700' :
+                          'bg-paper-warm text-muted border border-border'
+                        }`}>
+                          {p.statut === 'en_cours' ? 'En cours' : p.statut === 'termine' ? 'Terminé' : p.statut || '—'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Liste des dépenses */}
+              <div className="card p-5 lg:p-7">
+                <div className="flex items-center justify-between mb-5">
+                  <div>
+                    <div className="label-text mb-1">Portail client</div>
+                    <div className="font-display text-xl text-ink">Dépenses saisies par le client</div>
+                  </div>
+                  {expenses.length > 0 && (
+                    <div className="text-xs text-muted bg-paper-warm border border-border px-3 py-1.5 rounded-lg">
+                      Mise à jour automatique depuis le portail
+                    </div>
+                  )}
+                </div>
+
+                {expenses.length === 0 ? (
+                  <div className="text-center py-12 border border-dashed border-border rounded-2xl">
+                    <div className="w-12 h-12 rounded-2xl bg-paper-warm flex items-center justify-center mx-auto mb-3">
+                      <Receipt size={20} className="text-muted" />
+                    </div>
+                    <div className="text-sm font-semibold text-ink mb-1">Aucune dépense enregistrée</div>
+                    <p className="text-xs text-muted max-w-xs mx-auto">
+                      Les dépenses que le client saisit sur son portail apparaîtront automatiquement ici.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Desktop table */}
+                    <div className="hidden sm:block overflow-x-auto">
+                      <div className="border border-border rounded-2xl overflow-hidden">
+                        <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr] bg-ink text-white text-[9px] font-semibold uppercase tracking-widest px-4 py-3 gap-4">
+                          <div>Dépense</div>
+                          <div>Entreprise / Prestataire</div>
+                          <div>Date</div>
+                          <div className="text-right">Montant</div>
+                        </div>
+                        {expenses.map((exp, i) => (
+                          <div key={exp.id}
+                            className={`grid grid-cols-[2fr_1.5fr_1fr_1fr] gap-4 px-4 py-3.5 border-t border-border items-center ${i % 2 === 1 ? 'bg-paper-warm/40' : 'bg-white'}`}>
+                            <div className="text-sm font-semibold text-ink truncate">{exp.nom}</div>
+                            <div className="text-sm text-muted truncate flex items-center gap-1.5">
+                              {exp.entreprise ? <><Building2 size={11} />{exp.entreprise}</> : '—'}
+                            </div>
+                            <div className="text-sm text-muted flex items-center gap-1.5">
+                              <Calendar size={11} />{fmtDate(exp.date)}
+                            </div>
+                            <div className="font-display text-base text-ink text-right">{fmtDH(exp.montant)}</div>
+                          </div>
+                        ))}
+                        <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr] gap-4 px-4 py-3 border-t border-border bg-ink/5">
+                          <div className="text-sm font-bold text-ink col-span-3">Total</div>
+                          <div className="font-display text-lg text-ink text-right">{fmtDH(total)}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Mobile list */}
+                    <div className="sm:hidden space-y-2">
+                      {expenses.map(exp => (
+                        <div key={exp.id} className="bg-paper-warm rounded-xl p-4 flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-semibold text-ink mb-0.5">{exp.nom}</div>
+                            {exp.entreprise && <div className="text-xs text-muted">{exp.entreprise}</div>}
+                            <div className="text-xs text-muted mt-0.5">{fmtDate(exp.date)}</div>
+                          </div>
+                          <div className="font-display text-base text-ink flex-shrink-0">{fmtDH(exp.montant)}</div>
+                        </div>
+                      ))}
+                      <div className="flex items-center justify-between px-4 py-3 bg-ink/5 rounded-xl border border-border">
+                        <span className="text-sm font-bold text-ink">Total</span>
+                        <span className="font-display text-lg text-ink">{fmtDH(total)}</span>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          )
+        })()}
 
       </AnimatePresence>
 

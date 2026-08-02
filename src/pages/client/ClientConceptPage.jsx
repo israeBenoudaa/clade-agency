@@ -56,7 +56,7 @@ function SwipeCard({ image, onSwipe, isTop, stackOffset }) {
         style={{ scale: 1 - stackOffset * 0.04, y: stackOffset * 14, zIndex: 10 - stackOffset }}
         transition={{ type: 'spring', stiffness: 300, damping: 25 }}
       >
-        <img src={imgSrc} alt={image.name} className="w-full h-full object-cover" draggable={false} onError={handleImgError} />
+        <img src={imgSrc} alt={image.name} className="w-full h-full object-cover" draggable={false} />
         <div className="absolute inset-0 bg-ink/20" />
       </motion.div>
     )
