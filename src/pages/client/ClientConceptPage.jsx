@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, forwardRef, useImperativeHandle } from 'react'
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion'
 import { Heart, X, Star, CheckCircle, Download, Loader, ChevronRight, LayoutGrid, Ruler, Sparkles } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -22,7 +22,7 @@ function ConceptImg({ image, className }) {
 
 // ── Swipe card ────────────────────────────────────────────────────────────────
 
-function SwipeCard({ image, onSwipe, isTop, stackOffset }) {
+const SwipeCard = forwardRef(function SwipeCard({ image, onSwipe, isTop, stackOffset }, ref) {
   const imgSrc = getImgUrl(image)
   const x = useMotionValue(0)
   const y = useMotionValue(0)
@@ -32,22 +32,13 @@ function SwipeCard({ image, onSwipe, isTop, stackOffset }) {
   const superOpacity = useTransform(y, [-30, -120], [0, 1])
 
   const flyOut = async (direction) => {
-    if (direction === 'like')      await animate(x, 600, { duration: 0.28, ease: 'easeOut' })
+    if (direction === 'like')         await animate(x, 600,  { duration: 0.28, ease: 'easeOut' })
     else if (direction === 'dislike') await animate(x, -600, { duration: 0.28, ease: 'easeOut' })
-    else                              await animate(y, -700, { duration: 0.28, ease: 'easeOut' })
+    else                               await animate(y, -700, { duration: 0.28, ease: 'easeOut' })
     onSwipe(direction)
   }
 
-  const handleDragEnd = (_, info) => {
-    const { offset, velocity } = info
-    if (offset.x > 100 || velocity.x > 600)       flyOut('like')
-    else if (offset.x < -100 || velocity.x < -600) flyOut('dislike')
-    else if (offset.y < -80 || velocity.y < -600)  flyOut('superlike')
-    else {
-      animate(x, 0, { type: 'spring', stiffness: 380, damping: 22 })
-      animate(y, 0, { type: 'spring', stiffness: 380, damping: 22 })
-    }
-  }
+  useImperativeHandle(ref, () => ({ flyOut }), [])
 
   if (!isTop) {
     return (
@@ -65,28 +56,20 @@ function SwipeCard({ image, onSwipe, isTop, stackOffset }) {
   return (
     <motion.div
       style={{ x, y, rotate, zIndex: 20 }}
-      drag
-      dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-      dragElastic={0.85}
-      onDragEnd={handleDragEnd}
-      className="absolute inset-0 rounded-[28px] overflow-hidden shadow-2xl cursor-grab active:cursor-grabbing select-none border border-white/10"
-      whileDrag={{ scale: 1.02 }}
+      className="absolute inset-0 rounded-[28px] overflow-hidden shadow-2xl select-none border border-white/10"
     >
       <img
         src={imgSrc}
         alt={image.name}
         className="w-full h-full object-cover pointer-events-none select-none"
         draggable={false}
-             />
+      />
 
       {/* Bottom gradient */}
       <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
 
       {/* Like indicator */}
-      <motion.div
-        style={{ opacity: likeOpacity }}
-        className="absolute top-7 left-7 z-30 pointer-events-none"
-      >
+      <motion.div style={{ opacity: likeOpacity }} className="absolute top-7 left-7 z-30 pointer-events-none">
         <div className="flex items-center gap-2 px-4 py-2 rounded-2xl border-4 border-emerald-400 bg-emerald-500/90 -rotate-[18deg]">
           <Heart size={22} className="text-white fill-white" />
           <span className="text-white font-black text-xl tracking-wide">LIKE</span>
@@ -94,10 +77,7 @@ function SwipeCard({ image, onSwipe, isTop, stackOffset }) {
       </motion.div>
 
       {/* Nope indicator */}
-      <motion.div
-        style={{ opacity: nopeOpacity }}
-        className="absolute top-7 right-7 z-30 pointer-events-none"
-      >
+      <motion.div style={{ opacity: nopeOpacity }} className="absolute top-7 right-7 z-30 pointer-events-none">
         <div className="flex items-center gap-2 px-4 py-2 rounded-2xl border-4 border-rose-400 bg-rose-500/90 rotate-[18deg]">
           <X size={22} className="text-white" strokeWidth={3} />
           <span className="text-white font-black text-xl tracking-wide">NON</span>
@@ -105,10 +85,7 @@ function SwipeCard({ image, onSwipe, isTop, stackOffset }) {
       </motion.div>
 
       {/* Super indicator */}
-      <motion.div
-        style={{ opacity: superOpacity }}
-        className="absolute top-7 left-1/2 -translate-x-1/2 z-30 pointer-events-none"
-      >
+      <motion.div style={{ opacity: superOpacity }} className="absolute top-7 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
         <div className="flex items-center gap-2 px-4 py-2 rounded-2xl border-4 border-amber-300 bg-amber-400/90">
           <Star size={22} className="text-white fill-white" />
           <span className="text-white font-black text-xl tracking-wide">SUPER</span>
@@ -116,7 +93,7 @@ function SwipeCard({ image, onSwipe, isTop, stackOffset }) {
       </motion.div>
     </motion.div>
   )
-}
+})
 
 // ── Questionnaire view ────────────────────────────────────────────────────────
 
@@ -556,6 +533,7 @@ export default function ClientConceptPage() {
   const [votes, setVotes] = useState({})
   const [answers, setAnswers] = useState({})
   const [isGenerating, setIsGenerating] = useState(false)
+  const topCardRef = useRef()
 
   const hasProgramme = project?.programme?.statut === 'partage' && project.programme.groupes?.length > 0
   const hasEstimation = project?.estimation?.statut === 'partage' && project.estimation.groupes?.length > 0
@@ -700,6 +678,7 @@ export default function ClientConceptPage() {
         <AnimatePresence>
           {visibleCards[0] && (
             <SwipeCard
+              ref={topCardRef}
               key={`top_${currentIdx}`}
               image={visibleCards[0]}
               onSwipe={handleSwipe}
@@ -710,18 +689,11 @@ export default function ClientConceptPage() {
         </AnimatePresence>
       </div>
 
-      {/* Action hints */}
-      <div className="flex items-center justify-between text-[10px] text-muted px-2">
-        <span>👈 Pas pour moi</span>
-        <span>👆 Super coup de cœur</span>
-        <span>J'adore 👉</span>
-      </div>
-
       {/* Action buttons */}
       <div className="flex items-center justify-center gap-5">
         {/* Dislike */}
         <button
-          onClick={() => handleSwipe('dislike')}
+          onClick={() => topCardRef.current?.flyOut('dislike')}
           className="w-14 h-14 rounded-full bg-white shadow-lg border-2 border-rose-200 flex items-center justify-center text-rose-500 hover:bg-rose-50 hover:scale-110 active:scale-95 transition-all"
         >
           <X size={24} strokeWidth={2.5} />
@@ -729,7 +701,7 @@ export default function ClientConceptPage() {
 
         {/* Superlike */}
         <button
-          onClick={() => handleSwipe('superlike')}
+          onClick={() => topCardRef.current?.flyOut('superlike')}
           className="w-[72px] h-[72px] rounded-full shadow-xl flex items-center justify-center text-white hover:scale-110 active:scale-95 transition-all"
           style={{ background: 'linear-gradient(135deg, #F59E0B, #EF4444)' }}
         >
@@ -738,7 +710,7 @@ export default function ClientConceptPage() {
 
         {/* Like */}
         <button
-          onClick={() => handleSwipe('like')}
+          onClick={() => topCardRef.current?.flyOut('like')}
           className="w-14 h-14 rounded-full bg-white shadow-lg border-2 border-emerald-200 flex items-center justify-center text-emerald-500 hover:bg-emerald-50 hover:scale-110 active:scale-95 transition-all"
         >
           <Heart size={24} className="fill-emerald-500" />
