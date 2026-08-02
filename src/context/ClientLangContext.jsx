@@ -11,9 +11,9 @@ const T = {
     'nav.projects':  'Projets',
     'nav.concept':   'Concept',
     'nav.livrables': 'Livrables',
-    'nav.expenses':  'Mes Dépenses',
+    'nav.expenses':  'Dépenses',
     'nav.messages':  'Messages',
-    'nav.rdvs':      'Mes RDVs',
+    'nav.rdvs':      'RDVs',
     'portal.title':  'Portail Client',
     'signout':       'Déconnexion',
     'search.placeholder': 'Rechercher dans le portail…',
@@ -41,7 +41,7 @@ const T = {
     'status.prospect': 'Prospect',
 
     // RDVs page
-    'rdvs.title': 'Mes rendez-vous',
+    'rdvs.title': 'Rendez-vous',
     'rdvs.empty': 'Aucun rendez-vous planifié',
     'rdvs.empty_sub': 'Les rendez-vous créés par votre équipe apparaîtront ici.',
     'rdvs.upcoming': 'À venir',
@@ -67,7 +67,7 @@ const T = {
 
     // Expenses page
     'expenses.label': '◆ Suivi financier',
-    'expenses.title': 'Mes dépenses',
+    'expenses.title': 'Dépenses',
     'expenses.subtitle': 'Suivi de vos dépenses personnelles et des échéances d\'honoraires à régler.',
     'expenses.add': 'Ajouter une dépense',
     'expenses.add_sub': 'Saisie d\'une dépense projet',
@@ -81,7 +81,7 @@ const T = {
     'expenses.delete': 'Supprimer',
     'expenses.added': 'Dépense ajoutée',
     'expenses.deleted': 'Dépense supprimée',
-    'expenses.my_expenses': 'Mes dépenses',
+    'expenses.my_expenses': 'Dépenses',
     'expenses.total': 'Total dépenses',
     'expenses.reste_a_regler': 'Reste à régler',
     'expenses.agency_fees': 'honoraires agence',
@@ -95,7 +95,7 @@ const T = {
     'expenses.all_paid': 'Tous les honoraires réglés',
     'expenses.on_total': 'sur',
     'expenses.tracking_section': 'Suivi',
-    'expenses.project_expenses': 'Mes dépenses projet',
+    'expenses.project_expenses': 'Dépenses projet',
     'expenses.col_expense': 'Dépense',
     'expenses.col_company': 'Entreprise',
     'expenses.col_date': 'Date',
@@ -111,7 +111,7 @@ const T = {
     // Concept page
     'concept.label': '✨ Sélection de concept',
     'concept.title': 'Choisissez vos inspirations',
-    'concept.hint': 'Glissez à droite si vous aimez, à gauche sinon, vers le haut pour un super like !',
+    'concept.hint': 'Cliquez ♥ pour aimer, ✕ pour passer, ⭐ pour un coup de cœur !',
     'concept.done_title': 'Merci pour vos choix !',
     'concept.done_sub': 'Votre sélection a été transmise à votre architecte. Un rapport complet est disponible ci-dessous.',
     'concept.superlikes': 'Super aimées',
@@ -132,6 +132,16 @@ const T = {
     'concept.next': 'Suivant',
     'concept.finish': 'Terminer',
     'concept.generating': 'Génération du rapport…',
+
+    // Project picker (shared across concept / livrables / expenses pages)
+    'project.back': '← Tous les projets',
+    'project.select_concept': 'Sélectionnez un projet pour consulter le concept',
+    'project.select_livrables': 'Sélectionnez un projet pour consulter les livrables',
+    'project.select_expenses': 'Sélectionnez un projet pour consulter les dépenses',
+    'concept.status.done': 'Réponse complétée',
+    'concept.status.pending': 'En attente de réponse',
+    'concept.status.no_images': 'Pas encore disponible',
+    'livrables.no_deliverables': 'Aucun livrable',
   },
 
   en: {
@@ -139,9 +149,9 @@ const T = {
     'nav.projects':  'Projects',
     'nav.concept':   'Concept',
     'nav.livrables': 'Documents',
-    'nav.expenses':  'My Expenses',
+    'nav.expenses':  'Expenses',
     'nav.messages':  'Messages',
-    'nav.rdvs':      'My Meetings',
+    'nav.rdvs':      'Meetings',
     'portal.title':  'Client Portal',
     'signout':       'Sign out',
     'search.placeholder': 'Search in the portal…',
@@ -169,7 +179,7 @@ const T = {
     'status.prospect': 'Prospect',
 
     // RDVs page
-    'rdvs.title': 'My Meetings',
+    'rdvs.title': 'Meetings',
     'rdvs.empty': 'No meetings scheduled',
     'rdvs.empty_sub': 'Meetings created by your team will appear here.',
     'rdvs.upcoming': 'Upcoming',
@@ -195,7 +205,7 @@ const T = {
 
     // Expenses page
     'expenses.label': '◆ Financial tracking',
-    'expenses.title': 'My Expenses',
+    'expenses.title': 'Expenses',
     'expenses.subtitle': 'Track your personal project expenses and pending fee deadlines.',
     'expenses.add': 'Add an expense',
     'expenses.add_sub': 'Record a project expense',
@@ -209,7 +219,7 @@ const T = {
     'expenses.delete': 'Delete',
     'expenses.added': 'Expense added',
     'expenses.deleted': 'Expense deleted',
-    'expenses.my_expenses': 'My expenses',
+    'expenses.my_expenses': 'Expenses',
     'expenses.total': 'Total expenses',
     'expenses.reste_a_regler': 'Amount due',
     'expenses.agency_fees': 'agency fees',
@@ -223,7 +233,7 @@ const T = {
     'expenses.all_paid': 'All fees paid',
     'expenses.on_total': 'of',
     'expenses.tracking_section': 'Tracking',
-    'expenses.project_expenses': 'My project expenses',
+    'expenses.project_expenses': 'Project expenses',
     'expenses.col_expense': 'Expense',
     'expenses.col_company': 'Company',
     'expenses.col_date': 'Date',
@@ -239,7 +249,7 @@ const T = {
     // Concept page
     'concept.label': '✨ Concept selection',
     'concept.title': 'Choose your inspirations',
-    'concept.hint': 'Swipe right if you like, left if you don\'t, up for a super like!',
+    'concept.hint': 'Click ♥ to like, ✕ to pass, ⭐ for a super like!',
     'concept.done_title': 'Thank you for your choices!',
     'concept.done_sub': 'Your selection has been sent to your architect. A full report is available below.',
     'concept.superlikes': 'Super liked',
@@ -260,6 +270,16 @@ const T = {
     'concept.next': 'Next',
     'concept.finish': 'Finish',
     'concept.generating': 'Generating report…',
+
+    // Project picker
+    'project.back': '← All projects',
+    'project.select_concept': 'Select a project to view the concept',
+    'project.select_livrables': 'Select a project to view its deliverables',
+    'project.select_expenses': 'Select a project to view expenses',
+    'concept.status.done': 'Response complete',
+    'concept.status.pending': 'Awaiting response',
+    'concept.status.no_images': 'Not yet available',
+    'livrables.no_deliverables': 'No deliverables',
   },
 
   es: {
@@ -267,9 +287,9 @@ const T = {
     'nav.projects':  'Proyectos',
     'nav.concept':   'Concepto',
     'nav.livrables': 'Documentos',
-    'nav.expenses':  'Mis Gastos',
+    'nav.expenses':  'Gastos',
     'nav.messages':  'Mensajes',
-    'nav.rdvs':      'Mis Reuniones',
+    'nav.rdvs':      'Reuniones',
     'portal.title':  'Portal Cliente',
     'signout':       'Cerrar sesión',
     'search.placeholder': 'Buscar en el portal…',
@@ -297,7 +317,7 @@ const T = {
     'status.prospect': 'Prospecto',
 
     // RDVs page
-    'rdvs.title': 'Mis Reuniones',
+    'rdvs.title': 'Reuniones',
     'rdvs.empty': 'Sin reuniones programadas',
     'rdvs.empty_sub': 'Las reuniones creadas por tu equipo aparecerán aquí.',
     'rdvs.upcoming': 'Próximas',
@@ -323,7 +343,7 @@ const T = {
 
     // Expenses page
     'expenses.label': '◆ Seguimiento financiero',
-    'expenses.title': 'Mis Gastos',
+    'expenses.title': 'Gastos',
     'expenses.subtitle': 'Seguimiento de tus gastos personales y los plazos de honorarios pendientes.',
     'expenses.add': 'Añadir un gasto',
     'expenses.add_sub': 'Registrar un gasto del proyecto',
@@ -337,7 +357,7 @@ const T = {
     'expenses.delete': 'Eliminar',
     'expenses.added': 'Gasto añadido',
     'expenses.deleted': 'Gasto eliminado',
-    'expenses.my_expenses': 'Mis gastos',
+    'expenses.my_expenses': 'Gastos',
     'expenses.total': 'Total gastos',
     'expenses.reste_a_regler': 'Pendiente de pago',
     'expenses.agency_fees': 'honorarios agencia',
@@ -351,7 +371,7 @@ const T = {
     'expenses.all_paid': 'Todos los honorarios pagados',
     'expenses.on_total': 'de',
     'expenses.tracking_section': 'Seguimiento',
-    'expenses.project_expenses': 'Mis gastos del proyecto',
+    'expenses.project_expenses': 'Gastos del proyecto',
     'expenses.col_expense': 'Gasto',
     'expenses.col_company': 'Empresa',
     'expenses.col_date': 'Fecha',
@@ -367,7 +387,7 @@ const T = {
     // Concept page
     'concept.label': '✨ Selección de concepto',
     'concept.title': 'Elige tus inspiraciones',
-    'concept.hint': '¡Desliza a la derecha si te gusta, a la izquierda si no, hacia arriba para un super like!',
+    'concept.hint': '¡Toca ♥ para que te guste, ✕ para pasar, ⭐ para un super like!',
     'concept.done_title': '¡Gracias por tus elecciones!',
     'concept.done_sub': 'Tu selección ha sido enviada a tu arquitecto. Un informe completo está disponible a continuación.',
     'concept.superlikes': 'Super gustadas',
@@ -388,6 +408,16 @@ const T = {
     'concept.next': 'Siguiente',
     'concept.finish': 'Finalizar',
     'concept.generating': 'Generando informe…',
+
+    // Project picker
+    'project.back': '← Todos los proyectos',
+    'project.select_concept': 'Selecciona un proyecto para ver el concepto',
+    'project.select_livrables': 'Selecciona un proyecto para ver los documentos',
+    'project.select_expenses': 'Selecciona un proyecto para ver los gastos',
+    'concept.status.done': 'Respuesta completada',
+    'concept.status.pending': 'Esperando respuesta',
+    'concept.status.no_images': 'Aún no disponible',
+    'livrables.no_deliverables': 'Sin documentos',
   },
 }
 
