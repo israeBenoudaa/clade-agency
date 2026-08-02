@@ -17,7 +17,12 @@ export default function ConceptPage() {
   const { projects, updateConceptImages, updateConceptQuestions } = useData()
 
   const project = projects.find(p => String(p.id) === id)
-  const concept = project?.concept || { images: [], questions: [], clientResponse: null }
+  const raw = project?.concept || {}
+  const concept = {
+    images: Array.isArray(raw.images) ? raw.images : [],
+    questions: Array.isArray(raw.questions) ? raw.questions : [],
+    clientResponse: raw.clientResponse ?? null,
+  }
 
   const [tab, setTab] = useState('images')
   const [newQType, setNewQType] = useState('text')

@@ -544,7 +544,12 @@ export default function ClientConceptPage() {
     return candidates.find(p => p.prospectId === prospect.id) || candidates[0] || null
   }, [prospect, projects])
 
-  const concept = project?.concept || { images: [], questions: [], clientResponse: null }
+  const rawConcept = project?.concept || {}
+  const concept = {
+    images: Array.isArray(rawConcept.images) ? rawConcept.images : [],
+    questions: Array.isArray(rawConcept.questions) ? rawConcept.questions : [],
+    clientResponse: rawConcept.clientResponse ?? null,
+  }
 
   const [phase, setPhase] = useState('swipe')
   const [currentIdx, setCurrentIdx] = useState(0)

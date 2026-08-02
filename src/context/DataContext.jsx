@@ -1561,7 +1561,8 @@ export function DataProvider({ children }) {
   const updateConceptImages = (projectId, images) => {
     setProjects(prev => prev.map(p => {
       if (p.id !== projectId) return p
-      const updated = { ...p, concept: { ...(p.concept || {}), images } }
+      const prev_concept = p.concept || {}
+      const updated = { ...p, concept: { images: [], questions: [], clientResponse: null, ...prev_concept, images } }
       sbUpsert('projects', toDbProject(updated))
       return updated
     }))
@@ -1570,7 +1571,8 @@ export function DataProvider({ children }) {
   const updateConceptQuestions = (projectId, questions) => {
     setProjects(prev => prev.map(p => {
       if (p.id !== projectId) return p
-      const updated = { ...p, concept: { ...(p.concept || {}), questions } }
+      const prev_concept = p.concept || {}
+      const updated = { ...p, concept: { images: [], questions: [], clientResponse: null, ...prev_concept, questions } }
       sbUpsert('projects', toDbProject(updated))
       return updated
     }))
