@@ -4,6 +4,7 @@ import { Heart, X, Star, CheckCircle, Download, Loader, ChevronRight, LayoutGrid
 import toast from 'react-hot-toast'
 import { useData } from '../../context/DataContext'
 import { useAuth } from '../../context/AuthContext'
+import { useClientLang } from '../../context/ClientLangContext'
 import { supabase } from '../../lib/supabase'
 import { generateConceptPdf } from '../../utils/generateConceptPdf'
 import { exportProgrammeExcel, exportEstimationExcel } from '../../utils/exportTableExcel'
@@ -121,6 +122,7 @@ function SwipeCard({ image, onSwipe, isTop, stackOffset }) {
 
 function QuestionnaireView({ questions, answers, setAnswers, onComplete, isGenerating }) {
   const [currentQ, setCurrentQ] = useState(0)
+  const { t } = useClientLang()
   const q = questions[currentQ]
   const isLast = currentQ === questions.length - 1
 
@@ -205,11 +207,11 @@ function QuestionnaireView({ questions, answers, setAnswers, onComplete, isGener
               className="btn-primary w-full justify-center text-sm"
             >
               {isGenerating ? (
-                <><Loader size={15} className="animate-spin" /> Génération du rapport…</>
+                <><Loader size={15} className="animate-spin" /> {t('concept.generating')}</>
               ) : isLast ? (
-                <><CheckCircle size={15} /> Terminer</>
+                <><CheckCircle size={15} /> {t('concept.finish')}</>
               ) : (
-                <>Suivant <ChevronRight size={15} /></>
+                <>{t('concept.next')} <ChevronRight size={15} /></>
               )}
             </button>
           </div>
@@ -383,6 +385,7 @@ function EstimationTable({ estimation, projectNom }) {
 // ── Done / completed view ─────────────────────────────────────────────────────
 
 function DoneView({ concept, projectNom, project, onRestart }) {
+  const { t } = useClientLang()
   const [isDownloading, setIsDownloading] = useState(false)
 
   const handleDownload = async () => {
@@ -420,24 +423,22 @@ function DoneView({ concept, projectNom, project, onRestart }) {
         >
           <CheckCircle size={36} className="text-white" />
         </motion.div>
-        <h1 className="font-display text-3xl lg:text-4xl text-ink mb-2">Merci pour vos choix !</h1>
-        <p className="text-muted text-sm max-w-md mx-auto">
-          Votre sélection a été transmise à votre architecte. Un rapport complet est disponible ci-dessous.
-        </p>
+        <h1 className="font-display text-3xl lg:text-4xl text-ink mb-2">{t('concept.done_title')}</h1>
+        <p className="text-muted text-sm max-w-md mx-auto">{t('concept.done_sub')}</p>
 
         {/* Stats */}
         <div className="flex justify-center gap-8 mt-6">
           <div className="text-center">
             <div className="text-2xl font-black text-amber-500">⭐ {superCount}</div>
-            <div className="text-[10px] text-muted uppercase tracking-widest mt-1">Super aimées</div>
+            <div className="text-[10px] text-muted uppercase tracking-widest mt-1">{t('concept.superlikes')}</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-black text-emerald-500">👍 {likeCount}</div>
-            <div className="text-[10px] text-muted uppercase tracking-widest mt-1">Aimées</div>
+            <div className="text-[10px] text-muted uppercase tracking-widest mt-1">{t('concept.likes')}</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-black text-rose-500">👎 {nopeCount}</div>
-            <div className="text-[10px] text-muted uppercase tracking-widest mt-1">Non retenues</div>
+            <div className="text-[10px] text-muted uppercase tracking-widest mt-1">{t('concept.dislikes')}</div>
           </div>
         </div>
 
@@ -448,14 +449,14 @@ function DoneView({ concept, projectNom, project, onRestart }) {
             className="btn-primary"
           >
             {isDownloading ? <Loader size={15} className="animate-spin" /> : <Download size={15} />}
-            Télécharger mon rapport PDF
+            {t('concept.download_pdf')}
           </button>
           {onRestart && (
             <button
               onClick={onRestart}
               className="btn-ghost text-sm"
             >
-              Recommencer la sélection
+              {t('concept.restart')}
             </button>
           )}
         </div>
@@ -466,9 +467,9 @@ function DoneView({ concept, projectNom, project, onRestart }) {
         const imgs = images.filter(i => imageVotes[i.id] === vote)
         if (!imgs.length) return null
         const cfg = {
-          superlike: { label: 'Mes super coups de cœur', emoji: '⭐', color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200' },
-          like:      { label: 'Ce que j\'ai aimé',       emoji: '👍', color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200' },
-          dislike:   { label: 'Non retenu',               emoji: '👎', color: 'text-rose-600', bg: 'bg-rose-50 border-rose-200' },
+          superlike: { label: t('concept.category.superlike'), emoji: '⭐', color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200' },
+          like:      { label: t('concept.category.like'),      emoji: '👍', color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200' },
+          dislike:   { label: t('concept.category.dislike'),   emoji: '👎', color: 'text-rose-600', bg: 'bg-rose-50 border-rose-200' },
         }[vote]
         return (
           <div key={vote} className="card p-5 lg:p-6">
@@ -491,13 +492,13 @@ function DoneView({ concept, projectNom, project, onRestart }) {
       {/* Q&A results */}
       {concept?.questions?.length > 0 && (
         <div className="card p-5 lg:p-6">
-          <div className="label-text mb-4">Mes réponses</div>
+          <div className="label-text mb-4">{t('concept.answers')}</div>
           <div className="space-y-3">
             {concept.questions.map((q, i) => (
               <div key={q.id} className="p-4 bg-paper-warm rounded-xl">
                 <div className="text-xs font-bold text-muted mb-1">{i + 1}. {q.text}</div>
                 <div className="text-sm text-ink font-medium">
-                  {questionAnswers[q.id] || <span className="text-muted italic">Sans réponse</span>}
+                  {questionAnswers[q.id] || <span className="text-muted italic">{t('concept.no_answer')}</span>}
                 </div>
               </div>
             ))}
@@ -508,7 +509,7 @@ function DoneView({ concept, projectNom, project, onRestart }) {
       {/* Programme table (shared) */}
       {project?.programme?.statut === 'partage' && project.programme.groupes?.length > 0 && (
         <div>
-          <div className="label-text mb-3">Programmation de votre projet</div>
+          <div className="label-text mb-3">{t('concept.programme')}</div>
           <ProgrammeTable programme={project.programme} projectNom={projectNom} />
         </div>
       )}
@@ -516,7 +517,7 @@ function DoneView({ concept, projectNom, project, onRestart }) {
       {/* Estimation table (shared) */}
       {project?.estimation?.statut === 'partage' && project.estimation.groupes?.length > 0 && (
         <div>
-          <div className="label-text mb-3">Estimation budgétaire</div>
+          <div className="label-text mb-3">{t('concept.estimation')}</div>
           <EstimationTable estimation={project.estimation} projectNom={projectNom} />
         </div>
       )}
@@ -527,8 +528,9 @@ function DoneView({ concept, projectNom, project, onRestart }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function ClientConceptPage() {
-  const { profile, prospectId } = useAuth()
+  const { prospectId } = useAuth()
   const { projects, prospects, saveConceptResponse, clearConceptResponse } = useData()
+  const { t } = useClientLang()
 
   const prospect = prospectId ? prospects.find(p => p.id === prospectId) : null
 
@@ -577,20 +579,20 @@ export default function ClientConceptPage() {
               <Sparkles size={34} className="text-white" />
             </motion.div>
             <p className="text-sm text-muted max-w-xs leading-relaxed">
-              Le concept de votre projet sera disponible prochainement !
+              {t('concept.coming_soon')}
             </p>
           </div>
         )}
 
         {hasProgramme && (
           <div>
-            <div className="label-text mb-3">Programmation de votre projet</div>
+            <div className="label-text mb-3">{t('concept.programme')}</div>
             <ProgrammeTable programme={project.programme} projectNom={project.nom} />
           </div>
         )}
         {hasEstimation && (
           <div>
-            <div className="label-text mb-3">Estimation budgétaire</div>
+            <div className="label-text mb-3">{t('concept.estimation')}</div>
             <EstimationTable estimation={project.estimation} projectNom={project.nom} />
           </div>
         )}
@@ -656,11 +658,9 @@ export default function ClientConceptPage() {
     <div className="max-w-sm mx-auto space-y-5">
       {/* Header */}
       <div>
-        <div className="label-text text-[10px] mb-1">✨ Sélection de concept</div>
-        <h1 className="font-display text-2xl text-ink">Choisissez vos inspirations</h1>
-        <p className="text-xs text-muted mt-1 leading-relaxed">
-          Glissez à droite si vous aimez, à gauche sinon, vers le haut pour un super like !
-        </p>
+        <div className="label-text text-[10px] mb-1">{t('concept.label')}</div>
+        <h1 className="font-display text-2xl text-ink">{t('concept.title')}</h1>
+        <p className="text-xs text-muted mt-1 leading-relaxed">{t('concept.hint')}</p>
       </div>
 
       {/* Progress bar */}

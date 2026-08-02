@@ -649,7 +649,7 @@ function CandidatureDetailModal({ candidature, employes, recrutements = [], onCl
   const [classeBody, setClasseBody] = useState(rejectionBody)
 
   const interviewer = employes.find(e => String(e.id) === entretienForm.interviewerId)
-  const interviewerName = interviewer ? `${interviewer.prenom} ${interviewer.nom}` : '—'
+  const interviewerName = interviewer ? interviewer.nom : '—'
   const entretienBodyDefault = entretienForm.date
     ? `Bonjour ${fullName},\n\nNous avons étudié votre candidature spontanée pour le poste de ${candidature.posteSouhaite} avec beaucoup d'intérêt et nous serions ravis de vous rencontrer.\n\nNous vous proposons un entretien :\n• Date : ${new Date(entretienForm.date).toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}\n• Horaire : ${entretienForm.heureDebut} – ${entretienForm.heureFin}\n• Interlocuteur : ${interviewerName}\n\nMerci de nous confirmer votre disponibilité en répondant à cet e-mail. N'hésitez pas à nous contacter pour toute question.\n\nAu plaisir de vous rencontrer,\nL'équipe CLADE Architecture`
     : ''
@@ -878,7 +878,7 @@ function CandidatureDetailModal({ candidature, employes, recrutements = [], onCl
                     onChange={v => ef('interviewerId', v)}
                     options={[
                       { value: '', label: '— Choisir —' },
-                      ...employes.map(e => ({ value: String(e.id), label: `${e.prenom} ${e.nom}` })),
+                      ...employes.map(e => ({ value: String(e.id), label: e.nom })),
                     ]}
                     className="w-full"
                   />

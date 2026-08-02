@@ -8,6 +8,7 @@ import {
 import toast from 'react-hot-toast'
 import { useData } from '../../context/DataContext'
 import { useAuth } from '../../context/AuthContext'
+import { useClientLang } from '../../context/ClientLangContext'
 
 const fmtDH = (n) =>
   Number(n || 0).toLocaleString('fr-MA', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' DH'
@@ -18,6 +19,7 @@ const fmtDate = (d) =>
 function AddExpenseModal({ onClose, onAdd }) {
   const [form, setForm] = useState({ nom: '', entreprise: '', date: '', montant: '' })
   const [errors, setErrors] = useState({})
+  const { t } = useClientLang()
 
   const set = (k) => (e) => {
     setForm(f => ({ ...f, [k]: e.target.value }))
@@ -50,8 +52,8 @@ function AddExpenseModal({ onClose, onAdd }) {
               <Plus size={16} className="text-ink" />
             </div>
             <div>
-              <div className="font-semibold text-ink text-sm">Ajouter une dépense</div>
-              <div className="text-xs text-muted">Saisie d'une dépense projet</div>
+              <div className="font-semibold text-ink text-sm">{t('expenses.add')}</div>
+              <div className="text-xs text-muted">{t('expenses.add_sub')}</div>
             </div>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-paper-warm flex items-center justify-center text-muted">
@@ -61,24 +63,24 @@ function AddExpenseModal({ onClose, onAdd }) {
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="label-text mb-1.5 block">Nom de la dépense *</label>
+            <label className="label-text mb-1.5 block">{t('expenses.name')} *</label>
             <input className={`input-field ${errors.nom ? 'border-rose-400' : ''}`}
               placeholder="Frais notariaux, BET Structure..." value={form.nom} onChange={set('nom')} />
             {errors.nom && <p className="text-xs text-rose-500 mt-1">{errors.nom}</p>}
           </div>
           <div>
-            <label className="label-text mb-1.5 block">Entreprise / Prestataire</label>
+            <label className="label-text mb-1.5 block">{t('expenses.company')}</label>
             <input className="input-field" placeholder="Cabinet Maître Alaoui..." value={form.entreprise} onChange={set('entreprise')} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="label-text mb-1.5 block">Date *</label>
+              <label className="label-text mb-1.5 block">{t('expenses.date')} *</label>
               <input type="date" className={`input-field ${errors.date ? 'border-rose-400' : ''}`}
                 value={form.date} onChange={set('date')} />
               {errors.date && <p className="text-xs text-rose-500 mt-1">{errors.date}</p>}
             </div>
             <div>
-              <label className="label-text mb-1.5 block">Montant (DH) *</label>
+              <label className="label-text mb-1.5 block">{t('expenses.amount')} *</label>
               <div className="relative">
                 <input type="number" min="0" className={`input-field pr-10 ${errors.montant ? 'border-rose-400' : ''}`}
                   placeholder="0" value={form.montant} onChange={set('montant')} />
@@ -89,9 +91,9 @@ function AddExpenseModal({ onClose, onAdd }) {
           </div>
 
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose} className="btn-ghost flex-1 justify-center">Annuler</button>
+            <button type="button" onClick={onClose} className="btn-ghost flex-1 justify-center">{t('cancel')}</button>
             <button type="submit" className="btn-primary flex-1 justify-center">
-              <CheckCircle size={14} /> Ajouter
+              <CheckCircle size={14} /> {t('expenses.submit')}
             </button>
           </div>
         </form>
@@ -101,10 +103,11 @@ function AddExpenseModal({ onClose, onAdd }) {
 }
 
 export default function ClientExpensesPage() {
-  const { profile, prospectId } = useAuth()
+  const { prospectId } = useAuth()
   const { prospects, projects, addClientExpense, deleteClientExpense } = useData()
   const [showAddModal, setShowAddModal] = useState(false)
   const navigate = useNavigate()
+  const { t } = useClientLang()
 
   const prospect = useMemo(() => {
     if (!prospectId) return prospects[0]
@@ -144,33 +147,31 @@ export default function ClientExpensesPage() {
     if (!prospect) return
     addClientExpense(prospect.id, expense)
     setShowAddModal(false)
-    toast.success('Dépense ajoutée')
+    toast.success(t('expenses.added'))
   }
 
   const handleDelete = (expenseId) => {
     if (!prospect) return
-    toast((t) => (
+    toast((ti) => (
       <div className="flex items-center gap-3">
-        <span className="text-sm">Supprimer cette dépense ?</span>
-        <button onClick={() => { deleteClientExpense(prospect.id, expenseId); toast.dismiss(t.id); toast.success('Dépense supprimée') }}
-          className="text-xs bg-rose-500 text-white px-3 py-1.5 rounded-lg font-semibold flex-shrink-0">Supprimer</button>
-        <button onClick={() => toast.dismiss(t.id)} className="text-xs text-muted">Annuler</button>
+        <span className="text-sm">{t('expenses.delete_confirm')}</span>
+        <button onClick={() => { deleteClientExpense(prospect.id, expenseId); toast.dismiss(ti.id); toast.success(t('expenses.deleted')) }}
+          className="text-xs bg-rose-500 text-white px-3 py-1.5 rounded-lg font-semibold flex-shrink-0">{t('expenses.delete')}</button>
+        <button onClick={() => toast.dismiss(ti.id)} className="text-xs text-muted">{t('cancel')}</button>
       </div>
     ), { duration: 5000 })
   }
 
   if (!prospect) {
-    return <div className="p-10 text-center text-muted">Aucune donnée disponible.</div>
+    return <div className="p-10 text-center text-muted">{t('no_data')}</div>
   }
 
   return (
     <div className="space-y-5 lg:space-y-7">
       <div>
-        <div className="label-text mb-2">◆ Suivi financier</div>
-        <h1 className="font-display text-3xl lg:text-5xl text-ink leading-none">Mes dépenses</h1>
-        <p className="text-muted text-sm mt-3 max-w-xl">
-          Suivi de vos dépenses personnelles et des échéances d'honoraires à régler.
-        </p>
+        <div className="label-text mb-2">{t('expenses.label')}</div>
+        <h1 className="font-display text-3xl lg:text-5xl text-ink leading-none">{t('expenses.title')}</h1>
+        <p className="text-muted text-sm mt-3 max-w-xl">{t('expenses.subtitle')}</p>
       </div>
 
       {/* KPI */}
@@ -181,7 +182,7 @@ export default function ClientExpensesPage() {
             <Wallet size={18} className="text-blue-600" />
           </div>
           <div>
-            <div className="label-text mb-0.5">Total dépenses</div>
+            <div className="label-text mb-0.5">{t('expenses.total')}</div>
             <div className="font-display text-2xl text-ink">{fmtDH(totalDepenses)}</div>
           </div>
         </motion.div>
@@ -290,7 +291,7 @@ export default function ClientExpensesPage() {
 
         {expenses.length === 0 ? (
           <div className="text-center py-10 border border-dashed border-border rounded-xl text-muted text-sm">
-            Aucune dépense enregistrée. Cliquez sur "Ajouter" pour commencer.
+            {t('expenses.none')}
           </div>
         ) : (
           <>

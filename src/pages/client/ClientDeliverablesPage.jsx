@@ -1,12 +1,13 @@
 ﻿import { useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { FileText, ExternalLink, FolderOpen, Download, CalendarDays } from 'lucide-react'
+import { useData } from '../../context/DataContext'
+import { useAuth } from '../../context/AuthContext'
+import { useClientLang } from '../../context/ClientLangContext'
 
 const fmtDate = (d) => d
   ? new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
   : null
-import { useData } from '../../context/DataContext'
-import { useAuth } from '../../context/AuthContext'
 
 const EXT_COLORS = {
   pdf:  { bg: '#FEE2E2', fg: '#991B1B' },
@@ -35,8 +36,9 @@ const downloadFile = (f) => {
 }
 
 export default function ClientDeliverablesPage() {
-  const { profile, prospectId } = useAuth()
+  const { prospectId } = useAuth()
   const { projects, prospects } = useData()
+  const { t } = useClientLang()
 
   const prospect = useMemo(() => {
     if (!prospectId) return null
@@ -82,25 +84,23 @@ export default function ClientDeliverablesPage() {
   return (
     <div className="space-y-5 lg:space-y-7">
       <div>
-        <div className="label-text mb-2">◆ Bibliothèque projet</div>
-        <h1 className="font-display text-3xl lg:text-5xl text-ink leading-none">Vos livrables</h1>
-        <p className="text-muted text-sm mt-3 max-w-xl">
-          Plans, documents, modèles et liens Drive mis à votre disposition au fil de l'avancement.
-        </p>
+        <div className="label-text mb-2">{t('livrables.label')}</div>
+        <h1 className="font-display text-3xl lg:text-5xl text-ink leading-none">{t('livrables.title')}</h1>
+        <p className="text-muted text-sm mt-3 max-w-xl">{t('livrables.subtitle')}</p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3 lg:gap-5">
         <div className="card p-4 lg:p-6">
-          <div className="text-xs text-muted mb-2">Total fichiers</div>
+          <div className="text-xs text-muted mb-2">{t('livrables.total_files')}</div>
           <div className="font-display text-3xl lg:text-4xl text-ink">{totalFiles}</div>
         </div>
         <div className="card p-4 lg:p-6">
-          <div className="text-xs text-muted mb-2">Liens Drive</div>
+          <div className="text-xs text-muted mb-2">{t('livrables.drive_links')}</div>
           <div className="font-display text-3xl lg:text-4xl text-ink">{totalLinks}</div>
         </div>
         <div className="card p-4 lg:p-6">
-          <div className="text-xs text-muted mb-2">Projets</div>
+          <div className="text-xs text-muted mb-2">{t('livrables.projects')}</div>
           <div className="font-display text-3xl lg:text-4xl text-ink">{clientProjects.length}</div>
         </div>
       </div>
@@ -108,8 +108,8 @@ export default function ClientDeliverablesPage() {
       {!hasAny ? (
         <div className="card p-12 text-center">
           <FolderOpen size={28} className="text-muted mx-auto mb-3" />
-          <div className="text-sm font-semibold text-ink mb-1">Aucun livrable pour l'instant</div>
-          <p className="text-xs text-muted">Les documents et liens partagés apparaîtront ici au fur et à mesure de l'avancement.</p>
+          <div className="text-sm font-semibold text-ink mb-1">{t('livrables.empty')}</div>
+          <p className="text-xs text-muted">{t('livrables.empty_sub')}</p>
         </div>
       ) : (
         <div className="space-y-6">
@@ -126,7 +126,7 @@ export default function ClientDeliverablesPage() {
             return (
               <div key={projet.id} className="card p-5 lg:p-6">
                 <div className="mb-4">
-                  <div className="label-text mb-0.5">Projet</div>
+                  <div className="label-text mb-0.5">{t('livrables.project')}</div>
                   <div className="font-display text-xl text-ink">{projet.nom}</div>
                 </div>
                 <div className="space-y-2">
@@ -168,7 +168,7 @@ export default function ClientDeliverablesPage() {
                             {url ? (
                               <button onClick={() => downloadFile(f)}
                                 className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-electric/10 border border-electric/20 text-electric hover:bg-electric/20 transition-all flex-shrink-0">
-                                <Download size={12} /> Télécharger
+                                <Download size={12} /> {t('livrables.download')}
                               </button>
                             ) : (
                               <FileText size={14} className="text-muted flex-shrink-0" />
@@ -225,7 +225,7 @@ export default function ClientDeliverablesPage() {
                                 a.href = fp.url; a.download = fp.fileName || fp.nom
                                 document.body.appendChild(a); a.click(); document.body.removeChild(a)
                               }} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-electric/10 border border-electric/20 text-electric hover:bg-electric/20 transition-all flex-shrink-0">
-                                <Download size={12} /> Télécharger
+                                <Download size={12} /> {t('livrables.download')}
                               </button>
                             )}
                           </motion.div>
@@ -262,7 +262,7 @@ export default function ClientDeliverablesPage() {
                             {url ? (
                               <button onClick={() => downloadFile(f)}
                                 className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-electric/10 border border-electric/20 text-electric hover:bg-electric/20 transition-all flex-shrink-0">
-                                <Download size={12} /> Télécharger
+                                <Download size={12} /> {t('livrables.download')}
                               </button>
                             ) : (
                               <FileText size={14} className="text-muted flex-shrink-0" />

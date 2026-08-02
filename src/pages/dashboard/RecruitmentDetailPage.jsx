@@ -323,7 +323,7 @@ function EntretienEmailPanel({ candidat, poste, employes, onBack, onSend }) {
               onChange={v => set('intervieweurId')({ target: { value: v } })}
               options={[
                 { value: '', label: '— Choisir —' },
-                ...employes.filter(e => e.statut === 'actif').map(e => ({ value: String(e.id), label: `${e.prenom} ${e.nom}` })),
+                ...employes.filter(e => e.statut === 'actif').map(e => ({ value: String(e.id), label: e.nom })),
               ]}
               className="w-full"
             />

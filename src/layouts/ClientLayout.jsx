@@ -479,22 +479,6 @@ function ClientLayoutInner() {
                 })}
               </nav>
               <div className="border-t border-white/10 pt-4 mt-4 space-y-4">
-                {/* Language switcher in drawer */}
-                <div className="flex items-center gap-1 p-1 rounded-xl bg-white/5">
-                  {CLIENT_LANGS.map(l => (
-                    <button
-                      key={l}
-                      onClick={() => setLang(l)}
-                      className={`flex-1 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-colors ${
-                        lang === l
-                          ? 'bg-white/15 text-white'
-                          : 'text-paper/40 hover:text-paper/70'
-                      }`}
-                    >
-                      {l}
-                    </button>
-                  ))}
-                </div>
                 <div className="flex items-center gap-3">
                   <Avatar initials={initials} size={36} />
                   <div className="flex-1 min-w-0">

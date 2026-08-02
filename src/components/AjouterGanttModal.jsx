@@ -137,7 +137,7 @@ export default function AjouterGanttModal({ onClose, onAdd, onEdit, item, projec
         personnesExtra: form.personnesExtra.trim(),
         personnes: [
           ...employes.filter(e => form.personnesIds.map(String).includes(String(e.id)))
-            .map(e => `${e.prenom || ''} ${e.nom || ''}`.trim()),
+            .map(e => e.nom || ''),
           ...clients.filter(c => form.clientIds.map(String).includes(String(c.id)))
             .map(c => `${c.prenom || ''} ${c.nom || ''}`.trim()),
           ...collaborateurs.filter(c => form.collabIds.map(String).includes(String(c.id)))
