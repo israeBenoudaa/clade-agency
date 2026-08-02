@@ -9,7 +9,7 @@ import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
 import { ClientLangProvider, useClientLang, CLIENT_LANGS } from '../context/ClientLangContext'
 import { Avatar } from '../components/ui'
-import { CladeBrand, CladeLogo } from '../components/ui/Logo'
+import { CladeBrand } from '../components/ui/Logo'
 import OnboardingGuide from '../components/OnboardingGuide'
 import toast from 'react-hot-toast'
 
@@ -293,7 +293,7 @@ function ClientLayoutInner() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-paper">
         <div className="animate-pulse">
-          <CladeLogo size={56} />
+          <CladeBrand size="lg" />
         </div>
       </div>
     )
