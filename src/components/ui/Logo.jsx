@@ -22,8 +22,18 @@ export function CladeBrand({ light = false, size = 'md' }) {
   const nameSize   = nameSizes[size] ?? nameSizes.md
   const subSize    = subSizes[size]  ?? subSizes.md
 
+  const subStyle = {
+    fontFamily: "'Inter Tight', -apple-system, sans-serif",
+    fontSize: subSize,
+    fontWeight: 500,
+    letterSpacing: '0.22em',
+    textTransform: 'uppercase',
+    color: subColor,
+    lineHeight: 1,
+  }
+
   return (
-    <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
+    <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
       <span style={{
         fontFamily: "'Averia Libre', serif",
         fontSize: nameSize,
@@ -34,17 +44,8 @@ export function CladeBrand({ light = false, size = 'md' }) {
       }}>
         Clade
       </span>
-      <span style={{
-        fontFamily: "'Inter Tight', -apple-system, sans-serif",
-        fontSize: subSize,
-        fontWeight: 500,
-        letterSpacing: '0.22em',
-        textTransform: 'uppercase',
-        color: subColor,
-        lineHeight: 1,
-      }}>
-        architects &amp; co
-      </span>
+      <span style={subStyle}>architects</span>
+      <span style={subStyle}>&amp; co</span>
     </div>
   )
 }
