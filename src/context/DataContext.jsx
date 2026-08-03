@@ -394,8 +394,18 @@ export function DataProvider({ children }) {
           supabase.from('projects').upsert(mockProjets.map(p => toDbProject(enrichMock(p))), { onConflict: 'id' })
         }
 
-        if (dbTx)          setTransactions(dbTx.map(fromDbTransaction))
-        if (dbCharges)     setChargesFixe(dbCharges.map(fromDbChargeFixe))
+        if (dbTx?.length) {
+          setTransactions(dbTx.map(fromDbTransaction))
+        } else if (dbTx !== null && !eTx && transactions.length) {
+          // Supabase vide mais localStorage a des données réelles → récupérer et synchroniser
+          supabase.from('transactions').upsert(transactions.map(toDbTransaction), { onConflict: 'id' })
+        }
+
+        if (dbCharges?.length) {
+          setChargesFixe(dbCharges.map(fromDbChargeFixe))
+        } else if (dbCharges !== null && chargesFixe.length) {
+          supabase.from('charges_fixes').upsert(chargesFixe.map(toDbChargeFixe), { onConflict: 'id' })
+        }
         if (dbMessages)    setMessages(dbMessages.map(fromDbMessage))
         if (dbDemandesRH)  setDemandesRH(dbDemandesRH.map(fromDbDemandeRH))
         if (dbRecs)        setRecrutements(dbRecs.map(fromDbRecrutement))
