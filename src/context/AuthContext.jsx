@@ -40,6 +40,25 @@ export function AuthProvider({ children }) {
     return data
   }
 
+  // ── Recrée un profil supprimé depuis les métadonnées de l'auth user ───────
+  const restoreProfileFromMetadata = async (user) => {
+    const meta = user.user_metadata || {}
+    if (!meta.role) return null
+    const profileData = {
+      id: user.id,
+      username: meta.username || user.email?.split('@')[0] || '',
+      full_name: meta.full_name || '',
+      role: meta.role,
+      employe_id: meta.employe_id || null,
+      prospect_id: meta.prospect_id || null,
+      avatar_url: null,
+    }
+    const { error } = await supabase.from('profiles').insert(profileData)
+    if (error) { console.warn('[Auth] Restauration profil échouée:', error.message); return null }
+    console.info('[Auth] Profil restauré depuis les métadonnées pour', user.id)
+    return profileData
+  }
+
   // ── Restauration de session au démarrage ──────────────────────────────────
   useEffect(() => {
     // Mode démo uniquement en environnement de développement local
@@ -92,27 +111,50 @@ export function AuthProvider({ children }) {
 
   // ── signIn ────────────────────────────────────────────────────────────────
   const signIn = async (usernameOrEmail, password) => {
-    // Résolution username → email (si l'utilisateur n'a pas entré un email)
     let email = usernameOrEmail
     if (!usernameOrEmail.includes('@')) {
       const { data: emailVal, error: rpcErr } = await supabase.rpc('get_email_from_username', { uname: usernameOrEmail })
-      if (rpcErr || !emailVal) throw new Error('Utilisateur introuvable. Vérifiez votre identifiant.')
-      email = emailVal
+      if (rpcErr || !emailVal) {
+        // Le profil a peut-être été supprimé (bug blocage). Essayer les patterns par défaut.
+        email = null
+      } else {
+        email = emailVal
+      }
     }
 
-    // Authentification Supabase
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) {
-      if (error.message.includes('Invalid login')) throw new Error('Identifiant ou mot de passe incorrect.')
-      throw new Error(error.message)
+    let authData
+    if (email) {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) {
+        if (error.message.includes('Invalid login')) throw new Error('Identifiant ou mot de passe incorrect.')
+        throw new Error(error.message)
+      }
+      authData = data
+    } else {
+      // Fallback : essayer les patterns d'email par défaut (collaborateur / client)
+      const fallbacks = [
+        `${usernameOrEmail}@clade.ma`,
+        `${usernameOrEmail}@client.clade.ma`,
+      ]
+      let lastError
+      for (const tryEmail of fallbacks) {
+        const { data, error } = await supabase.auth.signInWithPassword({ email: tryEmail, password })
+        if (!error) { authData = data; break }
+        lastError = error
+      }
+      if (!authData) {
+        if (lastError?.message?.includes('Invalid login')) throw new Error('Identifiant ou mot de passe incorrect.')
+        throw new Error('Utilisateur introuvable. Vérifiez votre identifiant.')
+      }
     }
 
-    const prof = await loadProfile(data.user.id)
+    // Charger le profil — si manquant (profil supprimé lors d'un blocage), le restaurer
+    let prof = await loadProfile(authData.user.id)
+    if (!prof) prof = await restoreProfileFromMetadata(authData.user)
     if (!prof) throw new Error('Profil introuvable. Contactez l\'administrateur.')
 
-    setSession(data.session)
+    setSession(authData.session)
 
-    // Directeur → attendre la vérification du PIN avant de donner accès
     if (prof.role === 'directeur') {
       setPinPending(true)
       sessionStorage.removeItem('clade_pin_ok')
@@ -121,7 +163,7 @@ export function AuthProvider({ children }) {
 
     setProfile(prof)
     setLoading(false)
-    return { user: data.user }
+    return { user: authData.user }
   }
 
   // ── Vérification du PIN directeur ─────────────────────────────────────────
