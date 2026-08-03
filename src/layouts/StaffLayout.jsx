@@ -160,6 +160,22 @@ export default function StaffLayout() {
     if (emp?.permissions?.allowedProjects !== undefined) allowedProjects = emp.permissions.allowedProjects
   }
 
+  const currentEmp = employes.find(e => String(e.id) === String(profile?.employe_id))
+  if (!isDemoMode && supaLoaded && currentEmp?.statut === 'bloque') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-paper p-8">
+        <div className="text-center max-w-sm">
+          <div className="w-14 h-14 rounded-2xl bg-rose-50 flex items-center justify-center mx-auto mb-5">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F43F5E" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+          </div>
+          <h2 className="font-display text-2xl text-ink mb-2">Accès suspendu</h2>
+          <p className="text-muted text-sm leading-relaxed">Votre compte a été temporairement suspendu. Contactez votre responsable pour plus d'informations.</p>
+          <button onClick={async () => { await signOut(); navigate('/login') }} className="mt-6 text-xs text-muted underline hover:text-ink transition-colors">Se déconnecter</button>
+        </div>
+      </div>
+    )
+  }
+
   const handleSignOut = async () => {
     try {
       await signOut()

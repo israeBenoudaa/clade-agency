@@ -1207,16 +1207,8 @@ export function DataProvider({ children }) {
     })
     if (updates.statut === 'bloque') {
       logActivity({ action: 'Accès collaborateur bloqué', details: emp?.nom || id, category: 'employe' })
-      supabase?.from('profiles').delete().eq('employe_id', String(id)).then(({ error }) => {
-        if (error) console.warn('[Supabase] updateEmploye→block→profiles:', error.message)
-      })
     } else if (updates.statut === 'actif' && emp?.statut === 'bloque') {
       logActivity({ action: 'Accès collaborateur rétabli', details: emp?.nom || id, category: 'employe' })
-      if (emp?.credentials) {
-        setupEmployeePortal(id, emp.credentials).catch(err => {
-          console.warn('[Auth] Reactivation: profil non recréé:', err.message)
-        })
-      }
     }
   }
 
@@ -1679,16 +1671,12 @@ export function DataProvider({ children }) {
     const prospect = (stateRef.current.prospects || []).find(p => p.id === prospectId)
     logActivity({ action: 'Accès client bloqué', details: `${prospect?.prenom || ''} ${prospect?.nom || ''}`.trim() || prospectId, category: 'client' })
     updateProspect(prospectId, { portalBlocked: true })
-    supabase?.from('profiles').delete().eq('prospect_id', prospectId).then(({ error }) => {
-      if (error) console.warn('[Supabase] blockClientPortal:', error.message)
-    })
   }
 
-  const unblockClientPortal = async (prospectId, credentials) => {
+  const unblockClientPortal = async (prospectId) => {
     const prospect = (stateRef.current.prospects || []).find(p => p.id === prospectId)
     logActivity({ action: 'Accès client rétabli', details: `${prospect?.prenom || ''} ${prospect?.nom || ''}`.trim() || prospectId, category: 'client' })
     updateProspect(prospectId, { portalBlocked: false })
-    await setupClientPortal(prospectId, credentials)
   }
 
   const addClientExpense = (prospectId, expense) => {
