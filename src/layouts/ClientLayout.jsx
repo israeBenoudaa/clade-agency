@@ -225,8 +225,8 @@ function ClientLayoutInner() {
           <div className="w-14 h-14 rounded-2xl bg-rose-50 flex items-center justify-center mx-auto mb-5">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F43F5E" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
           </div>
-          <h2 className="font-display text-2xl text-ink mb-2">Accès suspendu</h2>
-          <p className="text-muted text-sm leading-relaxed">Votre accès a été temporairement suspendu. Contactez votre chargé de projet pour plus d'informations.</p>
+          <h2 className="font-display text-2xl text-ink mb-2">Identifiant introuvable</h2>
+          <p className="text-muted text-sm leading-relaxed">Nous ne reconnaissons pas cet identifiant. Vérifiez vos informations ou contactez votre chargé de projet.</p>
           <button onClick={signOut} className="mt-6 text-xs text-muted underline hover:text-ink transition-colors">Se déconnecter</button>
         </div>
       </div>
