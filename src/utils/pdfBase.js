@@ -79,11 +79,11 @@ export function buildDocHeader({ type, title, ref = '', meta = [], statusSlot = 
         </div>
 
         <!-- Right: type + status -->
-        <div style="flex-shrink:0;text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:12px;">
-          <div style="text-align:right;">
-            <div style="${AV}font-size:11px;color:rgba(196,173,138,0.45);line-height:1;margin-bottom:5px;">[</div>
-            <div style="${SB}font-size:13px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#C4AD8A;line-height:1.3;">${type}</div>
-            <div style="${AV}font-size:11px;color:rgba(196,173,138,0.45);line-height:1;margin-top:5px;">]</div>
+        <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:12px;">
+          <div style="display:flex;align-items:center;gap:7px;">
+            <span style="${AV}font-size:15px;color:rgba(196,173,138,0.5);line-height:1;">[</span>
+            <span style="${SB}font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:#C4AD8A;line-height:1;">${type}</span>
+            <span style="${AV}font-size:15px;color:rgba(196,173,138,0.5);line-height:1;">]</span>
           </div>
           ${statusSlot || ''}
         </div>
@@ -109,13 +109,14 @@ export function buildDocFooter(immat = {}) {
     ice && `ICE : ${ice}`,
   ].filter(Boolean).join('&ensp;—&ensp;')
 
+  const line2Full = [line2, rib].filter(Boolean).join('&ensp;·&ensp;')
+
   return `
     <div style="${SB}background:#F2EEE8;border-top:1px solid #DDD8D0;">
-      <div style="padding:8px 48px;display:flex;align-items:center;gap:16px;">
-        <div style="font-size:7.5px;color:#9B968F;line-height:1.8;flex:1;">
+      <div style="padding:5px 48px;display:flex;align-items:center;gap:16px;">
+        <div style="font-size:7px;color:#9B968F;line-height:1.55;flex:1;">
           ${line1 ? `<div>${line1}</div>` : '<div style="color:#BAB5AE;font-style:italic;">Clade — Document officiel</div>'}
-          ${hasReg && line2 ? `<div style="margin-top:1px;">${line2}</div>` : ''}
-          ${rib ? `<div style="margin-top:1px;">${rib}</div>` : ''}
+          ${line2Full ? `<div style="margin-top:1px;">${line2Full}</div>` : ''}
         </div>
         <div style="width:80px;flex-shrink:0;"></div>
       </div>
