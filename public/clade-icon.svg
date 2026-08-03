@@ -1,7 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#0A1E3F"/>
-  <path d="M16 20 L16 44 L48 44" stroke="#06B6D4" stroke-width="3" fill="none" stroke-linecap="round"/>
-  <circle cx="16" cy="20" r="3" fill="#06B6D4"/>
-  <circle cx="48" cy="44" r="3" fill="#06B6D4"/>
-  <path d="M16 44 L32 20 L48 44" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect width="64" height="64" rx="10" fill="#1B3A6B"/>
+  <text x="32" y="41" text-anchor="middle"
+        font-family="Georgia, 'Times New Roman', serif"
+        font-size="22" fill="#FFFFFF" letter-spacing="2">[ C ]</text>
 </svg>
