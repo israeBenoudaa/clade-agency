@@ -1021,7 +1021,7 @@ export default function ProjectDetailPage({ backPath = '/app/projects' }) {
                     try {
                       await generateProjectReportPdf({ project, tasks: project.tasks || [], missions: project.missions || [], agenceSettings })
                       toast.success('Rapport PDF téléchargé')
-                    } catch { toast.error('Erreur lors de la génération du rapport') }
+                    } catch (e) { console.error('[PDF rapport]', e); toast.error('Erreur lors de la génération du rapport') }
                     finally { setExportingReport(false) }
                   }}
                   className="w-8 h-8 flex items-center justify-center rounded-xl border border-electric/30 text-electric bg-electric/5 hover:bg-electric/10 transition-colors disabled:opacity-50">
@@ -1056,7 +1056,7 @@ export default function ProjectDetailPage({ backPath = '/app/projects' }) {
                     try {
                       await generateProjectReportPdf({ project, tasks: project.tasks || [], missions: project.missions || [], agenceSettings })
                       toast.success('Rapport PDF téléchargé')
-                    } catch { toast.error('Erreur lors de la génération du rapport') }
+                    } catch (e) { console.error('[PDF rapport]', e); toast.error('Erreur lors de la génération du rapport') }
                     finally { setExportingReport(false) }
                   }}
                   disabled={exportingReport}
@@ -1537,7 +1537,8 @@ export default function ProjectDetailPage({ backPath = '/app/projects' }) {
           try {
             await generateCompteRenduPdf({ rdv, compteRendu: rdv.compteRendu, projectNom: project.nom })
             toast.success('PDF exporté')
-          } catch {
+          } catch (e) {
+            console.error('[PDF CR]', e)
             toast.error('Erreur lors de la génération du PDF')
           } finally {
             setExportingRdvId(null)

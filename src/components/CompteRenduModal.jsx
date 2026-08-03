@@ -61,7 +61,8 @@ export default function CompteRenduModal({ rdv, compteRendu, projectNom, onSave,
     try {
       await generateCompteRenduPdf({ rdv, compteRendu: buildPayload(), projectNom })
       toast.success('PDF exporté')
-    } catch {
+    } catch (e) {
+      console.error('[PDF compte-rendu]', e)
       toast.error('Erreur lors de la génération du PDF')
     } finally {
       setExporting(false)

@@ -48,7 +48,7 @@ export function sectionHead(num, label) {
         <span style="${AV}font-size:9px;color:#C4AD8A;line-height:1;">]</span>
       </div>
       <span style="font-size:7px;font-weight:700;letter-spacing:0.28em;text-transform:uppercase;color:#C4BFB8;">${label}</span>
-      <div style="flex:1;height:0.5px;background:linear-gradient(to right,#E0DBD3,transparent);"></div>
+      <div style="flex:1;height:1px;background:linear-gradient(to right,#E0DBD3,transparent);"></div>
     </div>`
 }
 
@@ -89,7 +89,7 @@ export function buildDocHeader({ type, title, ref = '', meta = [], statusSlot = 
         </div>
 
       </div>
-      <div style="margin-top:20px;height:0.5px;background:linear-gradient(to right,rgba(196,173,138,0.35),transparent);"></div>
+      <div style="margin-top:20px;height:1px;background:linear-gradient(to right,rgba(196,173,138,0.35),transparent);"></div>
     </div>
     ${metaHTML}`
 }
@@ -123,58 +123,69 @@ export function buildDocFooter(immat = {}) {
 }
 
 export async function renderToPdf({ headerHTML, contentHTML, filename }) {
-  const immat = getImmatriculation()
-  const footerHTML = buildDocFooter(immat)
+  let _stage = 'init'
+  try {
+    _stage = 'footer-build'
+    const immat = getImmatriculation()
+    const footerHTML = buildDocFooter(immat)
 
-  const hEl = createHidden(headerHTML)
-  await waitReady(hEl)
-  const hCanvas = await html2canvas(hEl, CANVAS_OPTS)
-  hEl.remove()
+    _stage = 'header-canvas'
+    const hEl = createHidden(headerHTML)
+    await waitReady(hEl)
+    const hCanvas = await html2canvas(hEl, CANVAS_OPTS)
+    hEl.remove()
 
-  const fEl = createHidden(footerHTML)
-  await waitReady(fEl)
-  const fCanvas = await html2canvas(fEl, CANVAS_OPTS)
-  fEl.remove()
+    _stage = 'footer-canvas'
+    const fEl = createHidden(footerHTML)
+    await waitReady(fEl)
+    const fCanvas = await html2canvas(fEl, CANVAS_OPTS)
+    fEl.remove()
 
-  const cEl = createHidden(contentHTML)
-  await waitReady(cEl)
-  const cCanvas = await html2canvas(cEl, CANVAS_OPTS)
-  cEl.remove()
+    _stage = 'content-canvas'
+    const cEl = createHidden(contentHTML)
+    await waitReady(cEl)
+    const cCanvas = await html2canvas(cEl, CANVAS_OPTS)
+    cEl.remove()
 
-  const A4H_px = Math.round(297 * (hCanvas.width / 210))
-  const hH = hCanvas.height
-  const fH = fCanvas.height
-  const contentPerPage = A4H_px - hH - fH
-  const totalPages = Math.max(1, Math.ceil(cCanvas.height / contentPerPage))
+    _stage = 'compose'
+    const A4H_px = Math.round(297 * (hCanvas.width / 210))
+    const hH = hCanvas.height
+    const fH = fCanvas.height
+    const contentPerPage = Math.max(1, A4H_px - hH - fH)
+    const totalPages = Math.max(1, Math.ceil(cCanvas.height / contentPerPage))
 
-  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
 
-  for (let p = 0; p < totalPages; p++) {
-    if (p > 0) pdf.addPage()
-    const page = document.createElement('canvas')
-    page.width = hCanvas.width
-    page.height = A4H_px
-    const ctx = page.getContext('2d')
+    for (let p = 0; p < totalPages; p++) {
+      if (p > 0) pdf.addPage()
+      const page = document.createElement('canvas')
+      page.width = hCanvas.width
+      page.height = A4H_px
+      const ctx = page.getContext('2d')
 
-    ctx.fillStyle = '#fff'
-    ctx.fillRect(0, 0, page.width, A4H_px)
-    ctx.drawImage(hCanvas, 0, 0)
+      ctx.fillStyle = '#fff'
+      ctx.fillRect(0, 0, page.width, A4H_px)
+      ctx.drawImage(hCanvas, 0, 0)
 
-    const srcY = p * contentPerPage
-    const srcH = Math.min(contentPerPage, cCanvas.height - srcY)
-    if (srcH > 0) ctx.drawImage(cCanvas, 0, srcY, cCanvas.width, srcH, 0, hH, page.width, srcH)
+      const srcY = p * contentPerPage
+      const srcH = Math.min(contentPerPage, cCanvas.height - srcY)
+      if (srcH > 0) ctx.drawImage(cCanvas, 0, srcY, cCanvas.width, srcH, 0, hH, page.width, srcH)
 
-    ctx.drawImage(fCanvas, 0, A4H_px - fH)
+      ctx.drawImage(fCanvas, 0, A4H_px - fH)
 
-    // Page number drawn directly — no font embed needed for a single line
-    ctx.font = '20px Georgia, serif'
-    ctx.fillStyle = '#C4AD8A'
-    ctx.textAlign = 'right'
-    ctx.textBaseline = 'middle'
-    ctx.fillText(`[ ${p + 1} / ${totalPages} ]`, page.width - 56, A4H_px - fH / 2)
+      ctx.font = '20px Georgia, serif'
+      ctx.fillStyle = '#C4AD8A'
+      ctx.textAlign = 'right'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(`[ ${p + 1} / ${totalPages} ]`, page.width - 56, A4H_px - fH / 2)
 
-    pdf.addImage(page.toDataURL('image/jpeg', 0.93), 'JPEG', 0, 0, 210, 297)
+      pdf.addImage(page.toDataURL('image/jpeg', 0.93), 'JPEG', 0, 0, 210, 297)
+    }
+
+    _stage = 'save'
+    pdf.save(filename)
+  } catch (e) {
+    console.error(`[PDF] renderToPdf failed at stage "${_stage}":`, e)
+    throw e
   }
-
-  pdf.save(filename)
 }

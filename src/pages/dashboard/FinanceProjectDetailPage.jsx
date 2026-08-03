@@ -122,7 +122,8 @@ export default function FinanceProjectDetailPage() {
         date: new Date().toISOString().slice(0, 10),
       })
       toast.success('Facture PDF générée')
-    } catch {
+    } catch (e) {
+      console.error('[PDF facture]', e)
       toast.error('Erreur lors de la génération')
     } finally {
       setGenerating(null)

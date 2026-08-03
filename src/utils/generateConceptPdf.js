@@ -32,7 +32,7 @@ function buildImgSection(title, color, images, cols, num) {
 
 export async function generateConceptPdf({ project, concept, response, download = true }) {
   const { images = [], questions = [] } = concept
-  const { imageVotes = {}, questionAnswers = {} } = response
+  const { imageVotes = {}, questionAnswers = {} } = response || {}
 
   const superImages   = images.filter(img => imageVotes[img.id] === 'superlike')
   const likeImages    = images.filter(img => imageVotes[img.id] === 'like')

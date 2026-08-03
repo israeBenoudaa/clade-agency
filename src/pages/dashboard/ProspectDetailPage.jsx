@@ -383,7 +383,7 @@ export default function ProspectDetailPage() {
     try {
       await generateDevisPdf({ prospect, missions })
       toast.success('Devis PDF généré')
-    } catch { toast.error('Erreur lors de la génération') }
+    } catch (e) { console.error('[PDF devis]', e); toast.error('Erreur lors de la génération') }
     finally { setGenerating(false) }
   }
 
