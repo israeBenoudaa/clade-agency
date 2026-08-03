@@ -25,10 +25,10 @@ const CLIENT_NAV = [
 function useClientNotifications(profile, projects) {
   return useMemo(() => {
     const notifs = []
-    if (!profile?.prospectId) return notifs
+    if (!profile?.prospect_id) return notifs
 
     const project = projects?.find(p =>
-      p.prospectId === profile.prospectId
+      p.prospectId === profile.prospect_id
     )
     if (!project) return notifs
 
@@ -67,7 +67,7 @@ function useClientNotifications(profile, projects) {
     }
     return notifs
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile?.prospectId, projects])
+  }, [profile?.prospect_id, projects])
 }
 
 function NotificationsDropdown({ notifs, onClose, navigate, onMarkRead }) {
@@ -217,7 +217,7 @@ function ClientLayoutInner() {
   const { lang, setLang, t } = useClientLang()
   const navigate = useNavigate()
 
-  const clientProspect = prospects?.find(p => p.id === profile?.prospectId)
+  const clientProspect = prospects?.find(p => p.id === profile?.prospect_id)
   if (!isDemoMode && supaLoaded && clientProspect?.portalBlocked) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-paper p-8">
@@ -235,9 +235,9 @@ function ClientLayoutInner() {
 
   // Track new livrables — count stored in localStorage, badge if count grew
   const livrableCount = useMemo(() => {
-    if (!profile?.prospectId) return 0
+    if (!profile?.prospect_id) return 0
     const clientProjects = projects.filter(p =>
-      p.prospectId === profile.prospectId || p.clientId === profile.id
+      p.prospectId === profile.prospect_id || p.clientId === profile.id
     )
     return clientProjects.reduce((s, p) => {
       const taskFiles = (p.tasks || []).reduce((ts, t) => ts + (t.files?.length || 0), 0)
@@ -248,7 +248,7 @@ function ClientLayoutInner() {
     }, 0)
   }, [projects, profile])
 
-  const livStorageKey = `clade_livrables_seen_${profile?.prospectId}`
+  const livStorageKey = `clade_livrables_seen_${profile?.prospect_id}`
   const seenCount = useMemo(() => {
     try { return parseInt(localStorage.getItem(livStorageKey) || '0', 10) } catch { return 0 }
   }, [livStorageKey])
@@ -261,8 +261,8 @@ function ClientLayoutInner() {
   const projectNotifs = useClientNotifications(profile, projects)
 
   const msgNotifs = useMemo(() => {
-    if (!profile?.prospectId) return []
-    const targetId = `client:${profile.prospectId}`
+    if (!profile?.prospect_id) return []
+    const targetId = `client:${profile.prospect_id}`
     return notifications
       .filter(n => n.targetUserId === targetId && n.type === 'new_message')
       .slice(0, 8)
@@ -276,7 +276,7 @@ function ClientLayoutInner() {
         link: n.link || '/client/messages',
         read: n.read,
       }))
-  }, [notifications, profile?.prospectId])
+  }, [notifications, profile?.prospect_id])
 
   const notifs = [...projectNotifs, ...msgNotifs]
   const unreadMsgCount = msgNotifs.filter(n => !n.read).length
@@ -420,7 +420,7 @@ function ClientLayoutInner() {
                     notifs={notifs}
                     onClose={() => setBellOpen(false)}
                     navigate={navigate}
-                    onMarkRead={() => markNotificationsReadForTarget(`client:${profile?.prospectId}`)}
+                    onMarkRead={() => markNotificationsReadForTarget(`client:${profile?.prospect_id}`)}
                   />
                 )}
               </AnimatePresence>

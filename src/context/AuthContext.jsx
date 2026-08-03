@@ -115,37 +115,39 @@ export function AuthProvider({ children }) {
     if (!usernameOrEmail.includes('@')) {
       const { data: emailVal, error: rpcErr } = await supabase.rpc('get_email_from_username', { uname: usernameOrEmail })
       if (rpcErr || !emailVal) {
-        // Le profil a peut-être été supprimé (bug blocage). Essayer les patterns par défaut.
-        email = null
+        // Profil supprimé (bug blocage) — chercher l'email directement dans les tables
+        const [{ data: empRow }, { data: pRow }] = await Promise.all([
+          supabase.from('employes').select('email').eq('credentials->>username', usernameOrEmail).maybeSingle(),
+          supabase.from('prospects').select('email').eq('client_credentials->>username', usernameOrEmail).maybeSingle(),
+        ])
+        if (empRow?.email) {
+          email = empRow.email
+        } else if (pRow?.email) {
+          email = pRow.email
+        } else {
+          // Dernier recours : patterns par défaut
+          email = `${usernameOrEmail}@clade.ma`
+        }
       } else {
         email = emailVal
       }
     }
 
     let authData
-    if (email) {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) {
-        if (error.message.includes('Invalid login')) throw new Error('Identifiant ou mot de passe incorrect.')
-        throw new Error(error.message)
+    const { data, error: authErr } = await supabase.auth.signInWithPassword({ email, password })
+    if (authErr) {
+      // Si le pattern par défaut a échoué, essayer l'autre
+      if (authErr.message.includes('Invalid login') && email.endsWith('@clade.ma')) {
+        const { data: d2, error: e2 } = await supabase.auth.signInWithPassword({ email: email.replace('@clade.ma', '@client.clade.ma'), password })
+        if (!e2) { authData = d2 }
+        else throw new Error('Identifiant ou mot de passe incorrect.')
+      } else if (authErr.message.includes('Invalid login')) {
+        throw new Error('Identifiant ou mot de passe incorrect.')
+      } else {
+        throw new Error(authErr.message)
       }
-      authData = data
     } else {
-      // Fallback : essayer les patterns d'email par défaut (collaborateur / client)
-      const fallbacks = [
-        `${usernameOrEmail}@clade.ma`,
-        `${usernameOrEmail}@client.clade.ma`,
-      ]
-      let lastError
-      for (const tryEmail of fallbacks) {
-        const { data, error } = await supabase.auth.signInWithPassword({ email: tryEmail, password })
-        if (!error) { authData = data; break }
-        lastError = error
-      }
-      if (!authData) {
-        if (lastError?.message?.includes('Invalid login')) throw new Error('Identifiant ou mot de passe incorrect.')
-        throw new Error('Utilisateur introuvable. Vérifiez votre identifiant.')
-      }
+      authData = data
     }
 
     // Charger le profil — si manquant (profil supprimé lors d'un blocage), le restaurer
