@@ -187,6 +187,18 @@ export default function FinancePage() {
     return '2000000'
   })
 
+  const [immat, setImmat] = useState(() => {
+    try { const s = localStorage.getItem('clade_immatriculation'); if (s) return JSON.parse(s) } catch {}
+    return { nom: '', adresse: '', telFax: '', cnss: '', patente: '', identifiantFiscale: '', ice: '', rib: '' }
+  })
+  const updateImmat = (field, value) => {
+    setImmat(prev => {
+      const next = { ...prev, [field]: value }
+      try { localStorage.setItem('clade_immatriculation', JSON.stringify(next)) } catch {}
+      return next
+    })
+  }
+
   // ── Monthly aggregation ──
   const monthlyData = useMemo(() => {
     const map = {}
@@ -1063,6 +1075,50 @@ export default function FinancePage() {
 
       {/* ── Calendrier Fiscal ── */}
       <FiscalCalendar onTransactionAdd={handleFiscalPaid} />
+
+      {/* ── Immatriculation de l'entreprise ── */}
+      {true && (
+        <div className="card p-5 lg:p-7">
+          <div className="mb-5">
+            <div className="label-text mb-1">Documents officiels</div>
+            <div className="font-display text-2xl text-ink">Immatriculation de l'entreprise</div>
+            <p className="text-sm text-muted mt-1">Ces informations apparaissent en pied de page de tous les documents générés.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {[
+              { field: 'nom', label: 'Nom / Raison sociale', placeholder: 'Cabinet Architecte — Mohammed Amine' },
+              { field: 'adresse', label: 'Siège social', placeholder: '39, Rue Melouya Apt 6 Agdal-Rabat' },
+              { field: 'telFax', label: 'Tél / Fax', placeholder: '0537 770 534' },
+              { field: 'cnss', label: 'CNSS N°', placeholder: '8384878' },
+              { field: 'patente', label: 'Patente N°', placeholder: '25730100' },
+              { field: 'identifiantFiscale', label: 'Identifiant Fiscale', placeholder: '40192373' },
+              { field: 'ice', label: 'ICE', placeholder: '001639097000049' },
+              { field: 'rib', label: 'RIB bancaire', placeholder: 'SAHAM BANK — Agence Michlifen : 022 810 ...' },
+            ].map(({ field, label, placeholder }) => (
+              <div key={field}>
+                <label className="text-[10px] font-semibold text-muted uppercase tracking-wide block mb-1">{label}</label>
+                <input
+                  type="text"
+                  value={immat[field] || ''}
+                  onChange={e => updateImmat(field, e.target.value)}
+                  placeholder={placeholder}
+                  className="w-full px-3 py-2 text-sm bg-paper-warm border border-border rounded-xl focus:outline-none focus:border-electric transition-colors"
+                />
+              </div>
+            ))}
+          </div>
+          {(immat.nom || immat.cnss) && (
+            <div className="mt-4 px-4 py-3 bg-paper-warm border border-border rounded-xl">
+              <div className="text-[10px] font-semibold text-muted uppercase tracking-wide mb-1">Aperçu pied de page</div>
+              <div className="text-[11px] text-muted leading-relaxed font-mono">
+                {[immat.nom, immat.adresse, immat.telFax && `Tél/Fax : ${immat.telFax}`].filter(Boolean).join(' · ')}<br />
+                {[immat.cnss && `CNSS N° : ${immat.cnss}`, immat.patente && `Patente N° : ${immat.patente}`, immat.identifiantFiscale && `Identifiant Fiscale : ${immat.identifiantFiscale}`, immat.ice && `ICE : ${immat.ice}`].filter(Boolean).join(' --- ')}
+                {immat.rib && <><br />{immat.rib}</>}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ══ SYNTHÈSE PROJETS (directeur uniquement) ══ */}
       {isDir && (() => {
