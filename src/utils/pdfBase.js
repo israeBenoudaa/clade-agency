@@ -65,24 +65,31 @@ export function buildDocHeader({ type, title, ref = '', meta = [], statusSlot = 
 
   return `
     <div style="${SB}background:#161410;padding:28px 48px 24px;position:relative;overflow:hidden;">
-      <div style="position:absolute;right:18px;bottom:-8px;${AV}font-size:160px;color:rgba(255,255,255,0.03);line-height:1;user-select:none;pointer-events:none;letter-spacing:-8px;">[ ]</div>
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:24px;position:relative;z-index:1;">
+      <div style="position:absolute;right:-10px;bottom:-20px;${AV}font-size:180px;color:rgba(255,255,255,0.025);line-height:1;user-select:none;pointer-events:none;letter-spacing:-10px;">[ ]</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:32px;position:relative;z-index:1;">
+
+        <!-- Left: logo + title -->
         <div style="flex:1;min-width:0;">
-          <div style="margin-bottom:18px;">
-            <div style="${AV}font-size:24px;font-weight:400;color:#F8F5F0;letter-spacing:0.03em;line-height:1;display:block;">Clade</div>
-            <div style="${SB}font-size:6px;font-weight:500;letter-spacing:0.32em;text-transform:uppercase;color:rgba(248,245,240,0.22);margin-top:4px;">architects &amp; co</div>
+          <div style="margin-bottom:20px;">
+            <div style="${AV}font-size:24px;font-weight:400;color:#F8F5F0;letter-spacing:0.03em;line-height:1;">Clade</div>
+            <div style="${SB}font-size:6px;font-weight:500;letter-spacing:0.32em;text-transform:uppercase;color:rgba(248,245,240,0.22);margin-top:5px;">architects &amp; co</div>
           </div>
-          <div style="display:inline-flex;align-items:center;gap:5px;margin-bottom:10px;border:0.5px solid rgba(196,173,138,0.3);border-radius:2px;padding:3px 8px;">
-            <span style="${AV}font-size:9px;color:rgba(196,173,138,0.5);">[</span>
-            <span style="${SB}font-size:7px;font-weight:700;letter-spacing:0.3em;text-transform:uppercase;color:#C4AD8A;"> ${type} </span>
-            <span style="${AV}font-size:9px;color:rgba(196,173,138,0.5);">]</span>
-          </div>
-          <div style="font-size:28px;font-weight:700;color:#F8F5F0;line-height:1.08;letter-spacing:-0.02em;max-width:480px;">${title}</div>
-          ${ref ? `<div style="font-size:8px;font-weight:400;color:rgba(248,245,240,0.18);letter-spacing:0.1em;margin-top:8px;font-variant-numeric:tabular-nums;">${ref}</div>` : ''}
+          <div style="font-size:30px;font-weight:700;color:#F8F5F0;line-height:1.06;letter-spacing:-0.02em;max-width:380px;">${title}</div>
+          ${ref ? `<div style="font-size:8px;font-weight:400;color:rgba(248,245,240,0.2);letter-spacing:0.1em;margin-top:8px;font-variant-numeric:tabular-nums;">${ref}</div>` : ''}
         </div>
-        ${statusSlot ? `<div style="flex-shrink:0;padding-top:4px;">${statusSlot}</div>` : ''}
+
+        <!-- Right: type + status -->
+        <div style="flex-shrink:0;text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:12px;">
+          <div style="text-align:right;">
+            <div style="${AV}font-size:11px;color:rgba(196,173,138,0.45);line-height:1;margin-bottom:5px;">[</div>
+            <div style="${SB}font-size:13px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#C4AD8A;line-height:1.3;">${type}</div>
+            <div style="${AV}font-size:11px;color:rgba(196,173,138,0.45);line-height:1;margin-top:5px;">]</div>
+          </div>
+          ${statusSlot || ''}
+        </div>
+
       </div>
-      <div style="margin-top:22px;height:0.5px;background:linear-gradient(to right,rgba(196,173,138,0.4),transparent);"></div>
+      <div style="margin-top:20px;height:0.5px;background:linear-gradient(to right,rgba(196,173,138,0.35),transparent);"></div>
     </div>
     ${metaHTML}`
 }
