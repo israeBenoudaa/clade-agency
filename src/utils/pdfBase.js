@@ -41,45 +41,48 @@ async function waitReady(el) {
 // Shared section header inside a content area
 export function sectionHead(num, label) {
   return `
-    <div style="display:flex;align-items:center;gap:8px;margin:22px 0 12px;">
-      <span style="${AV}font-size:10.5px;color:#C4AD8A;">[</span>
-      <span style="${AV}font-size:10.5px;color:#9B8157;">${String(num).padStart(2,'0')}</span>
-      <span style="${AV}font-size:10.5px;color:#C4AD8A;">]</span>
-      <span style="${SB}font-size:7.5px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:#ABA79F;">${label}</span>
-      <div style="flex:1;height:0.5px;background:#EDEAE3;"></div>
+    <div style="${SB}display:flex;align-items:center;gap:10px;margin:24px 0 14px;">
+      <div style="display:flex;align-items:center;gap:3px;flex-shrink:0;">
+        <span style="${AV}font-size:9px;color:#C4AD8A;line-height:1;">[</span>
+        <span style="${AV}font-size:11px;color:#9B8157;line-height:1;font-weight:400;">${String(num).padStart(2,'0')}</span>
+        <span style="${AV}font-size:9px;color:#C4AD8A;line-height:1;">]</span>
+      </div>
+      <span style="font-size:7px;font-weight:700;letter-spacing:0.28em;text-transform:uppercase;color:#C4BFB8;">${label}</span>
+      <div style="flex:1;height:0.5px;background:linear-gradient(to right,#E0DBD3,transparent);"></div>
     </div>`
 }
 
 // Dark header common to all documents
 export function buildDocHeader({ type, title, ref = '', meta = [], statusSlot = '' }) {
   const metaHTML = meta.length ? `
-    <div style="${SB}background:#F8F5F0;padding:12px 48px;display:flex;border-bottom:0.5px solid #DDD8D0;">
+    <div style="${SB}background:#F4F1EC;padding:0 48px;display:flex;border-bottom:1px solid #DDD8D0;">
       ${meta.map((m, i) => `
-        <div style="flex:1;${i > 0 ? 'padding-left:18px;border-left:0.5px solid #E0DBD3;' : ''}padding-right:18px;">
-          <div style="font-size:7px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:#BAB5AE;margin-bottom:3px;">${m.label}</div>
-          <div style="font-size:11.5px;font-weight:500;color:${m.accent ? '#9B8157' : '#0C0C0B'};">${m.value}</div>
+        <div style="flex:1;padding:14px 20px 14px 0;${i > 0 ? 'padding-left:20px;border-left:0.5px solid #DDD8D0;' : ''}">
+          <div style="font-size:6.5px;font-weight:700;letter-spacing:0.28em;text-transform:uppercase;color:#C4BFB8;margin-bottom:4px;">${m.label}</div>
+          <div style="font-size:12px;font-weight:600;color:${m.accent ? '#9B8157' : '#161410'};">${m.value}</div>
         </div>`).join('')}
     </div>` : ''
 
   return `
-    <div style="${SB}background:#0C0C0B;padding:24px 48px 20px;position:relative;overflow:hidden;">
-      <div style="position:absolute;right:22px;top:50%;transform:translateY(-50%);${AV}font-size:120px;color:rgba(255,255,255,0.04);line-height:1;user-select:none;pointer-events:none;">]</div>
-      <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:20px;position:relative;z-index:1;">
-        <div>
-          <div style="display:flex;align-items:baseline;gap:7px;margin-bottom:13px;">
-            <span style="${AV}font-size:21px;font-weight:400;color:#F8F5F0;letter-spacing:0.04em;line-height:1;">Clade</span>
-            <span style="${SB}font-size:6.5px;font-weight:400;letter-spacing:0.26em;text-transform:uppercase;color:rgba(248,245,240,0.24);">architects &amp; co</span>
+    <div style="${SB}background:#161410;padding:28px 48px 24px;position:relative;overflow:hidden;">
+      <div style="position:absolute;right:18px;bottom:-8px;${AV}font-size:160px;color:rgba(255,255,255,0.03);line-height:1;user-select:none;pointer-events:none;letter-spacing:-8px;">[ ]</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:24px;position:relative;z-index:1;">
+        <div style="flex:1;min-width:0;">
+          <div style="margin-bottom:18px;">
+            <div style="${AV}font-size:24px;font-weight:400;color:#F8F5F0;letter-spacing:0.03em;line-height:1;display:block;">Clade</div>
+            <div style="${SB}font-size:6px;font-weight:500;letter-spacing:0.32em;text-transform:uppercase;color:rgba(248,245,240,0.22);margin-top:4px;">architects &amp; co</div>
           </div>
-          <div style="display:inline-flex;align-items:center;gap:5px;margin-bottom:9px;">
-            <span style="${AV}font-size:9.5px;color:rgba(196,173,138,0.55);">[</span>
-            <span style="${SB}font-size:7.5px;font-weight:600;letter-spacing:0.26em;text-transform:uppercase;color:#C4AD8A;">${type}</span>
-            <span style="${AV}font-size:9.5px;color:rgba(196,173,138,0.55);">]</span>
+          <div style="display:inline-flex;align-items:center;gap:5px;margin-bottom:10px;border:0.5px solid rgba(196,173,138,0.3);border-radius:2px;padding:3px 8px;">
+            <span style="${AV}font-size:9px;color:rgba(196,173,138,0.5);">[</span>
+            <span style="${SB}font-size:7px;font-weight:700;letter-spacing:0.3em;text-transform:uppercase;color:#C4AD8A;"> ${type} </span>
+            <span style="${AV}font-size:9px;color:rgba(196,173,138,0.5);">]</span>
           </div>
-          <div style="font-size:25px;font-weight:700;color:#F8F5F0;line-height:1.1;letter-spacing:-0.01em;">${title}</div>
-          ${ref ? `<div style="font-size:8px;font-weight:400;color:rgba(248,245,240,0.2);letter-spacing:0.12em;margin-top:6px;">${ref}</div>` : ''}
+          <div style="font-size:28px;font-weight:700;color:#F8F5F0;line-height:1.08;letter-spacing:-0.02em;max-width:480px;">${title}</div>
+          ${ref ? `<div style="font-size:8px;font-weight:400;color:rgba(248,245,240,0.18);letter-spacing:0.1em;margin-top:8px;font-variant-numeric:tabular-nums;">${ref}</div>` : ''}
         </div>
-        ${statusSlot}
+        ${statusSlot ? `<div style="flex-shrink:0;padding-top:4px;">${statusSlot}</div>` : ''}
       </div>
+      <div style="margin-top:22px;height:0.5px;background:linear-gradient(to right,rgba(196,173,138,0.4),transparent);"></div>
     </div>
     ${metaHTML}`
 }
@@ -88,25 +91,27 @@ export function buildDocFooter(immat = {}) {
   const { nom, adresse, telFax, cnss, patente, identifiantFiscale, ice, rib } = immat
   const hasReg = cnss || patente || identifiantFiscale || ice
   const line1 = [
-    nom ? `<strong style="color:#5A5650;font-weight:600;">${nom}</strong>` : null,
+    nom ? `<strong style="color:#4A4640;font-weight:700;">${nom}</strong>` : null,
     adresse || null,
     telFax ? `Tél/Fax : ${telFax}` : null,
-  ].filter(Boolean).join(' &nbsp;·&nbsp; ')
+  ].filter(Boolean).join('&ensp;·&ensp;')
   const line2 = [
     cnss && `CNSS N° : ${cnss}`,
     patente && `Patente N° : ${patente}`,
     identifiantFiscale && `Identifiant Fiscale : ${identifiantFiscale}`,
     ice && `ICE : ${ice}`,
-  ].filter(Boolean).join(' &nbsp;—&nbsp; ')
+  ].filter(Boolean).join('&ensp;—&ensp;')
 
   return `
-    <div style="${SB}background:#F5F2EE;border-top:0.5px solid #D5D0C8;padding:9px 48px;display:flex;align-items:center;gap:16px;">
-      <div style="font-size:7.5px;color:#9B968F;line-height:1.75;flex:1;">
-        ${line1 ? `<div>${line1}</div>` : '<div style="color:#BAB5AE;">Clade — Document officiel</div>'}
-        ${hasReg && line2 ? `<div>${line2}</div>` : ''}
-        ${rib ? `<div>${rib}</div>` : ''}
+    <div style="${SB}background:#F2EEE8;border-top:1px solid #DDD8D0;">
+      <div style="padding:8px 48px;display:flex;align-items:center;gap:16px;">
+        <div style="font-size:7.5px;color:#9B968F;line-height:1.8;flex:1;">
+          ${line1 ? `<div>${line1}</div>` : '<div style="color:#BAB5AE;font-style:italic;">Clade — Document officiel</div>'}
+          ${hasReg && line2 ? `<div style="margin-top:1px;">${line2}</div>` : ''}
+          ${rib ? `<div style="margin-top:1px;">${rib}</div>` : ''}
+        </div>
+        <div style="width:80px;flex-shrink:0;"></div>
       </div>
-      <div style="width:70px;flex-shrink:0;"></div>
     </div>`
 }
 
