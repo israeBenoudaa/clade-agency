@@ -113,10 +113,10 @@ export function buildDocFooter(immat = {}) {
 
   return `
     <div style="${SB}background:#F2EEE8;border-top:1px solid #DDD8D0;">
-      <div style="padding:5px 48px;display:flex;align-items:center;gap:16px;">
-        <div style="font-size:7px;color:#9B968F;line-height:1.55;flex:1;">
+      <div style="padding:10px 48px;display:flex;align-items:center;gap:16px;">
+        <div style="font-size:9px;color:#9B968F;line-height:1.7;flex:1;">
           ${line1 ? `<div>${line1}</div>` : '<div style="color:#BAB5AE;font-style:italic;">Clade — Document officiel</div>'}
-          ${line2Full ? `<div style="margin-top:1px;">${line2Full}</div>` : ''}
+          ${line2Full ? `<div style="margin-top:2px;font-size:8px;color:#B0AAA3;">${line2Full}</div>` : ''}
         </div>
         <div style="width:80px;flex-shrink:0;"></div>
       </div>

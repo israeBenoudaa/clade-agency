@@ -31,8 +31,9 @@ export async function generateInvoicePdf({ invoiceNum, projectNom, client, missi
       { label: 'Statut', value: st.label, accent: paiement !== 'paye' },
     ],
     statusSlot: `
-      <div style="background:${st.bg};border:1px solid ${st.fg}30;border-radius:4px;padding:7px 16px;text-align:center;">
-        <div style="${SB}font-size:7px;font-weight:700;letter-spacing:0.3em;text-transform:uppercase;color:${st.fg};">${st.label}</div>
+      <div style="position:relative;overflow:hidden;background:linear-gradient(155deg,${st.bg} 0%,${st.bg}dd 100%);border:1px solid ${st.fg}22;border-radius:10px;padding:10px 22px;text-align:center;box-shadow:inset 0 1px 0 rgba(255,255,255,0.7),inset 0 -1px 0 rgba(0,0,0,0.04),0 1px 4px rgba(0,0,0,0.05);">
+        <div style="position:absolute;top:0;left:0;right:0;height:50%;background:linear-gradient(to bottom,rgba(255,255,255,0.5),transparent);border-radius:9px 9px 0 0;pointer-events:none;"></div>
+        <div style="${SB}font-size:7.5px;font-weight:700;letter-spacing:0.38em;text-transform:uppercase;color:${st.fg};position:relative;z-index:1;">${st.label}</div>
       </div>`,
   })
 
