@@ -954,7 +954,12 @@ export function DataProvider({ children }) {
   }
 
   const updateProjectFinances = (projectId, updates) => {
-    setProjects(prev => prev.map(p => p.id === projectId ? { ...p, finances: { ...(p.finances ?? {}), ...updates } } : p))
+    setProjects(prev => prev.map(p => {
+      if (p.id !== projectId) return p
+      const updated = { ...p, finances: { ...(p.finances ?? {}), ...updates } }
+      sbUpsert('projects', toDbProject(updated))
+      return updated
+    }))
   }
 
   const addProject = (data, by = '') => {
