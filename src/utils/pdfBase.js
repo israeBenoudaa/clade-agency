@@ -86,7 +86,7 @@ export function buildDocHeader({ type, title, ref = '', meta = [], statusSlot = 
         </div>
 
         <!-- Right: type + status -->
-        <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:12px;">
+        <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:22px;">
           <div style="display:flex;align-items:center;gap:7px;">
             <span style="${AV}font-size:15px;color:rgba(196,173,138,0.5);line-height:1;">[</span>
             <span style="${SB}font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:#C4AD8A;line-height:1;">${type}</span>
