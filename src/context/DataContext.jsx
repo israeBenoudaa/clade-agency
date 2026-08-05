@@ -668,8 +668,72 @@ export function DataProvider({ children }) {
           )
         }
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clients' }, ({ eventType, new: row, old }) => {
+        if (eventType === 'DELETE') {
+          setClients(prev => prev.filter(c => c.id !== old.id))
+        } else if (row?.id) {
+          setClients(prev => prev.some(c => c.id === row.id)
+            ? prev.map(c => c.id === row.id ? fromDbClient(row) : c)
+            : [...prev, fromDbClient(row)]
+          )
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'prospects' }, ({ eventType, new: row, old }) => {
+        if (eventType === 'DELETE') {
+          setProspects(prev => prev.filter(p => p.id !== old.id))
+        } else if (row?.id) {
+          setProspects(prev => prev.some(p => p.id === row.id)
+            ? prev.map(p => p.id === row.id ? fromDbProspect(row) : p)
+            : [...prev, fromDbProspect(row)]
+          )
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'recrutements' }, ({ eventType, new: row, old }) => {
+        if (eventType === 'DELETE') {
+          setRecrutements(prev => prev.filter(r => r.id !== old.id))
+        } else if (row?.id) {
+          setRecrutements(prev => prev.some(r => r.id === row.id)
+            ? prev.map(r => r.id === row.id ? fromDbRecrutement(row) : r)
+            : [...prev, fromDbRecrutement(row)]
+          )
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'collaborateurs' }, ({ eventType, new: row, old }) => {
+        if (eventType === 'DELETE') {
+          setCollaborateurs(prev => prev.filter(c => c.id !== old.id))
+        } else if (row?.id) {
+          setCollaborateurs(prev => prev.some(c => c.id === row.id)
+            ? prev.map(c => c.id === row.id ? fromDbCollaborateur(row) : c)
+            : [...prev, fromDbCollaborateur(row)]
+          )
+        }
+      })
       .subscribe()
     return () => { supabase.removeChannel(ch) }
+  }, [supaLoaded]) // eslint-disable-line
+
+  // ── Refetch on tab focus — rattrape les events realtime manqués (onglet inactif, autre appareil) ──
+  useEffect(() => {
+    if (!supaLoaded || !supabase) return
+    const onVisible = async () => {
+      if (document.visibilityState !== 'visible') return
+      syncReadyRef.current = false
+      const [{ data: p }, { data: tx }, { data: cl }, { data: pr }, { data: e }] = await Promise.all([
+        supabase.from('projects').select('*'),
+        supabase.from('transactions').select('*'),
+        supabase.from('clients').select('*'),
+        supabase.from('prospects').select('*'),
+        supabase.from('employes').select('*'),
+      ])
+      if (p)  setProjects(p.map(fromDbProject))
+      if (tx) setTransactions(tx.map(fromDbTransaction))
+      if (cl) setClients(cl.map(fromDbClient))
+      if (pr) setProspects(pr.map(fromDbProspect))
+      if (e)  setEmployes(e.map(fromDbEmploye))
+      setTimeout(() => { syncReadyRef.current = true }, 2000)
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
   }, [supaLoaded]) // eslint-disable-line
 
   // ── Migration : créer les entrées clients manquantes pour les prospects contrat_signe ──
