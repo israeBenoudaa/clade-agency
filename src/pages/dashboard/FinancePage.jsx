@@ -124,7 +124,7 @@ export default function FinancePage() {
   const {
     projects, allTransactions, transactions, addTransaction, removeTransaction,
     chargesFixe, deleteChargeFixe, employes,
-    tauxImpot, setTauxImpot, agenceSettings, addNotification,
+    tauxImpot, setTauxImpot, agenceSettings, updateAgenceSettings, addNotification,
   } = useData()
   const { isDirector, isDirectorMode, profile } = useAuth()
   const byName = profile?.nom || profile?.full_name || ''
@@ -187,16 +187,9 @@ export default function FinancePage() {
     return '2000000'
   })
 
-  const [immat, setImmat] = useState(() => {
-    try { const s = localStorage.getItem('clade_immatriculation'); if (s) return JSON.parse(s) } catch {}
-    return { nom: '', adresse: '', telFax: '', cnss: '', patente: '', identifiantFiscale: '', ice: '', rib: '' }
-  })
+  const immat = agenceSettings.immatriculation || {}
   const updateImmat = (field, value) => {
-    setImmat(prev => {
-      const next = { ...prev, [field]: value }
-      try { localStorage.setItem('clade_immatriculation', JSON.stringify(next)) } catch {}
-      return next
-    })
+    updateAgenceSettings({ immatriculation: { ...immat, [field]: value } })
   }
 
   // ── Monthly aggregation ──

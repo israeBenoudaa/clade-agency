@@ -3,8 +3,15 @@ import html2canvas from 'html2canvas'
 
 export function getImmatriculation() {
   try {
-    const raw = localStorage.getItem('clade_immatriculation')
-    return raw ? JSON.parse(raw) : {}
+    const raw = localStorage.getItem('clade_agence_settings')
+    if (raw) {
+      const settings = JSON.parse(raw)
+      if (settings.immatriculation && Object.keys(settings.immatriculation).length) return settings.immatriculation
+    }
+  } catch {}
+  try {
+    const legacy = localStorage.getItem('clade_immatriculation')
+    return legacy ? JSON.parse(legacy) : {}
   } catch { return {} }
 }
 

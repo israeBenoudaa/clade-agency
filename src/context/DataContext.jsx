@@ -214,8 +214,18 @@ export function DataProvider({ children }) {
   })
 
   const [agenceSettings, setAgenceSettingsState] = useState(() => {
-    try { const s = localStorage.getItem('clade_agence_settings'); if (s) return JSON.parse(s) } catch {}
-    return { nbCollaborateurs: 5, heuresParAn: 1500, tjh: 250 }
+    try {
+      const s = localStorage.getItem('clade_agence_settings')
+      const parsed = s ? JSON.parse(s) : { nbCollaborateurs: 5, heuresParAn: 1500, tjh: 250 }
+      if (!parsed.immatriculation || !Object.keys(parsed.immatriculation).length) {
+        try {
+          const leg = localStorage.getItem('clade_immatriculation')
+          if (leg) parsed.immatriculation = JSON.parse(leg)
+        } catch {}
+      }
+      return parsed
+    } catch {}
+    return { nbCollaborateurs: 5, heuresParAn: 1500, tjh: 250, immatriculation: {} }
   })
 
   const [categoriesCollab, setCategoriesCollab] = useState(() => {
