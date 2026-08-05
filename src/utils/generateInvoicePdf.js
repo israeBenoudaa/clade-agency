@@ -31,10 +31,8 @@ export async function generateInvoicePdf({ invoiceNum, projectNom, client, missi
       { label: 'Statut', value: st.label, accent: paiement !== 'paye' },
     ],
     statusSlot: `
-      <div style="background:#ffffff;padding:10px 16px;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;box-sizing:border-box;">
-        <span style="${AV}font-size:13px;color:${st.fg}99;line-height:1;">[</span>
-        <span style="${SB}font-size:7.5px;font-weight:700;letter-spacing:0.34em;text-transform:uppercase;color:${st.fg};">${st.label}</span>
-        <span style="${AV}font-size:13px;color:${st.fg}99;line-height:1;">]</span>
+      <div style="background:#ffffff;padding:10px 16px;text-align:center;width:100%;box-sizing:border-box;">
+        <span style="${AV}font-size:13px;color:${st.fg}99;line-height:1;">[ </span><span style="${SB}font-size:7.5px;font-weight:700;letter-spacing:0.34em;text-transform:uppercase;color:${st.fg};">${st.label}</span><span style="${AV}font-size:13px;color:${st.fg}99;line-height:1;"> ]</span>
       </div>`,
   })
 
