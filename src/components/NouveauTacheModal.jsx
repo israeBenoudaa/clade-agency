@@ -205,27 +205,6 @@ export default function NouveauTacheModal({ onClose, onAdd, onEdit, tache, missi
               </div>
             )}
 
-            {/* Statut */}
-            <div>
-              <div className="label-text mb-2">Statut</div>
-              <div className="flex gap-2">
-                {STATUTS.map(s => {
-                  const Icon = s.icon
-                  const isActive = form.statut === s.val
-                  return (
-                    <button
-                      key={s.val}
-                      type="button"
-                      onClick={() => set('statut')(s.val)}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-semibold transition-all flex-1 justify-center ${isActive ? s.activeColor : s.color}`}
-                    >
-                      <Icon size={13} />
-                      {s.label}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
 
             {/* Personnel */}
             <div>

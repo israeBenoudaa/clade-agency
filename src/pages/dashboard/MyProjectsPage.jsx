@@ -506,13 +506,13 @@ export default function MyProjectsPage() {
                             className={`flex flex-1 justify-center items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${effectiveTab === 'externe' ? 'bg-ink text-paper shadow-sm' : 'text-muted hover:text-ink hover:bg-paper-warm'}`}>
                             <Building2 size={14} />
                             Projets externes
-                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${effectiveTab === 'externe' ? 'bg-white/20 text-white' : 'bg-border text-muted'}`}>{refExternal.length}</span>
+                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${effectiveTab === 'externe' ? 'bg-white/20 text-white' : 'bg-border text-muted'}`}>{filteredExternal.length}</span>
                           </button>
                           <button onClick={() => { setActiveTab('interne'); setStatusFilter('Tous') }}
                             className={`flex flex-1 justify-center items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${effectiveTab === 'interne' ? 'bg-violet-600 text-white shadow-sm' : 'text-muted hover:text-ink hover:bg-paper-warm'}`}>
                             <FolderGit2 size={14} />
                             Projets internes
-                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${effectiveTab === 'interne' ? 'bg-white/20 text-white' : 'bg-border text-muted'}`}>{refInternal.length}</span>
+                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${effectiveTab === 'interne' ? 'bg-white/20 text-white' : 'bg-border text-muted'}`}>{filteredInternal.length}</span>
                           </button>
                         </div>
                       )}
@@ -570,7 +570,7 @@ export default function MyProjectsPage() {
                           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${effectiveTab === 'externe' ? 'bg-ink text-paper shadow-sm' : 'text-muted hover:text-ink hover:bg-paper-warm'}`}>
                           <Building2 size={15} />
                           Projets externes
-                          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${effectiveTab === 'externe' ? 'bg-white/20 text-white' : 'bg-border text-muted'}`}>{refExternal.length}</span>
+                          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${effectiveTab === 'externe' ? 'bg-white/20 text-white' : 'bg-border text-muted'}`}>{filteredExternal.length}</span>
                         </button>
                       )}
                       {refInternal.length > 0 && (
@@ -578,7 +578,7 @@ export default function MyProjectsPage() {
                           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${effectiveTab === 'interne' ? 'bg-violet-600 text-white shadow-sm' : 'text-muted hover:text-ink hover:bg-paper-warm'}`}>
                           <FolderGit2 size={15} />
                           Projets internes
-                          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${effectiveTab === 'interne' ? 'bg-white/20 text-white' : 'bg-border text-muted'}`}>{refInternal.length}</span>
+                          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${effectiveTab === 'interne' ? 'bg-white/20 text-white' : 'bg-border text-muted'}`}>{filteredInternal.length}</span>
                         </button>
                       )}
                       {(refExternal.length > 0 || refInternal.length > 0) && <div className="w-px h-6 bg-border flex-shrink-0" />}

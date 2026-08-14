@@ -140,8 +140,8 @@ function ProjectExpensesContent({ projet, allExpenses, handleAdd, handleDelete, 
           </div>
           <div>
             <div className="label-text mb-0.5">{t('expenses.fees_section')}</div>
-            <div className="font-display text-2xl text-electric">{fmtDH(totalHT)}</div>
-            <div className="text-xs text-muted">Total honoraires HT</div>
+            <div className="font-display text-2xl text-electric">{fmtDH(totalHT * 1.2)}</div>
+            <div className="text-xs text-muted">Total honoraires TTC</div>
           </div>
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="card p-5 flex items-center gap-4">
@@ -152,7 +152,7 @@ function ProjectExpensesContent({ projet, allExpenses, handleAdd, handleDelete, 
           </div>
           <div>
             <div className="label-text mb-0.5">{t('expenses.reste_a_regler')}</div>
-            <div className={`font-display text-2xl ${remainingHT > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>{fmtDH(remainingHT)}</div>
+            <div className={`font-display text-2xl ${remainingHT > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>{fmtDH(remainingHT * 1.2)}</div>
             <div className="text-xs text-muted">{t('expenses.agency_fees')}</div>
           </div>
         </motion.div>
@@ -194,8 +194,7 @@ function ProjectExpensesContent({ projet, allExpenses, handleAdd, handleDelete, 
                     <div className={`text-xs mt-0.5 ${style.text}`}>{style.label}</div>
                   </div>
                   <div className="flex-shrink-0 text-right">
-                    <div className={`font-display text-xl ${style.text}`}>{fmtDH(montant)}</div>
-                    <div className="text-xs text-muted">TTC: {fmtDH(montant * 1.2)}</div>
+                    <div className={`font-display text-xl ${style.text}`}>{fmtDH(montant * 1.2)}</div>
                   </div>
                 </motion.div>
               )
@@ -204,13 +203,12 @@ function ProjectExpensesContent({ projet, allExpenses, handleAdd, handleDelete, 
             {/* Bilan honoraires */}
             <div className="flex items-center justify-between px-4 pt-4 border-t border-border">
               <div>
-                <div className="text-sm font-semibold text-ink">Total HT</div>
-                {paidHT > 0 && <div className="text-xs text-emerald-700 font-semibold">Réglé : {fmtDH(paidHT)}</div>}
-                {remainingHT > 0 && <div className="text-xs text-amber-700 font-semibold">Restant : {fmtDH(remainingHT)}</div>}
+                <div className="text-sm font-semibold text-ink">Total TTC</div>
+                {paidHT > 0 && <div className="text-xs text-emerald-700 font-semibold">Réglé : {fmtDH(paidHT * 1.2)}</div>}
+                {remainingHT > 0 && <div className="text-xs text-amber-700 font-semibold">Restant : {fmtDH(remainingHT * 1.2)}</div>}
               </div>
               <div className="text-right">
-                <div className="font-display text-2xl text-electric">{fmtDH(totalHT)}</div>
-                <div className="text-xs text-muted">TTC : {fmtDH(totalHT * 1.2)}</div>
+                <div className="font-display text-2xl text-electric">{fmtDH(totalHT * 1.2)}</div>
               </div>
             </div>
           </div>

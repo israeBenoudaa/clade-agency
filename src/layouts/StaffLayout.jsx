@@ -396,7 +396,7 @@ export default function StaffLayout() {
   }
 
   return (
-    <div className="min-h-screen flex bg-paper bg-grid">
+    <div className="min-h-screen flex bg-paper">
       {/* SIDEBAR DESKTOP — hidden on mobile, handled by drawer */}
       <div className="hidden lg:flex flex-shrink-0">
         <Sidebar

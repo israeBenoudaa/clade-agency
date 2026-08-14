@@ -316,7 +316,7 @@ function ClientLayoutInner() {
   }
 
   return (
-    <div className="min-h-screen bg-paper bg-grid">
+    <div className="min-h-screen bg-paper">
       {/* ===== BANNIÈRE DÉMO ===== */}
       {isDemoMode && (
         <div className="sticky top-0 z-50 bg-electric/10 border-b border-electric/20 px-4 py-2 flex items-center gap-3">
