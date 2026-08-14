@@ -30,13 +30,14 @@ function useAutoSave(id) {
     clearTimeout(timer.current)
     timer.current = setTimeout(async () => {
       setSaving(true)
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('portfolio_projects')
         .update({ [field]: value })
         .eq('id', id)
+        .select('id')
       setSaving(false)
-      if (error) {
-        toast.error('Erreur de sauvegarde')
+      if (error || !data?.length) {
+        toast.error('Erreur de sauvegarde — modifications non synchronisées')
       } else {
         setLastSaved(new Date())
         if (setter) setter(value)

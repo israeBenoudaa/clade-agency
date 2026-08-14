@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { ChevronLeft, ChevronRight, Download, FileText, Clock } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -16,102 +16,91 @@ function fmtHours(ms) {
   return m ? `${h}h${String(m).padStart(2, '0')}` : `${h}h`
 }
 
-function openPDF(employe, ps, monthFull, year) {
+async function generatePayslipPdf(employe, ps, monthFull, year) {
+  const { buildDocHeader, sectionHead, renderToPdf } = await import('../utils/pdfBase.js')
+
+  const SB = "font-family:'Inter Tight',-apple-system,BlinkMacSystemFont,sans-serif;"
+  const AV = "font-family:'Averia Libre',Georgia,serif;"
+
   const modeLabel = ps.mode === 'horaire' ? 'Horaire (sessions)' : 'Mensuel fixe'
   const baseLabel = ps.mode === 'horaire'
     ? `${(ps.heures || 0).toFixed(2)} h × ${Number(ps.tauxHoraire || 0).toFixed(2)} MAD/h`
     : 'Salaire net mensuel'
 
-  const html = `<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="utf-8"/>
-<title>Bulletin de paie – ${employe.nom} – ${monthFull} ${year}</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#1a1a1a;background:#fff;padding:52px 56px;font-size:12px;line-height:1.6}
-/* Header */
-.header{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:18px;margin-bottom:28px;border-bottom:1.5px solid #1a1a1a}
-.company{font-size:22px;font-weight:800;letter-spacing:5px;line-height:1}
-.company-sub{font-size:8px;letter-spacing:3px;color:#999;margin-top:6px;text-transform:uppercase}
-.header-right{text-align:right}
-.payslip-label{font-size:8px;letter-spacing:2.5px;text-transform:uppercase;color:#999}
-.payslip-period{font-size:17px;font-weight:700;margin-top:2px;color:#1a1a1a}
-.payslip-date{font-size:9.5px;color:#bbb;margin-top:2px}
-/* Columns */
-.cols{display:grid;grid-template-columns:1fr 1fr;gap:36px;margin-bottom:28px}
-.block-title{font-size:8px;letter-spacing:2.5px;text-transform:uppercase;color:#bbb;padding-bottom:6px;margin-bottom:10px;border-bottom:1px solid #ebebeb}
-.row{display:flex;justify-content:space-between;align-items:baseline;padding:4px 0;border-bottom:1px solid #f2f2f2;gap:12px}
-.row:last-child{border:none}
-.row-label{color:#777;font-size:11.5px;white-space:nowrap}
-.row-val{font-weight:500;color:#1a1a1a;font-size:11.5px;text-align:right}
-/* Total strip */
-.total-strip{display:flex;justify-content:space-between;align-items:center;border-top:1.5px solid #1a1a1a;border-bottom:1.5px solid #1a1a1a;padding:12px 0;margin:0 0 32px}
-.total-strip-label{font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:#777;font-weight:600}
-.total-strip-val{font-size:17px;font-weight:700;color:#1a1a1a}
-/* Footer */
-.footer{display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:40px;padding-top:20px;border-top:1px solid #eee}
-.sign-area{text-align:center}
-.sign-line{border-top:1px solid #ccc;margin-top:48px;padding-top:8px;font-size:9.5px;color:#aaa;letter-spacing:0.3px}
-@media print{body{padding:28px 32px}}
-</style>
-</head>
-<body>
+  const primesRows = (ps.primes?.length ? ps.primes : ps.prime > 0 ? [{ libelle: 'Prime / Bonus', montant: ps.prime }] : [])
+    .map(p => `
+      <tr style="border-bottom:0.5px solid #F0ECE6;">
+        <td style="padding:9px 0;font-size:12px;color:#0C0C0B;">${p.libelle || 'Prime'}</td>
+        <td style="padding:9px 0;text-align:right;font-size:12px;font-weight:500;color:#0C0C0B;font-variant-numeric:tabular-nums;">${fmtMAD(p.montant)}</td>
+      </tr>`).join('')
 
-<div class="header">
-  <div>
-    <div class="company">CLADE</div>
-    <div class="company-sub">Agence d'architecture &amp; design</div>
-  </div>
-  <div class="header-right">
-    <div class="payslip-label">Bulletin de paie</div>
-    <div class="payslip-period">${monthFull} ${year}</div>
-    <div class="payslip-date">Émis le ${new Date().toLocaleDateString('fr-FR')}</div>
-  </div>
-</div>
+  const headerHTML = buildDocHeader({
+    type: 'Bulletin de paie',
+    title: employe.nom,
+    ref: `${monthFull} ${year} · Émis le ${new Date().toLocaleDateString('fr-FR')}`,
+    meta: [
+      { label: 'Poste', value: employe.poste || '—' },
+      { label: 'Département', value: employe.dept || '—' },
+      { label: 'Mode', value: modeLabel },
+    ],
+  })
 
-<div class="cols">
-  <div>
-    <div class="block-title">Collaborateur</div>
-    <div class="row"><span class="row-label">Nom complet</span><span class="row-val">${employe.nom}</span></div>
-    <div class="row"><span class="row-label">Poste</span><span class="row-val">${employe.poste || '—'}</span></div>
-    <div class="row"><span class="row-label">Département</span><span class="row-val">${employe.dept || '—'}</span></div>
-    <div class="row"><span class="row-label">Type de contrat</span><span class="row-val">${employe.contrat || '—'}</span></div>
-    <div class="row"><span class="row-label">Mode de rémunération</span><span class="row-val">${modeLabel}</span></div>
-  </div>
-  <div>
-    <div class="block-title">Détail de la rémunération</div>
-    <div class="row"><span class="row-label">${baseLabel}</span><span class="row-val">${fmtMAD(ps.montantBase)}</span></div>
-    <div class="row"><span class="row-label">Prime / Bonus</span><span class="row-val">${fmtMAD(ps.prime)}</span></div>
-  </div>
-</div>
+  const contentHTML = `
+    <div style="${SB}background:#fff;padding:26px 48px 30px;">
+      ${sectionHead(1, 'Détail de la rémunération')}
+      <table style="width:100%;border-collapse:collapse;margin-bottom:6px;">
+        <tbody>
+          <tr style="border-bottom:0.5px solid #F0ECE6;">
+            <td style="padding:9px 0;font-size:12px;color:#0C0C0B;">${baseLabel}</td>
+            <td style="padding:9px 0;text-align:right;font-size:12px;font-weight:500;color:#0C0C0B;font-variant-numeric:tabular-nums;">${fmtMAD(ps.montantBase)}</td>
+          </tr>
+          ${primesRows}
+          <tr>
+            <td style="padding:13px 0 2px;border-top:0.5px solid #0C0C0B;">
+              <span style="${AV}font-size:13px;font-style:italic;color:#9B8157;">Net à payer</span>
+            </td>
+            <td style="padding:13px 0 2px;border-top:0.5px solid #0C0C0B;text-align:right;font-variant-numeric:tabular-nums;">
+              <span style="font-size:15px;font-weight:700;color:#0C0C0B;">${fmtMAD(ps.total)}</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
-<div class="total-strip">
-  <span class="total-strip-label">Net à payer</span>
-  <span class="total-strip-val">${fmtMAD(ps.total)}</span>
-</div>
+      ${sectionHead(2, 'Informations collaborateur')}
+      <table style="width:100%;border-collapse:collapse;">
+        <tbody>
+          <tr style="border-bottom:0.5px solid #F0ECE6;">
+            <td style="padding:7px 0;font-size:11.5px;color:#9B968F;width:40%;">Nom complet</td>
+            <td style="padding:7px 0;font-size:11.5px;font-weight:500;color:#0C0C0B;">${employe.nom}</td>
+          </tr>
+          <tr style="border-bottom:0.5px solid #F0ECE6;">
+            <td style="padding:7px 0;font-size:11.5px;color:#9B968F;">Type de contrat</td>
+            <td style="padding:7px 0;font-size:11.5px;font-weight:500;color:#0C0C0B;">${employe.contrat || '—'}</td>
+          </tr>
+        </tbody>
+      </table>
 
-<div class="footer">
-  <div class="sign-area"><div class="sign-line">Signature de l'employeur</div></div>
-  <div class="sign-area"><div class="sign-line">Signature — ${employe.nom}</div></div>
-</div>
+      ${sectionHead(3, 'Signatures')}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:8px;">
+        <div>
+          <div style="height:48px;border-bottom:0.5px solid #DDD8D0;margin-bottom:8px;"></div>
+          <div style="font-size:9.5px;color:#ABA79F;text-align:center;letter-spacing:0.05em;">Signature de l'employeur</div>
+        </div>
+        <div>
+          <div style="height:48px;border-bottom:0.5px solid #DDD8D0;margin-bottom:8px;"></div>
+          <div style="font-size:9.5px;color:#ABA79F;text-align:center;letter-spacing:0.05em;">Signature — ${employe.nom}</div>
+        </div>
+      </div>
+    </div>`
 
-</body>
-</html>`
-
-  const win = window.open('', '_blank', 'width=820,height=1000')
-  if (!win) { toast.error('Autorisez les pop-ups pour générer le PDF'); return }
-  win.document.write(html)
-  win.document.close()
-  win.focus()
-  setTimeout(() => { win.print() }, 450)
+  const safeName = employe.nom.replace(/[^a-z0-9]/gi, '_').toLowerCase()
+  await renderToPdf({ headerHTML, contentHTML, filename: `bulletin_paie_${safeName}_${ps.month}.pdf` })
 }
 
 export default function PayslipSection({ employe, addTransaction, updateEmploye }) {
   const now = new Date()
   const [year, setYear]       = useState(now.getFullYear())
   const [selMonth, setSelMonth] = useState(now.getMonth())
-  const [prime, setPrime]     = useState('')
   const [generating, setGenerating] = useState(false)
 
   const payslips   = employe.payslips || []
@@ -121,21 +110,16 @@ export default function PayslipSection({ employe, addTransaction, updateEmploye 
 
   const monthKey = `${year}-${String(selMonth + 1).padStart(2, '0')}`
 
-  useEffect(() => {
-    const monthTotal = (employe.primes || [])
-      .filter(p => p.date?.startsWith(monthKey))
-      .reduce((sum, p) => sum + (Number(p.montant) || 0), 0)
-    setPrime(monthTotal > 0 ? String(monthTotal) : '')
-  }, [monthKey, employe.primes])
+  const monthPrimes = (employe.primes || []).filter(p => p.date?.startsWith(monthKey))
+  const primeVal = monthPrimes.reduce((sum, p) => sum + (Number(p.montant) || 0), 0)
 
   const monthMs = (employe.workSessions || [])
     .filter(s => s.date?.startsWith(monthKey))
     .reduce((sum, s) => sum + (s.workedMs || 0), 0)
   const monthHours = monthMs / 3600000
 
-  const base     = mode === 'horaire' ? monthHours * tauxH : salaireNet
-  const primeVal = parseFloat(prime) || 0
-  const total    = base + primeVal
+  const base  = mode === 'horaire' ? monthHours * tauxH : salaireNet
+  const total = base + primeVal
 
   const existing   = payslips.find(p => p.month === monthKey)
   const totalVerse = payslips.reduce((sum, p) => sum + (p.total || 0), 0)
@@ -146,6 +130,7 @@ export default function PayslipSection({ employe, addTransaction, updateEmploye 
     mode,
     montantBase: base,
     prime:       primeVal,
+    primes:      monthPrimes,
     total,
     heures:      mode === 'horaire' ? monthHours : null,
     tauxHoraire: mode === 'horaire' ? tauxH : null,
@@ -166,34 +151,37 @@ export default function PayslipSection({ employe, addTransaction, updateEmploye 
     })
   }
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (total <= 0) return
     setGenerating(true)
     try {
       const ps = buildPayslip()
       doGenerate(ps)
-      openPDF(employe, ps, MONTH_FULL[selMonth], year)
-      setPrime('')
+      await generatePayslipPdf(employe, ps, MONTH_FULL[selMonth], year)
       toast.success('Fiche de paie générée')
     } catch { toast.error('Erreur lors de la génération') }
     finally  { setGenerating(false) }
   }
 
-  const handleRegenerate = () => {
+  const handleRegenerate = async () => {
     if (!window.confirm('Régénérer cette fiche ? Cela créera une nouvelle entrée dans le journal des finances.')) return
     setGenerating(true)
     try {
       const ps = buildPayslip()
       doGenerate(ps)
-      openPDF(employe, ps, MONTH_FULL[selMonth], year)
-      setPrime('')
+      await generatePayslipPdf(employe, ps, MONTH_FULL[selMonth], year)
       toast.success('Fiche régénérée')
     } catch { toast.error('Erreur') }
     finally  { setGenerating(false) }
   }
 
-  const handleDownload = () => {
-    if (existing) openPDF(employe, existing, MONTH_FULL[selMonth], year)
+  const handleDownload = async () => {
+    if (existing) {
+      setGenerating(true)
+      try { await generatePayslipPdf(employe, existing, MONTH_FULL[selMonth], year) }
+      catch { toast.error('Erreur de téléchargement') }
+      finally { setGenerating(false) }
+    }
   }
 
   return (
@@ -225,7 +213,7 @@ export default function PayslipSection({ employe, addTransaction, updateEmploye 
           return (
             <button
               key={i}
-              onClick={() => { setSelMonth(i); setPrime('') }}
+              onClick={() => setSelMonth(i)}
               className={`flex flex-col items-center gap-0.5 py-2 px-1 rounded-xl border text-[10px] font-semibold transition-all ${
                 isSel
                   ? 'border-electric bg-electric/8 text-electric shadow-[0_0_0_2px_rgba(56,189,248,0.15)]'
@@ -284,18 +272,16 @@ export default function PayslipSection({ employe, addTransaction, updateEmploye 
             <span className="font-semibold text-ink">{fmtMAD(base)}</span>
           </div>
 
-          <div className="flex justify-between items-center py-2.5 border-b border-border/60">
-            <span className="text-sm text-muted">Prime / Bonus</span>
-            <div className="flex items-center gap-1.5">
-              <input
-                type="number" min="0" step="100" placeholder="0"
-                value={prime}
-                onChange={e => setPrime(e.target.value)}
-                className="input-field text-sm w-28 py-1.5 text-right"
-              />
-              <span className="text-xs text-muted">MAD</span>
+          {monthPrimes.length > 0 && (
+            <div className="py-2.5 border-b border-border/60">
+              {monthPrimes.map((p, i) => (
+                <div key={i} className="flex justify-between items-center py-0.5">
+                  <span className="text-sm text-muted">{p.libelle || 'Prime'}</span>
+                  <span className="text-sm font-semibold text-ink">{fmtMAD(p.montant)}</span>
+                </div>
+              ))}
             </div>
-          </div>
+          )}
 
           <div className="flex justify-between items-center pt-3">
             <span className="font-bold text-ink">Net à payer</span>

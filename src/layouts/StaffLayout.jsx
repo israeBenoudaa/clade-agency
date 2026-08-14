@@ -3,7 +3,7 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, FolderKanban, Users, Wallet, Contact2,
-  Bell, Search, LogOut, Menu, X, UserPlus, ChevronRight, Database,
+  Search, LogOut, Menu, X, UserPlus, ChevronRight, Database,
   MessageSquare, ChevronDown, Network, FolderGit2, UserCircle,
   ClipboardList, Paperclip, UsersRound, Briefcase, BookOpen, Layers,
   Eye, RotateCcw, History, Globe,
@@ -673,11 +673,11 @@ export default function StaffLayout() {
               <div ref={notifRef} className="relative">
                 <button
                   onClick={() => { setNotifOpen(v => !v); if (!notifOpen) markAllNotificationsRead?.() }}
-                  className="relative w-10 h-10 rounded-xl bg-white border border-border flex items-center justify-center hover:bg-paper-warm transition-colors"
+                  className="relative w-10 h-10 rounded-xl flex items-center justify-center hover:bg-black/5 transition-colors"
                 >
-                  <Bell size={16} className="text-ink" />
+                  <span className="text-[17px] leading-none select-none">🔔</span>
                   {unreadCount > 0 && (
-                    <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-rose-500 ring-2 ring-white flex items-center justify-center text-[9px] font-bold text-white">
+                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-[9px] font-bold text-white">
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   )}
@@ -685,20 +685,22 @@ export default function StaffLayout() {
                 <AnimatePresence>
                   {notifOpen && (
                     <motion.div
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 4 }}
-                      className="absolute top-full right-0 mt-2 w-80 bg-white border border-border rounded-xl shadow-xl overflow-hidden z-50"
+                      initial={{ opacity: 0, y: 6, scale: 0.97 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 6, scale: 0.97 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-full right-0 mt-2 w-80 rounded-2xl overflow-hidden z-50"
+                      style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(20px)', boxShadow: '0 8px 32px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.06)' }}
                     >
-                      <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+                      <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
                         <span className="font-semibold text-sm text-ink">Notifications</span>
                         {unreadCount > 0 && <span className="text-xs text-muted">{unreadCount} non lue{unreadCount > 1 ? 's' : ''}</span>}
                       </div>
                       <div className="max-h-96 overflow-y-auto">
                         {visibleNotifications.length === 0 ? (
-                          <div className="py-10 text-center">
-                            <div className="text-2xl mb-2">🔔</div>
-                            <div className="text-sm text-muted">Aucune notification</div>
+                          <div className="py-12 text-center">
+                            <div className="text-3xl mb-2 select-none">🔔</div>
+                            <div className="text-sm font-medium text-muted">Aucune notification</div>
                           </div>
                         ) : (
                           visibleNotifications.slice(0, 15).map((n) => {
@@ -706,7 +708,8 @@ export default function StaffLayout() {
                             return (
                               <div key={n.id}
                                 onClick={() => { if (n.link) { navigate(n.link); setNotifOpen(false) } }}
-                                className={`flex items-stretch border-b border-border last:border-0 transition-colors group overflow-hidden ${!n.read ? 'bg-electric/[0.04]' : ''} ${n.link ? 'cursor-pointer hover:bg-paper-warm' : ''}`}>
+                                className={`flex items-stretch transition-colors group overflow-hidden ${!n.read ? 'bg-electric/[0.04]' : ''} ${n.link ? 'cursor-pointer hover:bg-black/[0.03]' : ''}`}
+                                style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
                                 {/* Accent strip */}
                                 <div className="w-[3px] flex-shrink-0 self-stretch" style={{ background: !n.read ? cfg.accent : 'transparent' }} />
                                 {/* Icon bubble */}

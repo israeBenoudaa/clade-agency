@@ -462,7 +462,13 @@ export function DataProvider({ children }) {
         if (dbWF)          setWorkflows(dbWF.map(fromDbWorkflow))
         if (dbNotifs)      setNotifications(dbNotifs.map(fromDbNotification))
         if (dbSettings) {
-          setAgenceSettingsState(prev => ({ ...prev, nbCollaborateurs: dbSettings.nb_collaborateurs ?? 5, heuresParAn: dbSettings.heures_par_an ?? 1500, tjh: dbSettings.tjh ?? 250 }))
+          setAgenceSettingsState(prev => ({
+            ...prev,
+            nbCollaborateurs: dbSettings.nb_collaborateurs ?? 5,
+            heuresParAn: dbSettings.heures_par_an ?? 1500,
+            tjh: dbSettings.tjh ?? 250,
+            ...(dbSettings.immatriculation ? { immatriculation: (() => { try { return JSON.parse(dbSettings.immatriculation) } catch { return prev.immatriculation } })() } : {}),
+          }))
           setTauxImpotState(dbSettings.taux_impot ?? 20)
         }
         if (dbLog?.length) setActivityLog(dbLog.map(e => ({ id: e.id, action: e.action, details: e.details, category: e.category, by: e.by, timestamp: e.timestamp })))
@@ -603,7 +609,7 @@ export function DataProvider({ children }) {
   useEffect(() => {
     if (!supaLoaded || !supabase || !syncReadyRef.current) return
     const t = setTimeout(() => {
-      supabase.from('agence_settings').upsert({ id: 1, nb_collaborateurs: agenceSettings.nbCollaborateurs, heures_par_an: agenceSettings.heuresParAn, tjh: agenceSettings.tjh, taux_impot: tauxImpot, updated_at: new Date().toISOString() }, { onConflict: 'id' })
+      supabase.from('agence_settings').upsert({ id: 1, nb_collaborateurs: agenceSettings.nbCollaborateurs, heures_par_an: agenceSettings.heuresParAn, tjh: agenceSettings.tjh, taux_impot: tauxImpot, immatriculation: JSON.stringify(agenceSettings.immatriculation || {}), updated_at: new Date().toISOString() }, { onConflict: 'id' })
     }, 1500)
     return () => clearTimeout(t)
   }, [agenceSettings, tauxImpot, supaLoaded])
@@ -1083,6 +1089,16 @@ export function DataProvider({ children }) {
       return updated
     }))
   }
+
+  const refetchFinanceData = useCallback(async () => {
+    if (!supabase) return
+    const [{ data: txs }, { data: projs }] = await Promise.all([
+      supabase.from('transactions').select('*').order('date', { ascending: false }),
+      supabase.from('projects').select('*'),
+    ])
+    if (txs?.length) setTransactions(txs.map(fromDbTransaction))
+    if (projs?.length) setProjects(projs.map(fromDbProject))
+  }, [])
 
   const addProject = (data, by = '') => {
     const project = { id: uid('prj'), avancement: 0, statut: 'En cours', equipe: 0, equipeProjet: [], missions: [], tasks: [], ...data }
@@ -2134,7 +2150,7 @@ export function DataProvider({ children }) {
       addFormation, updateFormation, deleteFormation,
       addRecrutement, updateRecrutement, deleteRecrutement,
       addCandidat, updateCandidat, deleteCandidat,
-      addTransaction, removeTransaction, updateProjectFinances,
+      addTransaction, removeTransaction, updateProjectFinances, refetchFinanceData,
       addChargeFixe, updateChargeFixe, deleteChargeFixe, setTauxImpot, updateAgenceSettings,
       addMessage, editMessage, deleteMessage, deleteConversation, markConvRead,
       addDemandeRH, updateDemandeRH, approveDemandeRHManager, deleteDemandeRH, archiveDemandeForManager,

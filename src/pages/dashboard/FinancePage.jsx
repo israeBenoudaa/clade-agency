@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useEffect } from 'react'
+﻿import { useState, useMemo, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   TrendingUp, TrendingDown, Wallet, Clock, Scale,
@@ -125,7 +125,15 @@ export default function FinancePage() {
     projects, allTransactions, transactions, addTransaction, removeTransaction,
     chargesFixe, deleteChargeFixe, employes,
     tauxImpot, setTauxImpot, agenceSettings, updateAgenceSettings, addNotification,
+    refetchFinanceData,
   } = useData()
+
+  const didFetch = useRef(false)
+  useEffect(() => {
+    if (didFetch.current) return
+    didFetch.current = true
+    refetchFinanceData?.()
+  }, [refetchFinanceData])
   const { isDirector, isDirectorMode, profile } = useAuth()
   const byName = profile?.nom || profile?.full_name || ''
   const isDir = isDirector || isDirectorMode
@@ -259,7 +267,7 @@ export default function FinancePage() {
       return missions.reduce((s, m) => {
         const pai = p.finances?.paiements?.[m.id]
         const hon = p.finances?.honoraires?.[m.id] || 0
-        return (pai === 'en_cours' || pai === 'non_paye' || !pai) && hon ? s + hon : s
+        return (pai === 'en_cours' || pai === 'non_paye' || !pai) && hon ? s + hon * 1.2 : s
       }, sum)
     }, 0), [externalProjects])
 
@@ -267,9 +275,9 @@ export default function FinancePage() {
   const projectsWithPct = useMemo(() =>
     externalProjects.map(p => {
       const missions = (p.missions || []).filter(m => m.type === 'mission')
-      const totalHon = missions.reduce((s, m) => s + (p.finances?.honoraires?.[m.id] || 0), 0)
+      const totalHon = missions.reduce((s, m) => s + (p.finances?.honoraires?.[m.id] || 0) * 1.2, 0)
       const paidHon = missions.reduce((s, m) =>
-        p.finances?.paiements?.[m.id] === 'paye' ? s + (p.finances?.honoraires?.[m.id] || 0) : s, 0)
+        p.finances?.paiements?.[m.id] === 'paye' ? s + (p.finances?.honoraires?.[m.id] || 0) * 1.2 : s, 0)
       const pct = totalHon > 0 ? Math.round((paidHon / totalHon) * 100) : 0
       return { ...p, totalHon, paidHon, pct }
     }), [externalProjects])
@@ -382,7 +390,7 @@ export default function FinancePage() {
     { label: 'Total charges', value: fmtMADShort(totalSorties), icon: TrendingDown, color: '#F43F5E', sub: 'Exercice en cours' },
     { label: 'Résultat brut', value: fmtMADShort(resultatBrut), icon: Wallet, color: resultatBrut >= 0 ? '#3B82F6' : '#F43F5E', sub: resultatBrut >= 0 ? 'Avant IS' : 'Déficit' },
     { label: `Résultat net IS ${tauxImpot}%`, value: fmtMADShort(resultatNet), icon: Scale, color: resultatNet >= 0 ? '#8B5CF6' : '#F43F5E', sub: resultatNet >= 0 ? 'Après impôt' : 'Déficit net' },
-    { label: 'Honoraires à encaisser', value: fmtMADShort(pendingTotal), icon: Clock, color: '#F59E0B', sub: 'En attente / Non payés' },
+    { label: 'Honoraires à encaisser TTC', value: fmtMADShort(pendingTotal), icon: Clock, color: '#F59E0B', sub: 'En attente / Non payés' },
   ]
 
   const objectifColor = pctObjectif >= 100 ? '#10B981' : pctObjectif >= 70 ? '#3B82F6' : pctObjectif >= 40 ? '#F59E0B' : '#F43F5E'
