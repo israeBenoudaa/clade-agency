@@ -1589,7 +1589,17 @@ export default function ProjectDetailPage({ backPath = '/app/projects' }) {
                   </div>
 
                   {/* Participants */}
-                  <div className="text-xs text-muted truncate">{rdv.personnes || '—'}</div>
+                  <div className="text-xs text-muted truncate">
+                    {(() => {
+                      const parts = []
+                      if (rdv.personnesIds?.length) parts.push(...employes.filter(e => rdv.personnesIds.map(String).includes(String(e.id))).map(e => e.nom).filter(Boolean))
+                      if (rdv.clientIds?.length) parts.push(...prospects.filter(c => rdv.clientIds.map(String).includes(String(c.id))).map(c => `${c.prenom || ''} ${c.nom || ''}`.trim()).filter(Boolean))
+                      if (rdv.collabIds?.length) parts.push(...collaborateurs.filter(c => rdv.collabIds.map(String).includes(String(c.id))).map(c => c.nom).filter(Boolean))
+                      if (rdv.personnesExtra?.trim()) parts.push(rdv.personnesExtra.trim())
+                      const live = parts.filter(Boolean).join(', ')
+                      return live || rdv.personnes || '—'
+                    })()}
+                  </div>
 
                   {/* Actions */}
                   <div className="flex items-center gap-2">

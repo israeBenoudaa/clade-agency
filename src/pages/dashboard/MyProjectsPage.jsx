@@ -198,10 +198,26 @@ function GanttReadOnly({ missions }) {
 
 /* ─── Modal vue personnel read-only ────────────────────────────────────────── */
 function PersonnelModal({ project, myId, myNom, onClose }) {
-  const { addLivrable, updateLivrable, deleteLivrable } = useData()
+  const { addLivrable, updateLivrable, deleteLivrable, employes, prospects, collaborateurs } = useData()
   const [tab, setTab] = useState('gantt')
   const [livrableModal, setLivrableModal] = useState(null) // null | 'new' | livrable object
+  const [taskDeadlineFilter, setTaskDeadlineFilter] = useState(null) // null | 'late' | '7d' | '30d'
   const myTasks  = (project.tasks || []).filter(t => String(t.personnelId) === String(myId))
+
+  const filteredTasks = (() => {
+    if (!taskDeadlineFilter) return myTasks
+    const now = new Date(); now.setHours(0, 0, 0, 0)
+    const d7  = new Date(now.getTime() + 7  * 86400000)
+    const d30 = new Date(now.getTime() + 30 * 86400000)
+    return myTasks.filter(t => {
+      if (!t.deadline || t.statut === 'Done') return false
+      const due = new Date(t.deadline)
+      if (taskDeadlineFilter === 'late') return due < now
+      if (taskDeadlineFilter === '7d')   return due >= now && due <= d7
+      if (taskDeadlineFilter === '30d')  return due >= now && due <= d30
+      return true
+    })
+  })()
   const deadlines = (project.missions || []).filter(m => m.type === 'deadline').sort((a, b) => new Date(a.date) - new Date(b.date))
   const rdvs      = (project.missions || []).filter(m => m.type === 'rdv').sort((a, b) => new Date(a.date) - new Date(b.date))
   const livrables = (project.livrables || [])
@@ -305,7 +321,15 @@ function PersonnelModal({ project, myId, myNom, onClose }) {
                     <Calendar size={14} className="text-violet-500 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-ink">{r.nom}</div>
-                      {r.personnes && <div className="text-xs text-muted">{r.personnes}</div>}
+                      {(() => {
+                        const parts = []
+                        if (r.personnesIds?.length) parts.push(...employes.filter(e => r.personnesIds.map(String).includes(String(e.id))).map(e => e.nom).filter(Boolean))
+                        if (r.clientIds?.length) parts.push(...prospects.filter(c => r.clientIds.map(String).includes(String(c.id))).map(c => `${c.prenom || ''} ${c.nom || ''}`.trim()).filter(Boolean))
+                        if (r.collabIds?.length) parts.push(...collaborateurs.filter(c => r.collabIds.map(String).includes(String(c.id))).map(c => c.nom).filter(Boolean))
+                        if (r.personnesExtra?.trim()) parts.push(r.personnesExtra.trim())
+                        const display = parts.filter(Boolean).join(', ') || r.personnes
+                        return display ? <div className="text-xs text-muted">{display}</div> : null
+                      })()}
                     </div>
                     <span className="text-xs font-semibold text-muted">{fmtDate(r.date)}</span>
                   </div>
@@ -316,8 +340,27 @@ function PersonnelModal({ project, myId, myNom, onClose }) {
 
           {tab === 'mestaches' && (
             <div className="space-y-2">
-              {myTasks.length === 0 && <div className="text-center py-8 text-sm text-muted">Aucune tâche assignée.</div>}
-              {myTasks.map(t => {
+              {myTasks.length > 0 && (
+                <div className="flex items-center gap-1.5 flex-wrap pb-1">
+                  {[
+                    { val: null,   label: 'Toutes' },
+                    { val: 'late', label: 'En retard' },
+                    { val: '7d',   label: '7 jours' },
+                    { val: '30d',  label: '30 jours' },
+                  ].map(({ val, label }) => (
+                    <button key={String(val)} onClick={() => setTaskDeadlineFilter(val)}
+                      className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-colors ${taskDeadlineFilter === val ? 'bg-ink text-paper' : 'bg-paper-warm border border-border text-muted hover:text-ink'}`}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {filteredTasks.length === 0 && (
+                <div className="text-center py-8 text-sm text-muted">
+                  {myTasks.length === 0 ? 'Aucune tâche assignée.' : 'Aucune tâche pour ce filtre.'}
+                </div>
+              )}
+              {filteredTasks.map(t => {
                 const cfg = TASK_STAT[t.statut] || TASK_STAT['Not Started']
                 const Icon = cfg.Icon
                 return (
