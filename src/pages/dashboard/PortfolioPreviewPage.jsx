@@ -520,6 +520,9 @@ export default function PortfolioPage() {
   const [urlDraft, setUrlDraft]       = useState(liveUrl)
   const [showUrl, setShowUrl]         = useState(false)
   const [showAnalytics, setShowAnalytics] = useState(false)
+  const [iframeReady, setIframeReady] = useState(false)
+  const [iframeTimeout, setIframeTimeout] = useState(false)
+  const iframeTimerRef = useRef(null)
 
   /* ── Site-content single-field ── */
   const [editPanel, setEditPanel] = useState(null)
@@ -581,6 +584,9 @@ export default function PortfolioPage() {
       if (e.data.type === 'cms-ready') {
         // iframe React app is fully mounted — enable edit mode immediately (no timeout needed)
         iframeRef.current?.contentWindow?.postMessage({ type: 'cms-enable' }, '*')
+        setIframeReady(true)
+        setIframeTimeout(false)
+        if (iframeTimerRef.current) clearTimeout(iframeTimerRef.current)
       }
 
       if (e.data.type === 'cms-navigate') {
@@ -623,6 +629,11 @@ export default function PortfolioPage() {
     // Fallback: cms-ready from the iframe is the primary signal (handled above in the message listener).
     // This fires on onLoad as a safety net in case cms-ready was already sent before we were listening.
     setTimeout(() => iframeRef.current?.contentWindow?.postMessage({ type: 'cms-enable' }, '*'), 80)
+    // Start a 10s timeout — if cms-ready never arrives, flag the URL as unreachable
+    if (iframeTimerRef.current) clearTimeout(iframeTimerRef.current)
+    setIframeReady(false)
+    setIframeTimeout(false)
+    iframeTimerRef.current = setTimeout(() => setIframeTimeout(true), 10000)
   }, [])
 
   /* ── Save site_content field ── */
@@ -808,13 +819,31 @@ export default function PortfolioPage() {
                 </button>
               </div>
             ) : (
-            <iframe
-              ref={iframeRef}
-              src={`${liveUrl}/`}
-              onLoad={enableEditMode}
-              style={{ width: '100%', height: isMobile ? 844 : '100%', border: 'none', flex: isMobile ? undefined : 1, display: 'block' }}
-              title="Aperçu du portfolio"
-            />
+            <>
+              <iframe
+                ref={iframeRef}
+                src={`${liveUrl}/`}
+                onLoad={enableEditMode}
+                style={{ width: '100%', height: isMobile ? 844 : '100%', border: 'none', flex: isMobile ? undefined : 1, display: 'block' }}
+                title="Aperçu du portfolio"
+              />
+              {iframeTimeout && !iframeReady && (
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, background: 'rgba(8,9,10,0.92)', backdropFilter: 'blur(8px)', textAlign: 'center', padding: '0 40px', zIndex: 5 }}>
+                  <ExternalLink size={28} color="rgba(245,240,234,0.2)" />
+                  <div>
+                    <div style={{ fontSize: 14, color: 'rgba(245,240,234,0.6)', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, marginBottom: 6 }}>
+                      Impossible d'atteindre <code style={{ background: 'rgba(255,255,255,0.08)', padding: '1px 6px', borderRadius: 4, fontSize: 12 }}>{liveUrl}</code>
+                    </div>
+                    <div style={{ fontSize: 11, color: 'rgba(245,240,234,0.3)', fontFamily: 'Space Grotesk, sans-serif', lineHeight: 1.7, maxWidth: 360 }}>
+                      Vérifiez que le portfolio est bien déployé et que l'URL est correcte.
+                    </div>
+                  </div>
+                  <button onClick={() => setShowUrl(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', borderRadius: 9, background: 'rgba(200,184,154,0.15)', border: '1px solid rgba(200,184,154,0.25)', color: '#C8B89A', fontSize: 12, fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, cursor: 'pointer' }}>
+                    <ExternalLink size={12} /> Changer l'URL
+                  </button>
+                </div>
+              )}
+            </>
             )}
 
             {/* Floating "+ Ajouter" on discipline pages — admin-only overlay */}
