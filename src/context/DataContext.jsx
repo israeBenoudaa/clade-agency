@@ -450,7 +450,13 @@ export function DataProvider({ children }) {
         if (dbRecs)        setRecrutements(dbRecs.map(fromDbRecrutement))
         if (dbCands)       setCandidaturesSpont(dbCands.map(fromDbCandidatureSpont))
         if (dbFormations)  setFormations(dbFormations.map(fromDbFormation))
-        if (dbCollabs)     setCollaborateurs(dbCollabs.map(fromDbCollaborateur))
+        if (dbCollabs?.length) {
+          setCollaborateurs(dbCollabs.map(fromDbCollaborateur))
+        } else if (dbCollabs !== null && collaborateurs.length) {
+          // Table vide mais localStorage a des données → les pousser vers Supabase
+          supabase.from('collaborateurs').upsert(collaborateurs.map(toDbCollaborateur), { onConflict: 'id' })
+            .then(({ error }) => { if (error) console.warn('[Supabase collaborateurs migration]', error.message) })
+        }
         if (dbCatCollabs)  setCategoriesCollab(dbCatCollabs)
         if (dbJF)          setJoursFerier(dbJF.map(fromDbJourFerie))
         if (dbWF)          setWorkflows(dbWF.map(fromDbWorkflow))
@@ -481,9 +487,11 @@ export function DataProvider({ children }) {
       if (s.projects?.length)     supabase.from('projects').upsert(s.projects.map(toDbProject), { onConflict: 'id' })
       if (s.employes?.length)     supabase.from('employes').upsert(s.employes.map(toDbEmploye), { onConflict: 'id' })
       if (s.transactions?.length) supabase.from('transactions').upsert(s.transactions.map(toDbTransaction), { onConflict: 'id' })
-      if (s.workflows?.length)    supabase.from('workflows').upsert(s.workflows.map(toDbWorkflow), { onConflict: 'id' })
-      if (s.formations?.length)   supabase.from('formations').upsert(s.formations.map(toDbFormation), { onConflict: 'id' })
-      if (s.demandesRH?.length)   supabase.from('demandes_rh').upsert(s.demandesRH.map(toDbDemandeRH), { onConflict: 'id' })
+      if (s.workflows?.length)      supabase.from('workflows').upsert(s.workflows.map(toDbWorkflow), { onConflict: 'id' })
+      if (s.formations?.length)     supabase.from('formations').upsert(s.formations.map(toDbFormation), { onConflict: 'id' })
+      if (s.demandesRH?.length)     supabase.from('demandes_rh').upsert(s.demandesRH.map(toDbDemandeRH), { onConflict: 'id' })
+      if (s.collaborateurs?.length) supabase.from('collaborateurs').upsert(s.collaborateurs.map(toDbCollaborateur), { onConflict: 'id' })
+        .then(({ error }) => { if (error) console.warn('[Supabase collaborateurs init-sync]', error.message) })
     }, 3000)
     return () => clearTimeout(t)
   }, [supaLoaded]) // eslint-disable-line
@@ -1476,7 +1484,10 @@ export function DataProvider({ children }) {
   const addCollaborateur = (data, by = '') => {
     const collab = { id: `co${Date.now()}`, ...data }
     setCollaborateurs(prev => [collab, ...prev])
-    sbUpsert('collaborateurs', toDbCollaborateur(collab))
+    if (supabase) {
+      supabase.from('collaborateurs').upsert(toDbCollaborateur(collab), { onConflict: 'id' })
+        .then(({ error }) => { if (error) console.warn('[Supabase addCollaborateur]', error.message, toDbCollaborateur(collab)) })
+    }
     logActivity({ action: 'Collaborateur ajouté', details: `${data.nom}${data.specialite ? ` — ${data.specialite}` : ''}`, category: 'collab', by })
     return collab
   }
