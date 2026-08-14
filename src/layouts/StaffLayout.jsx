@@ -47,6 +47,8 @@ const NOTIF_CFG = {
   autoformation_complete: { icon: '🎓', accent: '#059669', label: 'Formation' },
   rdv:                    { icon: '📅', accent: '#F97316', label: 'RDV' },
   rdv_prospect:           { icon: '🤝', accent: '#0EA5E9', label: 'RDV client' },
+  new_prospect:           { icon: '🤝', accent: '#06B6D4', label: 'Prospect' },
+  new_client:             { icon: '⭐', accent: '#10B981', label: 'Client' },
 }
 const NOTIF_DEFAULT = { icon: '🔔', accent: '#64748B', label: 'Notification' }
 
@@ -148,6 +150,11 @@ export default function StaffLayout() {
       return false
     })
   }, [notifications, myId, myEmpId, isDirector, isDirectorMode, isDemoMode])
+
+  const crmBadgeCount = useMemo(() =>
+    visibleNotifications.filter(n => !n.read && (n.type === 'new_prospect' || n.type === 'new_client')).length,
+    [visibleNotifications]
+  )
 
   let allowedModules = null
   let allowedProjects = null // null = access to all
@@ -410,6 +417,7 @@ export default function StaffLayout() {
           hasTeam={hasTeam}
           hasMyProjects={hasMyProjects}
           unreadMsgCount={unreadMsgCount}
+          crmBadgeCount={crmBadgeCount}
           onRequestClick={() => setShowRequestModal(true)}
         />
       </div>
@@ -445,6 +453,7 @@ export default function StaffLayout() {
                 hasTeam={hasTeam}
                 hasMyProjects={hasMyProjects}
                 unreadMsgCount={unreadMsgCount}
+                crmBadgeCount={crmBadgeCount}
                 onRequestClick={() => { setShowRequestModal(true); setSidebarOpen(false) }}
               />
             </motion.aside>
@@ -758,7 +767,7 @@ function NavItem({ item, mobile, onClose, badge }) {
   )
 }
 
-function Sidebar({ mobile, onClose, onSignOut, isDirector, profile, initials, navigate, allowedModules, isEmployee, hasTeam, hasMyProjects, unreadMsgCount, onRequestClick }) {
+function Sidebar({ mobile, onClose, onSignOut, isDirector, profile, initials, navigate, allowedModules, isEmployee, hasTeam, hasMyProjects, unreadMsgCount, crmBadgeCount, onRequestClick }) {
   const { isDemoMode, switchDemoRole } = useAuth()
   const [rolesOpen, setRolesOpen] = useState(false)
 
@@ -832,7 +841,7 @@ function Sidebar({ mobile, onClose, onSignOut, isDirector, profile, initials, na
                 item={item}
                 mobile={mobile}
                 onClose={onClose}
-                badge={item.to === '/app/messages' ? unreadMsgCount : 0}
+                badge={item.to === '/app/messages' ? unreadMsgCount : item.to === '/app/crm' ? crmBadgeCount : 0}
               />
             ))}
           </>

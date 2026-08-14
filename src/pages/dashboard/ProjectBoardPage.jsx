@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, MousePointer2, StickyNote, Type, ImagePlus, Hand,
-  Trash2, RotateCcw, Minus, Plus, LayoutGrid, Copy,
+  Trash2, RotateCcw, Minus, Plus, LayoutGrid, Copy, MoveRight,
 } from 'lucide-react'
 import { useData } from '../../context/DataContext'
 import { useAuth } from '../../context/AuthContext'
@@ -244,12 +244,14 @@ export default function ProjectBoardPage() {
   const [history,      setHistory]      = useState([])
   const [selBox,       setSelBox]       = useState(null) // rubber-band: { x1,y1,x2,y2 } canvas coords
   const [addMode,      setAddMode]      = useState(false) // additive multi-select toggle
+  const [arrowDraft,   setArrowDraft]   = useState(null) // { x1,y1,x2,y2 } while drawing
 
   // ── refs (for window handlers — avoid stale closures) ────────────────────
   const canvasRef       = useRef(null)
   const fileRef         = useRef(null)
   const dragRef         = useRef(null)      // { multi, id, startX, startY, elX, elY, positions }
   const panRef          = useRef(null)      // { startX, startY, panX, panY }
+  const arrowRef        = useRef(null)      // { x1, y1, x2, y2 } canvas coords while drawing
   const selBoxActive    = useRef(false)     // true while rubber-banding
   const selBoxCtrl      = useRef(false)     // was Ctrl held when rubber-band started?
   const ctrlHeld        = useRef(false)     // Ctrl / Cmd key currently held
@@ -319,7 +321,10 @@ export default function ProjectBoardPage() {
     const snapshot = elementsRef.current
     const copies = snapshot
       .filter(e => ids.has(e.id))
-      .map(e => ({ ...e, id: newId(), x: e.x + 24, y: e.y + 24, z: Date.now() }))
+      .map(e => e.type === 'arrow'
+        ? { ...e, id: newId(), x1: e.x1 + 24, y1: e.y1 + 24, x2: e.x2 + 24, y2: e.y2 + 24, z: Date.now() }
+        : { ...e, id: newId(), x: e.x + 24, y: e.y + 24, z: Date.now() }
+      )
     const newIds = new Set(copies.map(c => c.id))
     snapshotHistory()
     setElements(prev => [...prev, ...copies])
@@ -337,6 +342,17 @@ export default function ProjectBoardPage() {
           x: panRef.current.panX + (e.clientX - panRef.current.startX),
           y: panRef.current.panY + (e.clientY - panRef.current.startY),
         })
+        return
+      }
+
+      if (arrowRef.current) {
+        const rect = canvasRef.current?.getBoundingClientRect()
+        if (!rect) return
+        const cx = (e.clientX - rect.left - p.x) / z
+        const cy = (e.clientY - rect.top  - p.y) / z
+        arrowRef.current.x2 = cx
+        arrowRef.current.y2 = cy
+        setArrowDraft({ ...arrowRef.current })
         return
       }
 
@@ -403,6 +419,18 @@ export default function ProjectBoardPage() {
         selBoxActive.current = false
         selBoxCtrl.current = false
       }
+      if (arrowRef.current) {
+        const a = arrowRef.current
+        const dx = a.x2 - a.x1, dy = a.y2 - a.y1
+        if (dx * dx + dy * dy > 100) {
+          snapshotHistory()
+          const el = { id: newId(), type: 'arrow', x1: a.x1, y1: a.y1, x2: a.x2, y2: a.y2, color: '#0A1E3F', z: Date.now() }
+          setElements(prev => [...prev, el])
+        }
+        arrowRef.current = null
+        setArrowDraft(null)
+      }
+
       dragRef.current = null
       panRef.current  = null
     }
@@ -476,6 +504,7 @@ export default function ProjectBoardPage() {
         if (e.key === 's') setTool('sticky')
         if (e.key === 't') setTool('text')
         if (e.key === 'i') setTool('image')
+        if (e.key === 'a') setTool('arrow')
       }
     }
     const onUp = (e) => {
@@ -523,6 +552,13 @@ export default function ProjectBoardPage() {
     }
 
     if (tool === 'image') { fileRef.current?.click(); return }
+
+    if (tool === 'arrow') {
+      e.preventDefault()
+      arrowRef.current = { x1: cx, y1: cy, x2: cx, y2: cy }
+      setArrowDraft({ x1: cx, y1: cy, x2: cx, y2: cy })
+      return
+    }
 
     // select mode — start rubber-band selection
     if (tool === 'select') {
@@ -624,7 +660,7 @@ export default function ProjectBoardPage() {
   const cursor = (() => {
     if (isActuallyPanning)                  return 'grabbing'
     if (tool === 'hand' || spaceHeld.current) return 'grab'
-    if (tool === 'sticky' || tool === 'text') return 'crosshair'
+    if (tool === 'sticky' || tool === 'text' || tool === 'arrow') return 'crosshair'
     if (tool === 'image')                   return 'cell'
     return 'default'
   })()
@@ -637,6 +673,7 @@ export default function ProjectBoardPage() {
     { key: 'sticky', Icon: StickyNote,    label: 'Post-it  S' },
     { key: 'text',   Icon: Type,          label: 'Texte  T' },
     { key: 'image',  Icon: ImagePlus,     label: 'Image  I' },
+    { key: 'arrow',  Icon: MoveRight,     label: 'Flèche  A' },
   ]
 
   const selCount = selectedIds.size
@@ -806,6 +843,50 @@ export default function ProjectBoardPage() {
               pointerEvents: 'none',
             }}
           >
+            {/* SVG layer for arrows */}
+            <svg
+              style={{ position: 'absolute', left: 0, top: 0, overflow: 'visible', pointerEvents: 'none' }}
+            >
+              <defs>
+                <marker id="arh-dark" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto" markerUnits="userSpaceOnUse">
+                  <path d="M0,0 L0,7 L10,3.5 z" fill="#0A1E3F" />
+                </marker>
+                <marker id="arh-sel" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto" markerUnits="userSpaceOnUse">
+                  <path d="M0,0 L0,7 L10,3.5 z" fill="#3B82F6" />
+                </marker>
+                <marker id="arh-draft" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto" markerUnits="userSpaceOnUse">
+                  <path d="M0,0 L0,7 L10,3.5 z" fill="#0A1E3F" opacity="0.5" />
+                </marker>
+              </defs>
+              {sortedEls.filter(el => el.type === 'arrow').map(el => {
+                const isSel = selectedIds.has(el.id)
+                return (
+                  <g key={el.id}>
+                    <line x1={el.x1} y1={el.y1} x2={el.x2} y2={el.y2}
+                      stroke="transparent" strokeWidth={16}
+                      style={{ pointerEvents: 'auto', cursor: 'pointer' }}
+                      onMouseDown={e => { e.stopPropagation(); setSelectedIds(new Set([el.id])) }}
+                    />
+                    <line x1={el.x1} y1={el.y1} x2={el.x2} y2={el.y2}
+                      stroke={isSel ? '#3B82F6' : (el.color || '#0A1E3F')}
+                      strokeWidth={isSel ? 2.5 : 2}
+                      markerEnd={isSel ? 'url(#arh-sel)' : 'url(#arh-dark)'}
+                      style={{ pointerEvents: 'none' }}
+                    />
+                  </g>
+                )
+              })}
+              {arrowDraft && (
+                <line
+                  x1={arrowDraft.x1} y1={arrowDraft.y1}
+                  x2={arrowDraft.x2} y2={arrowDraft.y2}
+                  stroke="#0A1E3F" strokeWidth={2} strokeDasharray="6 3"
+                  markerEnd="url(#arh-draft)"
+                  style={{ pointerEvents: 'none' }}
+                />
+              )}
+            </svg>
+
             {sortedEls.map(el => {
               const isSel = selectedIds.has(el.id)
               const isEditing = editingId === el.id

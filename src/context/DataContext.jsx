@@ -969,12 +969,18 @@ export function DataProvider({ children }) {
     }
     setClients(prev => [client, ...prev])
     sbUpsert('clients', toDbClient(client))
+    const cn = { id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'new_client', message: `Contrat signé — ${nom} est maintenant client`, link: '/app/crm' }
+    setNotifications(prev => [cn, ...prev])
+    sbUpsert('notifications', toDbNotification(cn))
   }
 
   const addProspect = (data) => {
     const prospect = { id: uid('p'), statut: 'premier_appel', createdAt: new Date().toISOString().slice(0, 10), sim: { typeProjet: '1.0', coutM2: 12000, complexite: '1.1', risque: '1.30', tjh: 250, marge: 30 }, devisMissions: [], ...data }
     setProspects(prev => [prospect, ...prev])
     sbUpsert('prospects', toDbProspect(prospect))
+    const pn = { id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'new_prospect', message: `Nouveau prospect : ${[data.prenom, data.nom].filter(Boolean).join(' ') || 'Sans nom'}`, link: '/app/crm' }
+    setNotifications(prev => [pn, ...prev])
+    sbUpsert('notifications', toDbNotification(pn))
     if (prospect.statut === 'contrat_signe') {
       ensureClientForProspect(prospect)
     }
@@ -1079,6 +1085,9 @@ export function DataProvider({ children }) {
     const client = { id: uid('cli'), sante: 85, projets: 0, depuis: new Date().getFullYear().toString(), ca: '€0', ...data }
     setClients(prev => [client, ...prev])
     sbUpsert('clients', toDbClient(client))
+    const cn = { id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'new_client', message: `Nouveau client ajouté : ${data.nom || 'Sans nom'}`, link: '/app/crm' }
+    setNotifications(prev => [cn, ...prev])
+    sbUpsert('notifications', toDbNotification(cn))
     return client
   }
 

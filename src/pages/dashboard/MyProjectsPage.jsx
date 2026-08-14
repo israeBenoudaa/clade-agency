@@ -433,6 +433,7 @@ export default function MyProjectsPage() {
   const { projects, updateProject } = useData()
 
   const [statusFilter, setStatusFilter] = useState('Tous')
+  const [deadlineFilter, setDeadlineFilter] = useState(null) // null | 'late' | '30d' | '7d'
   const [activeTab, setActiveTab] = useState('externe')
   const [selectedAssigned, setSelectedAssigned] = useState(null)
   const [showFilterMenu, setShowFilterMenu] = useState(false)
@@ -465,9 +466,24 @@ export default function MyProjectsPage() {
     : (activeTab === 'interne' && refInternal.length === 0) ? 'externe'
     : activeTab
 
-  const filteredExternal = (statusFilter === 'Tous' ? refExternal : refExternal.filter(p => (p.statut || 'En cours') === statusFilter))
+  const applyDeadlineFilter = (list) => {
+    if (!deadlineFilter) return list
+    const now = new Date(); now.setHours(0,0,0,0)
+    const d7  = new Date(now.getTime() + 7  * 86400000)
+    const d30 = new Date(now.getTime() + 30 * 86400000)
+    return list.filter(p => {
+      if (!p.dateFin || p.statut === 'Terminé') return false
+      const due = new Date(p.dateFin)
+      if (deadlineFilter === 'late') return due < now
+      if (deadlineFilter === '7d')   return due >= now && due <= d7
+      if (deadlineFilter === '30d')  return due >= now && due <= d30
+      return true
+    })
+  }
+
+  const filteredExternal = applyDeadlineFilter(statusFilter === 'Tous' ? refExternal : refExternal.filter(p => (p.statut || 'En cours') === statusFilter))
     .filter(p => !searchQuery || p.nom.toLowerCase().includes(searchQuery.toLowerCase()))
-  const filteredInternal = (statusFilter === 'Tous' ? refInternal : refInternal.filter(p => (p.statut || 'En cours') === statusFilter))
+  const filteredInternal = applyDeadlineFilter(statusFilter === 'Tous' ? refInternal : refInternal.filter(p => (p.statut || 'En cours') === statusFilter))
     .filter(p => !searchQuery || p.nom.toLowerCase().includes(searchQuery.toLowerCase()))
 
   const hasNothing = myReferentProjects.length === 0 && myAssignedProjects.length === 0
@@ -531,10 +547,13 @@ export default function MyProjectsPage() {
                           {showFilterMenu && <div className="fixed inset-0 z-10" onClick={() => setShowFilterMenu(false)} />}
                           <button
                             onClick={() => setShowFilterMenu(o => !o)}
-                            className={`flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-semibold border transition-all ${statusFilter !== 'Tous' ? 'bg-ink text-paper border-transparent' : 'bg-paper-warm border-border text-muted hover:text-ink'}`}
+                            className={`flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-semibold border transition-all ${(statusFilter !== 'Tous' || deadlineFilter) ? 'bg-ink text-paper border-transparent' : 'bg-paper-warm border-border text-muted hover:text-ink'}`}
                           >
                             <Filter size={13} />
                             {statusFilter !== 'Tous' && <span className="max-w-[64px] truncate">{statusFilter}</span>}
+                            {deadlineFilter === 'late' && <span className="max-w-[64px] truncate">En retard</span>}
+                            {deadlineFilter === '7d'   && <span className="max-w-[64px] truncate">7 jours</span>}
+                            {deadlineFilter === '30d'  && <span className="max-w-[64px] truncate">30 jours</span>}
                           </button>
                           <AnimatePresence>
                             {showFilterMenu && (
@@ -556,6 +575,22 @@ export default function MyProjectsPage() {
                                     </button>
                                   )
                                 })}
+                                <div className="border-t border-border mx-3 my-1" />
+                                <div className="px-4 py-1.5 text-[10px] uppercase tracking-wider text-muted font-semibold">Deadline</div>
+                                {[
+                                  { val: null,   label: 'Toutes les dates' },
+                                  { val: 'late', label: 'En retard' },
+                                  { val: '7d',   label: 'Dans 7 jours' },
+                                  { val: '30d',  label: 'Dans 30 jours' },
+                                ].map(({ val, label }) => (
+                                  <button key={val ?? 'all'}
+                                    onClick={() => { setDeadlineFilter(val); setShowFilterMenu(false) }}
+                                    className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold transition-colors text-left ${deadlineFilter === val ? 'bg-ink text-paper' : 'hover:bg-paper-warm text-ink'}`}
+                                  >
+                                    <Clock size={11} className="flex-shrink-0" />
+                                    {label}
+                                  </button>
+                                ))}
                               </motion.div>
                             )}
                           </AnimatePresence>
@@ -599,6 +634,24 @@ export default function MyProjectsPage() {
                                 {src.filter(p => (p.statut || 'En cours') === s).length}
                               </span>
                             )}
+                          </button>
+                        )
+                      })}
+                      <div className="w-px h-5 bg-border flex-shrink-0 mx-1" />
+                      {[
+                        { val: null,   label: 'Toutes dates', icon: null },
+                        { val: 'late', label: 'En retard',    icon: <AlertCircle size={11} className="text-rose-500" /> },
+                        { val: '7d',   label: '7 jours',      icon: <Clock size={11} className="text-amber-500" /> },
+                        { val: '30d',  label: '30 jours',     icon: <Clock size={11} className="text-blue-500" /> },
+                      ].map(({ val, label, icon }) => {
+                        const isActive = deadlineFilter === val
+                        return (
+                          <button key={val ?? 'all'} onClick={() => setDeadlineFilter(val)}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                              isActive ? 'bg-ink text-paper shadow-sm' : 'bg-paper-warm text-muted hover:text-ink hover:bg-white border border-border'
+                            }`}>
+                            {icon}
+                            {label}
                           </button>
                         )
                       })}
