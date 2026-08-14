@@ -297,27 +297,29 @@ export default function MessagesPage() {
   const newDmRef = useRef(null)
   const broadcastRef = useRef(null)
   const fileInputRef = useRef(null)
+  const dmInitRef = useRef(false)
 
   // Ouvrir directement une DM depuis une autre page (ex: Mon Équipe)
+  // Retries when employes load from Supabase (may be empty on first mount)
   useEffect(() => {
-    if (location.state?.openDm) {
-      const empId  = String(location.state.openDm)
-      const convId = `dm_${empId}`
-      const emp    = employes.find(e => String(e.id) === empId)
-      if (emp) {
-        setForcedDmConv({
-          id:   convId,
-          name: emp.nom,
-          sub:  emp.poste || 'Message direct',
-          icon: 'dm',
-          empId,
-        })
-      }
-      setActiveConv(convId)
-      setConvFilter('equipe')
+    if (dmInitRef.current || !location.state?.openDm || !employes.length) return
+    dmInitRef.current = true
+    const empId  = String(location.state.openDm)
+    const convId = `dm_${empId}`
+    const emp    = employes.find(e => String(e.id) === empId)
+    if (emp) {
+      setForcedDmConv({
+        id:   convId,
+        name: emp.nom,
+        sub:  emp.poste || 'Message direct',
+        icon: 'dm',
+        empId,
+      })
     }
+    setActiveConv(convId)
+    setConvFilter('equipe')
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [employes])
 
   useEffect(() => {
     const handler = (e) => {

@@ -411,6 +411,35 @@ export function DataProvider({ children }) {
           supabase.from('transactions').upsert(transactions.map(toDbTransaction), { onConflict: 'id' })
         }
 
+        // Regenerate auto transactions for paid missions missing from Supabase (one-time migration)
+        if (dbProjects?.length) {
+          const existingIds = new Set((dbTx || []).map(t => t.id))
+          const missing = []
+          for (const proj of dbProjects) {
+            const fins = proj.finances || {}
+            const honoraires = fins.honoraires || {}
+            const paiements  = fins.paiements  || {}
+            const missions   = proj.missions   || []
+            for (const [missionId, statut] of Object.entries(paiements)) {
+              if (statut !== 'paye') continue
+              const txId = `tx_auto_${proj.id}_${missionId}`
+              if (existingIds.has(txId)) continue
+              const montant = Number(honoraires[missionId]) || 0
+              if (!montant) continue
+              const m = missions.find(x => x.id === missionId)
+              missing.push({ id: txId, type: 'entree', montant, libelle: `${m?.nom || missionId} — ${proj.nom}`, date: new Date().toISOString().slice(0, 10), categorie: 'Honoraires', auto: true, charge_id: null, employe_id: null, project_id: proj.id })
+            }
+          }
+          if (missing.length) {
+            supabase.from('transactions').upsert(missing, { onConflict: 'id' })
+            setTransactions(prev => {
+              const map = new Map(prev.map(t => [t.id, t]))
+              missing.forEach(t => { if (!map.has(t.id)) map.set(t.id, fromDbTransaction(t)) })
+              return [...map.values()]
+            })
+          }
+        }
+
         if (dbCharges?.length) {
           setChargesFixe(dbCharges.map(fromDbChargeFixe))
         } else if (dbCharges !== null && chargesFixe.length) {
@@ -427,7 +456,7 @@ export function DataProvider({ children }) {
         if (dbWF)          setWorkflows(dbWF.map(fromDbWorkflow))
         if (dbNotifs)      setNotifications(dbNotifs.map(fromDbNotification))
         if (dbSettings) {
-          setAgenceSettingsState({ nbCollaborateurs: dbSettings.nb_collaborateurs ?? 5, heuresParAn: dbSettings.heures_par_an ?? 1500, tjh: dbSettings.tjh ?? 250 })
+          setAgenceSettingsState(prev => ({ ...prev, nbCollaborateurs: dbSettings.nb_collaborateurs ?? 5, heuresParAn: dbSettings.heures_par_an ?? 1500, tjh: dbSettings.tjh ?? 250 }))
           setTauxImpotState(dbSettings.taux_impot ?? 20)
         }
         if (dbLog?.length) setActivityLog(dbLog.map(e => ({ id: e.id, action: e.action, details: e.details, category: e.category, by: e.by, timestamp: e.timestamp })))
@@ -1012,7 +1041,7 @@ export function DataProvider({ children }) {
   const addTransaction = (data, by = '') => {
     const tx = { id: data.id || `tx${Date.now()}`, ...data }
     setTransactions(prev => { const filtered = prev.filter(t => t.id !== tx.id); return [tx, ...filtered] })
-    if (!data.auto) sbUpsert('transactions', toDbTransaction(tx))
+    sbUpsert('transactions', toDbTransaction(tx))
     if (!data.auto) {
       const dir = data.type === 'entree' ? 'Entrée' : 'Sortie'
       logActivity({ action: `Transaction — ${dir}`, details: `${data.libelle || data.categorie || '—'} · ${Number(data.montant || 0).toLocaleString('fr-MA')} DH`, category: 'finance', by })
