@@ -630,13 +630,24 @@ export default function PortfolioPage() {
     if (!editPanel) return
     setSaving(true)
     try {
-      const { error } = await supabase.from('site_content')
-        .upsert({ key: editPanel.key, value: draft, updated_at: new Date().toISOString() }, { onConflict: 'key' })
-      if (error) throw error
+      // Try upsert first (requires UNIQUE constraint on key)
+      const { error: upsertErr } = await supabase.from('site_content')
+        .upsert({ key: editPanel.key, value: draft }, { onConflict: 'key' })
+      if (upsertErr) {
+        // Fallback: try update then insert
+        const { data: existing } = await supabase.from('site_content').select('key').eq('key', editPanel.key).maybeSingle()
+        if (existing) {
+          const { error } = await supabase.from('site_content').update({ value: draft }).eq('key', editPanel.key)
+          if (error) throw error
+        } else {
+          const { error } = await supabase.from('site_content').insert({ key: editPanel.key, value: draft })
+          if (error) throw error
+        }
+      }
       iframeRef.current?.contentWindow?.postMessage({ type: 'cms-update', key: editPanel.key, value: draft }, '*')
       toast.success('Sauvegardé ✓')
       setEditPanel(null)
-    } catch { toast.error('Erreur lors de la sauvegarde') }
+    } catch (err) { toast.error('Erreur : ' + (err?.message || 'sauvegarde échouée')) }
     finally { setSaving(false) }
   }
 
