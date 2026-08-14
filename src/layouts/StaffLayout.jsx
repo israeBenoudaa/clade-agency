@@ -55,6 +55,8 @@ const NOTIF_CFG = {
   new_candidature:        { icon: '👤', accent: '#8B5CF6', label: 'Candidature' },
   new_request:            { icon: '📄', accent: '#F59E0B', label: 'Demande RH' },
   request_processed:      { icon: '✔️',  accent: '#10B981', label: 'Demande traitée' },
+  transaction_in:         { icon: '💰', accent: '#10B981', label: 'Entrée financière' },
+  transaction_out:        { icon: '💸', accent: '#EF4444', label: 'Sortie financière' },
 }
 const NOTIF_DEFAULT = { icon: '🔔', accent: '#64748B', label: 'Notification' }
 
@@ -146,16 +148,34 @@ export default function StaffLayout() {
   }, [messages, msgReadState, myId, isDirector, isDirectorMode, isDemoMode])
 
   const visibleNotifications = useMemo(() => {
+    const isDir = isDirector || isDirectorMode || isDemoMode
+
+    // Compute which modules this user has access to
+    let mods = null // null = access to all
+    if (!isDir && isEmployeeMode && !isDemoMode) {
+      const emp = employes.find(e => String(e.id) === String(profile?.employe_id))
+      if (emp?.permissions?.modules) {
+        const validIds = new Set(ALL_MODULES.map(m => m.id))
+        mods = emp.permissions.modules.filter(id => validIds.has(id))
+      }
+    }
+    const hasModule = (mod) => isDir || !mods || mods.includes(mod)
+
     return (notifications || []).filter(n => {
       if (n.targetUserId) {
-        if (n.targetUserId === 'director-achraf') return isDirector || isDirectorMode || isDemoMode
+        // Legacy director-achraf target
+        if (n.targetUserId === 'director-achraf') return isDir
+        // Module-based: visible to anyone with access to that page
+        if (n.targetUserId.startsWith('mod:')) return hasModule(n.targetUserId.slice(4))
+        // Individual user target
         return String(n.targetUserId) === myId || String(n.targetUserId) === myEmpId
       }
-      if (n.forHR) return profile?.role === 'rh' || isDirector || isDirectorMode || isDemoMode
-      if (isDirector || isDirectorMode || isDemoMode) return true
-      return false
+      // Legacy HR broadcast (forHR: true on old notifications)
+      if (n.forHR) return profile?.role === 'rh' || isDir
+      // No target = director / demo only (system-level)
+      return isDir
     })
-  }, [notifications, myId, myEmpId, isDirector, isDirectorMode, isDemoMode])
+  }, [notifications, myId, myEmpId, isDirector, isDirectorMode, isDemoMode, isEmployeeMode, employes, profile])
 
   const crmBadgeCount = useMemo(() =>
     visibleNotifications.filter(n => !n.read && (n.type === 'new_prospect' || n.type === 'new_client')).length,
@@ -674,30 +694,46 @@ export default function StaffLayout() {
                         <span className="font-semibold text-sm text-ink">Notifications</span>
                         {unreadCount > 0 && <span className="text-xs text-muted">{unreadCount} non lue{unreadCount > 1 ? 's' : ''}</span>}
                       </div>
-                      <div className="max-h-80 overflow-y-auto">
+                      <div className="max-h-96 overflow-y-auto">
                         {visibleNotifications.length === 0 ? (
-                          <div className="py-8 text-center text-sm text-muted">Aucune notification</div>
+                          <div className="py-10 text-center">
+                            <div className="text-2xl mb-2">🔔</div>
+                            <div className="text-sm text-muted">Aucune notification</div>
+                          </div>
                         ) : (
-                          visibleNotifications.slice(0, 12).map((n, i) => (
-                            <div key={n.id || i}
-                              onClick={() => { if (n.link) { navigate(n.link); setNotifOpen(false) } }}
-                              className={`px-4 py-3 border-b border-border last:border-0 flex items-start gap-3 transition-colors group ${!n.read ? 'bg-electric/5' : ''} ${n.link ? 'cursor-pointer hover:bg-paper-warm' : ''}`}>
-                              <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${!n.read ? 'bg-electric' : 'bg-border'}`} />
-                              <div className="flex-1 min-w-0">
-                                <div className="text-xs font-semibold text-ink leading-snug">{n.message}</div>
-                                <div className="text-[10px] text-muted mt-0.5">
-                                  {n.createdAt ? new Date(n.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
+                          visibleNotifications.slice(0, 15).map((n) => {
+                            const cfg = NOTIF_CFG[n.type] || NOTIF_DEFAULT
+                            return (
+                              <div key={n.id}
+                                onClick={() => { if (n.link) { navigate(n.link); setNotifOpen(false) } }}
+                                className={`flex items-stretch border-b border-border last:border-0 transition-colors group overflow-hidden ${!n.read ? 'bg-electric/[0.04]' : ''} ${n.link ? 'cursor-pointer hover:bg-paper-warm' : ''}`}>
+                                {/* Accent strip */}
+                                <div className="w-[3px] flex-shrink-0 self-stretch" style={{ background: !n.read ? cfg.accent : 'transparent' }} />
+                                {/* Icon bubble */}
+                                <div className="flex items-center justify-center w-10 flex-shrink-0 py-3 pl-1.5">
+                                  <div className="w-7 h-7 rounded-lg flex items-center justify-center text-sm" style={{ background: `${cfg.accent}18` }}>
+                                    {cfg.icon}
+                                  </div>
                                 </div>
+                                {/* Content */}
+                                <div className="flex-1 min-w-0 py-2.5 pl-2 pr-1">
+                                  <div className="text-[9px] font-bold uppercase tracking-[0.08em] leading-none mb-0.5" style={{ color: cfg.accent }}>{cfg.label}</div>
+                                  <div className="text-xs font-medium text-ink leading-snug line-clamp-2">{n.message}</div>
+                                  <div className="text-[10px] text-muted mt-1">
+                                    {n.createdAt ? new Date(n.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
+                                  </div>
+                                </div>
+                                {/* Delete */}
+                                <button
+                                  onClick={e => { e.stopPropagation(); deleteNotification(n.id) }}
+                                  className="opacity-0 group-hover:opacity-100 flex-shrink-0 self-center mr-2 w-6 h-6 rounded flex items-center justify-center text-muted hover:text-rose-500 hover:bg-rose-50 transition-all"
+                                  title="Supprimer"
+                                >
+                                  <X size={11} />
+                                </button>
                               </div>
-                              <button
-                                onClick={e => { e.stopPropagation(); deleteNotification(n.id) }}
-                                className="opacity-0 group-hover:opacity-100 w-5 h-5 rounded flex items-center justify-center text-muted hover:text-rose-500 hover:bg-rose-50 transition-all flex-shrink-0 mt-0.5"
-                                title="Supprimer"
-                              >
-                                <X size={11} />
-                              </button>
-                            </div>
-                          ))
+                            )
+                          })
                         )}
                       </div>
                     </motion.div>

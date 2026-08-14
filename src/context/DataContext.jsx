@@ -615,7 +615,7 @@ export function DataProvider({ children }) {
         const message = isSpontaneous
           ? `Nouvelle candidature spontanée de ${name}${row.poste_vise ? ` — ${row.poste_vise}` : ''}`
           : `${name} a postulé pour un poste ouvert`
-        const notif = { id: uid('notif'), type: 'new_candidature', message, forHR: true, read: false, createdAt: new Date().toISOString(), link: isSpontaneous ? '/app/hr' : '/app/recrutement' }
+        const notif = { id: uid('notif'), type: 'new_candidature', message, targetUserId: 'mod:hr', read: false, createdAt: new Date().toISOString(), link: isSpontaneous ? '/app/hr' : '/app/recrutement' }
         setNotifications(prev => [notif, ...prev])
         sbUpsert('notifications', toDbNotification(notif))
       })
@@ -969,7 +969,7 @@ export function DataProvider({ children }) {
     }
     setClients(prev => [client, ...prev])
     sbUpsert('clients', toDbClient(client))
-    const cn = { id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'new_client', message: `Contrat signé — ${nom} est maintenant client`, link: '/app/crm' }
+    const cn = { id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'new_client', targetUserId: 'mod:crm', message: `Contrat signé — ${nom} est maintenant client`, link: '/app/crm' }
     setNotifications(prev => [cn, ...prev])
     sbUpsert('notifications', toDbNotification(cn))
   }
@@ -978,7 +978,7 @@ export function DataProvider({ children }) {
     const prospect = { id: uid('p'), statut: 'premier_appel', createdAt: new Date().toISOString().slice(0, 10), sim: { typeProjet: '1.0', coutM2: 12000, complexite: '1.1', risque: '1.30', tjh: 250, marge: 30 }, devisMissions: [], ...data }
     setProspects(prev => [prospect, ...prev])
     sbUpsert('prospects', toDbProspect(prospect))
-    const pn = { id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'new_prospect', message: `Nouveau prospect : ${[data.prenom, data.nom].filter(Boolean).join(' ') || 'Sans nom'}`, link: '/app/crm' }
+    const pn = { id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'new_prospect', targetUserId: 'mod:crm', message: `Nouveau prospect : ${[data.prenom, data.nom].filter(Boolean).join(' ') || 'Sans nom'}`, link: '/app/crm' }
     setNotifications(prev => [pn, ...prev])
     sbUpsert('notifications', toDbNotification(pn))
     if (prospect.statut === 'contrat_signe') {
@@ -1051,6 +1051,11 @@ export function DataProvider({ children }) {
     if (!data.auto) {
       const dir = data.type === 'entree' ? 'Entrée' : 'Sortie'
       logActivity({ action: `Transaction — ${dir}`, details: `${data.libelle || data.categorie || '—'} · ${Number(data.montant || 0).toLocaleString('fr-MA')} DH`, category: 'finance', by })
+      const txType = data.type === 'entree' ? 'transaction_in' : 'transaction_out'
+      const txLabel = data.type === 'entree' ? '💰 Entrée' : '💸 Sortie'
+      const txn = { id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: txType, targetUserId: 'mod:finance', message: `${txLabel} — ${data.libelle || data.categorie || '—'} · ${Number(data.montant || 0).toLocaleString('fr-MA')} DH`, link: '/app/finance' }
+      setNotifications(prev => [txn, ...prev])
+      sbUpsert('notifications', toDbNotification(txn))
     }
     return tx
   }
@@ -1085,7 +1090,7 @@ export function DataProvider({ children }) {
     const client = { id: uid('cli'), sante: 85, projets: 0, depuis: new Date().getFullYear().toString(), ca: '€0', ...data }
     setClients(prev => [client, ...prev])
     sbUpsert('clients', toDbClient(client))
-    const cn = { id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'new_client', message: `Nouveau client ajouté : ${data.nom || 'Sans nom'}`, link: '/app/crm' }
+    const cn = { id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'new_client', targetUserId: 'mod:crm', message: `Nouveau client ajouté : ${data.nom || 'Sans nom'}`, link: '/app/crm' }
     setNotifications(prev => [cn, ...prev])
     sbUpsert('notifications', toDbNotification(cn))
     return client
@@ -1155,6 +1160,7 @@ export function DataProvider({ children }) {
   const updateTask = (projectId, taskId, updates) => {
     const project = projects.find(p => p.id === projectId)
     const task = project?.tasks.find(t => t.id === taskId)
+    const referentTarget = project?.architecteReferentId ? String(project.architecteReferentId) : 'director-achraf'
     setProjects(prev => prev.map(p => {
       if (p.id !== projectId) return p
       const updated = { ...p, tasks: p.tasks.map(t => t.id === taskId ? { ...t, ...updates } : t) }
@@ -1163,12 +1169,12 @@ export function DataProvider({ children }) {
     }))
     if (task) {
       if (updates.statut === 'Done' && task.statut !== 'Done') {
-        const dn = { id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'task_done', targetUserId: 'director-achraf', message: `✅ Tâche terminée par ${task.personnelNom} : "${task.nom}"`, link: `/app/projects/${projectId}` }
+        const dn = { id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'task_done', targetUserId: referentTarget, message: `✅ Tâche terminée par ${task.personnelNom} : "${task.nom}"`, link: `/app/projects/${projectId}` }
         setNotifications(prev => [dn, ...prev])
         sbUpsert('notifications', toDbNotification(dn))
       }
       if (updates.statut === 'Stuck' && task.statut !== 'Stuck') {
-        const sn = { id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'task_stuck', targetUserId: 'director-achraf', message: `🚨 Tâche bloquée — ${task.personnelNom} : "${task.nom}"`, link: `/app/projects/${projectId}` }
+        const sn = { id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'task_stuck', targetUserId: referentTarget, message: `🚨 Tâche bloquée — ${task.personnelNom} : "${task.nom}"`, link: `/app/projects/${projectId}` }
         setNotifications(prev => [sn, ...prev])
         sbUpsert('notifications', toDbNotification(sn))
       }
@@ -1192,7 +1198,9 @@ export function DataProvider({ children }) {
       sbUpsert('projects', toDbProject(updated))
       return updated
     }))
-    const cfn = { id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'client_feedback', targetUserId: 'director-achraf', message: `💬 Nouveau message client sur le projet`, link: `/app/projects/${projectId}` }
+    const cfProject = (stateRef.current.projects || []).find(p => String(p.id) === String(projectId))
+    const cfTarget = cfProject?.architecteReferentId ? String(cfProject.architecteReferentId) : 'director-achraf'
+    const cfn = { id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'client_feedback', targetUserId: cfTarget, message: `💬 Nouveau message client sur le projet "${cfProject?.nom || ''}"`, link: `/app/projects/${projectId}` }
     setNotifications(prev => [cfn, ...prev])
     sbUpsert('notifications', toDbNotification(cfn))
   }
@@ -1573,19 +1581,15 @@ export function DataProvider({ children }) {
     sbUpsert('demandes_rh', toDbDemandeRH(dem))
     const notifs = []
     const isLeaveType = MANAGER_VISIBLE_TYPES.includes(data.type)
-    // Notify the manager if there's one and the request is a leave type
+    // Notify the manager for leave/demission requests requiring their approval
     if (isLeaveType && managerId) {
       const label = data.type === 'demission' ? `Démission de ${data.employeNom}` : `Demande de congé de ${data.employeNom} — approbation requise`
       notifs.push({ id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'new_request', message: label, targetUserId: String(managerId), link: '/app/my-team' })
     }
-    // Notify director for non-leave types, or when there's no manager
-    if (!isLeaveType || !managerId) {
-      notifs.push({ id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'new_request', message: `Demande de ${data.employeNom} : ${DEMANDE_LABELS[data.type] || data.type}`, targetUserId: 'director-achraf', link: '/app/hr' })
-    }
-    if (notifs.length > 0) {
-      setNotifications(prev => [...notifs, ...prev])
-      notifs.forEach(n => sbUpsert('notifications', toDbNotification(n)))
-    }
+    // Always notify HR module users
+    notifs.push({ id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'new_request', message: `Demande de ${data.employeNom} : ${DEMANDE_LABELS[data.type] || data.type}`, targetUserId: 'mod:hr', link: '/app/hr' })
+    setNotifications(prev => [...notifs, ...prev])
+    notifs.forEach(n => sbUpsert('notifications', toDbNotification(n)))
     return dem
   }
 
@@ -1607,7 +1611,7 @@ export function DataProvider({ children }) {
     setNotifications(prev => [rpn, ...prev])
     sbUpsert('notifications', toDbNotification(rpn))
     if (decision === 'approuve' && !rhDone) {
-      const hrn = { id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'new_request', message: `Demande de ${dem.employeNom} approuvée par responsable — en attente RH`, forHR: true, link: '/app/hr' }
+      const hrn = { id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'new_request', targetUserId: 'mod:hr', message: `Demande de ${dem.employeNom} approuvée par responsable — en attente RH`, link: '/app/hr' }
       setNotifications(prev => [hrn, ...prev])
       sbUpsert('notifications', toDbNotification(hrn))
     }
