@@ -6,7 +6,7 @@ import {
   Search, LogOut, Menu, X, UserPlus, ChevronRight, Database,
   MessageSquare, ChevronDown, Network, FolderGit2, UserCircle,
   ClipboardList, Paperclip, UsersRound, Briefcase, BookOpen, Layers,
-  Eye, RotateCcw, History, Globe,
+  Eye, RotateCcw, History, Globe, Bell,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
@@ -675,7 +675,7 @@ export default function StaffLayout() {
                   onClick={() => { setNotifOpen(v => !v); if (!notifOpen) markAllNotificationsRead?.() }}
                   className="relative w-10 h-10 rounded-xl flex items-center justify-center hover:bg-black/5 transition-colors"
                 >
-                  <span className="text-[17px] leading-none select-none">🔔</span>
+                  <Bell size={17} className="text-ink/60" />
                   {unreadCount > 0 && (
                     <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-[9px] font-bold text-white">
                       {unreadCount > 9 ? '9+' : unreadCount}
@@ -698,8 +698,8 @@ export default function StaffLayout() {
                       </div>
                       <div className="max-h-96 overflow-y-auto">
                         {visibleNotifications.length === 0 ? (
-                          <div className="py-12 text-center">
-                            <div className="text-3xl mb-2 select-none">🔔</div>
+                          <div className="py-12 text-center flex flex-col items-center gap-2">
+                            <Bell size={22} className="text-ink/20" />
                             <div className="text-sm font-medium text-muted">Aucune notification</div>
                           </div>
                         ) : (

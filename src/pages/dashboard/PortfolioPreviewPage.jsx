@@ -778,6 +778,25 @@ export default function PortfolioPage() {
             ? { width: 390, flexShrink: 0, border: '10px solid #1C1D1E', borderRadius: 44, overflow: 'hidden', boxShadow: '0 0 0 1px rgba(255,255,255,0.07), 0 24px 80px rgba(0,0,0,0.85)' }
             : { flex: 1, display: 'flex', position: 'relative' }
           )}>
+            {liveUrl.includes('localhost') && typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? (
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, color: 'rgba(245,240,234,0.25)', textAlign: 'center', padding: '0 40px' }}>
+                <ExternalLink size={32} style={{ opacity: 0.18 }} />
+                <div>
+                  <div style={{ fontSize: 15, color: 'rgba(245,240,234,0.55)', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, marginBottom: 8 }}>URL du portfolio non configurée</div>
+                  <div style={{ fontSize: 12, fontFamily: 'Space Grotesk, sans-serif', lineHeight: 1.7, maxWidth: 340 }}>
+                    L'aperçu charge <code style={{ background: 'rgba(255,255,255,0.08)', padding: '1px 6px', borderRadius: 4, fontSize: 11 }}>localhost:5174</code> par défaut, inaccessible en ligne.<br />
+                    Renseignez l'URL de votre portfolio déployé via le bouton <ExternalLink size={11} style={{ display: 'inline', verticalAlign: 'middle', margin: '0 2px' }} /> en haut à droite.
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowUrl(true)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 10, background: 'rgba(200,184,154,0.15)', border: '1px solid rgba(200,184,154,0.25)', color: '#C8B89A', fontSize: 12, fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, cursor: 'pointer' }}
+                >
+                  <ExternalLink size={13} />
+                  Configurer l'URL du portfolio
+                </button>
+              </div>
+            ) : (
             <iframe
               ref={iframeRef}
               src={`${liveUrl}/`}
@@ -785,6 +804,7 @@ export default function PortfolioPage() {
               style={{ width: '100%', height: isMobile ? 844 : '100%', border: 'none', flex: isMobile ? undefined : 1, display: 'block' }}
               title="Aperçu du portfolio"
             />
+            )}
 
             {/* Floating "+ Ajouter" on discipline pages — admin-only overlay */}
             {currentDisciplineKey && !isMobile && (
