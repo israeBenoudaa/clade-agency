@@ -1163,10 +1163,14 @@ export function DataProvider({ children }) {
     }))
     if (task) {
       if (updates.statut === 'Done' && task.statut !== 'Done') {
-        setNotifications(prev => [{ id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'task_done', targetUserId: 'director-achraf', message: `✅ Tâche terminée par ${task.personnelNom} : "${task.nom}"`, link: `/app/projects/${projectId}` }, ...prev])
+        const dn = { id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'task_done', targetUserId: 'director-achraf', message: `✅ Tâche terminée par ${task.personnelNom} : "${task.nom}"`, link: `/app/projects/${projectId}` }
+        setNotifications(prev => [dn, ...prev])
+        sbUpsert('notifications', toDbNotification(dn))
       }
       if (updates.statut === 'Stuck' && task.statut !== 'Stuck') {
-        setNotifications(prev => [{ id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'task_stuck', targetUserId: 'director-achraf', message: `🚨 Tâche bloquée — ${task.personnelNom} : "${task.nom}"`, link: `/app/projects/${projectId}` }, ...prev])
+        const sn = { id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'task_stuck', targetUserId: 'director-achraf', message: `🚨 Tâche bloquée — ${task.personnelNom} : "${task.nom}"`, link: `/app/projects/${projectId}` }
+        setNotifications(prev => [sn, ...prev])
+        sbUpsert('notifications', toDbNotification(sn))
       }
     }
   }
@@ -1188,7 +1192,9 @@ export function DataProvider({ children }) {
       sbUpsert('projects', toDbProject(updated))
       return updated
     }))
-    setNotifications(prev => [{ id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'client_feedback', targetUserId: 'director-achraf', message: `💬 Nouveau message client sur le projet`, link: `/app/projects/${projectId}` }, ...prev])
+    const cfn = { id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'client_feedback', targetUserId: 'director-achraf', message: `💬 Nouveau message client sur le projet`, link: `/app/projects/${projectId}` }
+    setNotifications(prev => [cfn, ...prev])
+    sbUpsert('notifications', toDbNotification(cfn))
   }
 
   const markClientFeedbackRead = (projectId) => {
@@ -1211,7 +1217,9 @@ export function DataProvider({ children }) {
       return updated
     }))
     if (task?.personnelId && String(comment.authorId) !== String(task.personnelId)) {
-      setNotifications(prev => [{ id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'task_comment', message: `${comment.authorName} a commenté votre tâche "${task.nom}"`, targetUserId: String(task.personnelId), link: '/app' }, ...prev])
+      const tcn = { id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'task_comment', message: `${comment.authorName} a commenté votre tâche "${task.nom}"`, targetUserId: String(task.personnelId), link: '/app' }
+      setNotifications(prev => [tcn, ...prev])
+      sbUpsert('notifications', toDbNotification(tcn))
     }
     return newComment
   }
@@ -1574,7 +1582,10 @@ export function DataProvider({ children }) {
     if (!isLeaveType || !managerId) {
       notifs.push({ id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'new_request', message: `Demande de ${data.employeNom} : ${DEMANDE_LABELS[data.type] || data.type}`, targetUserId: 'director-achraf', link: '/app/hr' })
     }
-    if (notifs.length > 0) setNotifications(prev => [...notifs, ...prev])
+    if (notifs.length > 0) {
+      setNotifications(prev => [...notifs, ...prev])
+      notifs.forEach(n => sbUpsert('notifications', toDbNotification(n)))
+    }
     return dem
   }
 
@@ -1592,8 +1603,14 @@ export function DataProvider({ children }) {
     })
     if (newStatut === 'approuve') _finalizeApprovedLeave(dem)
     let label = decision === 'approuve' ? (rhDone ? 'approuvée définitivement ✓' : 'approuvée par votre responsable — en attente de validation RH finale') : 'refusée par votre responsable'
-    setNotifications(prev => [{ id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'request_processed', message: `Votre demande de ${DEMANDE_LABELS[dem.type] || 'demande'} a été ${label}`, targetUserId: String(dem.employeId), link: '/app' }, ...prev])
-    if (decision === 'approuve' && !rhDone) setNotifications(prev => [{ id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'new_request', message: `Demande de ${dem.employeNom} approuvée par responsable — en attente RH`, forHR: true, link: '/app/hr' }, ...prev])
+    const rpn = { id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'request_processed', message: `Votre demande de ${DEMANDE_LABELS[dem.type] || 'demande'} a été ${label}`, targetUserId: String(dem.employeId), link: '/app' }
+    setNotifications(prev => [rpn, ...prev])
+    sbUpsert('notifications', toDbNotification(rpn))
+    if (decision === 'approuve' && !rhDone) {
+      const hrn = { id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'new_request', message: `Demande de ${dem.employeNom} approuvée par responsable — en attente RH`, forHR: true, link: '/app/hr' }
+      setNotifications(prev => [hrn, ...prev])
+      sbUpsert('notifications', toDbNotification(hrn))
+    }
   }
 
   const _finalizeApprovedLeave = (dem) => {
@@ -1634,7 +1651,9 @@ export function DataProvider({ children }) {
     if (finalUpdates.statut === 'approuve') _finalizeApprovedLeave(dem)
     if (updates.statut && dem) {
       let label = updates.statut === 'approuve' ? (finalUpdates.statut === 'approuve' ? 'définitivement approuvée par le RH ✓' : 'approuvée par le RH — en attente de votre responsable') : 'refusée par le RH'
-      setNotifications(prev => [{ id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'request_processed', message: `Votre demande de ${DEMANDE_LABELS[dem.type] || 'demande'} a été ${label}`, targetUserId: String(dem.employeId), link: '/app' }, ...prev])
+      const rhn = { id: uid('notif'), read: false, createdAt: new Date().toISOString(), type: 'request_processed', message: `Votre demande de ${DEMANDE_LABELS[dem.type] || 'demande'} a été ${label}`, targetUserId: String(dem.employeId), link: '/app' }
+      setNotifications(prev => [rhn, ...prev])
+      sbUpsert('notifications', toDbNotification(rhn))
     }
   }
 

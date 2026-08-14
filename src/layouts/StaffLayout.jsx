@@ -43,12 +43,18 @@ const DEMO_ROLES = [
 const NOTIF_CFG = {
   new_task:               { icon: '📋', accent: '#3B82F6', label: 'Nouvelle tâche' },
   task_comment:           { icon: '💬', accent: '#8B5CF6', label: 'Commentaire' },
+  task_done:              { icon: '✅', accent: '#10B981', label: 'Tâche terminée' },
+  task_stuck:             { icon: '🚨', accent: '#EF4444', label: 'Tâche bloquée' },
+  client_feedback:        { icon: '💬', accent: '#F97316', label: 'Message client' },
   new_message:            { icon: '✉️',  accent: '#06B6D4', label: 'Message' },
   autoformation_complete: { icon: '🎓', accent: '#059669', label: 'Formation' },
   rdv:                    { icon: '📅', accent: '#F97316', label: 'RDV' },
   rdv_prospect:           { icon: '🤝', accent: '#0EA5E9', label: 'RDV client' },
   new_prospect:           { icon: '🤝', accent: '#06B6D4', label: 'Prospect' },
   new_client:             { icon: '⭐', accent: '#10B981', label: 'Client' },
+  new_candidature:        { icon: '👤', accent: '#8B5CF6', label: 'Candidature' },
+  new_request:            { icon: '📄', accent: '#F59E0B', label: 'Demande RH' },
+  request_processed:      { icon: '✔️',  accent: '#10B981', label: 'Demande traitée' },
 }
 const NOTIF_DEFAULT = { icon: '🔔', accent: '#64748B', label: 'Notification' }
 
