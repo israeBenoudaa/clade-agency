@@ -61,19 +61,22 @@ function generateSalaryTx(employes) {
   const month = String(now.getMonth() + 1).padStart(2, '0')
   const monthKey = `${year}-${month}`
   return employes
-    .filter(e => e.statut === 'actif' && Number(e.salaireBrut) > 0)
+    .filter(e => e.statut === 'actif' && (Number(e.salaireBrut) > 0 || Number(e.salaireNet) > 0))
     // Pas de transaction auto si un vrai bulletin a déjà été généré ce mois
     .filter(e => !(e.payslips || []).some(p => p.month === monthKey))
-    .map(e => ({
-      id: `sal_${e.id}_${monthKey}`,
-      type: 'sortie',
-      montant: Number(e.salaireBrut),
-      libelle: `Salaire ${e.nom} — ${year}/${month}`,
-      date: `${year}-${month}-25`,
-      categorie: 'Salaires',
-      auto: true,
-      employeId: e.id,
-    }))
+    .map(e => {
+      const montant = Number(e.salaireBrut) || Number(e.salaireNet) || 0
+      return {
+        id: `sal_${e.id}_${monthKey}`,
+        type: 'sortie',
+        montant,
+        libelle: `Salaire ${e.nom} — ${year}/${month}`,
+        date: `${year}-${month}-25`,
+        categorie: 'Salaires',
+        auto: true,
+        employeId: e.id,
+      }
+    })
 }
 
 function calcAvancement(missions) {
