@@ -131,8 +131,8 @@ const fromDbCandidatureSpont = (r) => ({ id: r.id, prenom: r.prenom, nom: r.nom,
 const toDbFormation = (f) => ({ id: f.id, nom: f.nom, date: f.date || null, duree: f.duree || null, formateur: f.formateur || null, participants: f.personnes || f.participants || [], confirmed_by: f.confirmedBy || [], heure_debut: f.heureDebut || null, heure_fin: f.heureFin || null, budget: Number(f.budget) || null, statut: f.statut || null, description: f.description || null })
 const fromDbFormation = (r) => ({ id: r.id, nom: r.nom, date: r.date, duree: r.duree, formateur: r.formateur, personnes: r.participants || [], participants: r.participants || [], confirmedBy: r.confirmed_by || [], heureDebut: r.heure_debut || null, heureFin: r.heure_fin || null, budget: r.budget, statut: r.statut, description: r.description })
 
-const toDbCollaborateur = (c) => ({ id: c.id, nom: c.nom, specialite: c.specialite || null, categorie_id: c.categorieId || null, email: c.email || null, telephone: c.telephone || null, tarif: Number(c.tarif) || null, notes: c.notes || null })
-const fromDbCollaborateur = (r) => ({ id: r.id, nom: r.nom, specialite: r.specialite, categorieId: r.categorie_id, email: r.email, telephone: r.telephone, tarif: r.tarif, notes: r.notes })
+const toDbCollaborateur = (c) => ({ id: c.id, nom: c.nomSociete || c.nom || null, specialite: c.specialite || null, categorie_id: c.categorieId || null, email: c.email || null, telephone: c.telephone || null, tarif: Number(c.tarif) || null, notes: c.notes || null, ville: c.ville || null, adresse: c.adresse || null, prestations: c.prestations || null })
+const fromDbCollaborateur = (r) => ({ id: r.id, nom: r.nom, nomSociete: r.nom, specialite: r.specialite, categorieId: r.categorie_id, email: r.email, telephone: r.telephone, tarif: r.tarif, notes: r.notes, ville: r.ville, adresse: r.adresse, prestations: r.prestations })
 
 const toDbJourFerie = (j) => ({ id: j.id, date: j.date, nom: j.nom, date_fin: j.dateFin || null })
 const fromDbJourFerie = (r) => ({ id: r.id, date: r.date, nom: r.nom, dateFin: r.date_fin || null })
@@ -1523,7 +1523,7 @@ export function DataProvider({ children }) {
       supabase.from('collaborateurs').upsert(toDbCollaborateur(collab), { onConflict: 'id' })
         .then(({ error }) => { if (error) console.warn('[Supabase addCollaborateur]', error.message, toDbCollaborateur(collab)) })
     }
-    logActivity({ action: 'Collaborateur ajouté', details: `${data.nom}${data.specialite ? ` — ${data.specialite}` : ''}`, category: 'collab', by })
+    logActivity({ action: 'Collaborateur ajouté', details: `${data.nomSociete || data.nom || ''}${data.specialite ? ` — ${data.specialite}` : ''}`, category: 'collab', by })
     return collab
   }
 
