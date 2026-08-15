@@ -1132,21 +1132,11 @@ export default function FinancePage() {
               </div>
             ))}
           </div>
-          <div className="mt-4 flex items-center justify-between gap-4 flex-wrap">
-            {(immatDraft.nom || immatDraft.cnss) && (
-              <div className="flex-1 px-4 py-3 bg-paper-warm border border-border rounded-xl min-w-0">
-                <div className="text-[10px] font-semibold text-muted uppercase tracking-wide mb-1">Aperçu pied de page</div>
-                <div className="text-[11px] text-muted leading-relaxed font-mono">
-                  {[immatDraft.nom, immatDraft.adresse, immatDraft.telFax && `Tél/Fax : ${immatDraft.telFax}`].filter(Boolean).join(' · ')}<br />
-                  {[immatDraft.cnss && `CNSS N° : ${immatDraft.cnss}`, immatDraft.patente && `Patente N° : ${immatDraft.patente}`, immatDraft.identifiantFiscale && `Identifiant Fiscale : ${immatDraft.identifiantFiscale}`, immatDraft.ice && `ICE : ${immatDraft.ice}`].filter(Boolean).join(' --- ')}
-                  {immatDraft.rib && <><br />{immatDraft.rib}</>}
-                </div>
-              </div>
-            )}
+          <div className="mt-5 flex justify-center sm:justify-end">
             <button
               onClick={saveImmat}
               disabled={immatSaving}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-ink text-white text-sm font-semibold hover:bg-ink/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+              className="px-6 py-2.5 rounded-xl bg-ink text-white text-sm font-semibold hover:bg-ink/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {immatSaving ? 'Enregistrement…' : 'Enregistrer'}
             </button>
