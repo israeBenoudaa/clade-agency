@@ -350,7 +350,7 @@ export function DataProvider({ children }) {
           { data: dbRecs },
           { data: dbCands },
           { data: dbFormations },
-          { data: dbCollabs },
+          { data: dbCollabs, error: eCollabs },
           { data: dbCatCollabs },
           { data: dbJF },
           { data: dbWF },
@@ -465,7 +465,9 @@ export function DataProvider({ children }) {
         if (dbRecs)        setRecrutements(dbRecs.map(fromDbRecrutement))
         if (dbCands)       setCandidaturesSpont(dbCands.map(fromDbCandidatureSpont))
         if (dbFormations)  setFormations(dbFormations.map(fromDbFormation))
-        if (dbCollabs?.length) {
+        if (eCollabs) {
+          console.error('[Supabase] collaborateurs:', eCollabs.message)
+        } else if (dbCollabs?.length) {
           setCollaborateurs(dbCollabs.map(fromDbCollaborateur))
         } else if (dbCollabs !== null && collaborateurs.length) {
           // Table vide mais localStorage a des données → les pousser vers Supabase
