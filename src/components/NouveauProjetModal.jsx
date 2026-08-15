@@ -54,11 +54,14 @@ export default function NouveauProjetModal({ onClose, projet }) {
   const { profile } = useAuth()
   const byName = profile?.nom || profile?.full_name || ''
   const confirmedProspects = (prospects || []).filter(p => p.statut === 'contrat_signe')
-  // Exclude clients already shown in CRM — match by prospectId OR by full name (covers legacy records without prospectId)
+  const allProspectIds = new Set((prospects || []).map(p => p.id))
+  // Exclude clients already shown as confirmed prospects OR whose source prospect was deleted
   const crmNames = new Set(confirmedProspects.map(p => `${p.prenom} ${p.nom}`.trim().toLowerCase()))
   const pureClients = (clients || []).filter(c =>
     !confirmedProspects.find(p => p.id === c.prospectId) &&
-    !crmNames.has((c.nom || '').trim().toLowerCase())
+    !crmNames.has((c.nom || '').trim().toLowerCase()) &&
+    // Hide clients whose source prospect was deleted (prospectId exists but prospect is gone)
+    !(c.prospectId && !allProspectIds.has(c.prospectId))
   )
   const isEdit = Boolean(projet)
   const [form, setForm] = useState(() => toForm(projet))
