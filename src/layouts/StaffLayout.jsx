@@ -690,7 +690,7 @@ export default function StaffLayout() {
                       exit={{ opacity: 0, y: 6, scale: 0.97 }}
                       transition={{ duration: 0.15 }}
                       className="absolute top-full right-0 mt-2 w-80 rounded-2xl overflow-hidden z-50"
-                      style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(20px)', boxShadow: '0 8px 32px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.06)' }}
+                      style={{ background: '#ffffff', boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.08)' }}
                     >
                       <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
                         <span className="font-semibold text-sm text-ink">Notifications</span>
