@@ -138,13 +138,21 @@ export default function PayslipSection({ employe, addTransaction, updateEmploye 
   })
 
   const doGenerate = (ps) => {
+    const hasBase = ps.montantBase > 0
+    const hasPrimes = (ps.primes?.length > 0)
+    const libelle = hasBase && hasPrimes
+      ? `Salaire + Primes ${employe.nom} – ${MONTH_FULL[selMonth]} ${year}`
+      : hasBase
+        ? `Salaire ${employe.nom} – ${MONTH_FULL[selMonth]} ${year}`
+        : `Primes ${employe.nom} – ${MONTH_FULL[selMonth]} ${year}`
     addTransaction({
-      id:        `tx_ps_${Date.now()}`,
-      type:      'sortie',
-      libelle:   `Salaire ${employe.nom} – ${MONTH_FULL[selMonth]} ${year}`,
-      montant:   ps.total,
-      categorie: 'Salaires',
-      date:      new Date().toISOString().slice(0, 10),
+      id:         `tx_ps_${Date.now()}`,
+      type:       'sortie',
+      libelle,
+      montant:    ps.total,
+      categorie:  'Salaires',
+      date:       new Date().toISOString().slice(0, 10),
+      employeId:  employe.id,
     })
     updateEmploye(employe.id, {
       payslips: [...payslips.filter(p => p.month !== monthKey), ps],
@@ -267,10 +275,17 @@ export default function PayslipSection({ employe, addTransaction, updateEmploye 
             </div>
           )}
 
-          <div className="flex justify-between py-2.5 border-b border-border/60 text-sm">
-            <span className="text-muted">{mode === 'horaire' ? 'Montant calculé' : 'Salaire net mensuel'}</span>
-            <span className="font-semibold text-ink">{fmtMAD(base)}</span>
-          </div>
+          {mode === 'mensuel' && salaireNet === 0 ? (
+            <div className="flex items-center gap-2 py-2.5 border-b border-border/60 text-sm text-amber-600">
+              <span className="flex-1">Salaire net mensuel</span>
+              <span className="text-xs bg-amber-50 border border-amber-200 text-amber-700 px-2 py-0.5 rounded-full font-medium">Non configuré</span>
+            </div>
+          ) : (
+            <div className="flex justify-between py-2.5 border-b border-border/60 text-sm">
+              <span className="text-muted">{mode === 'horaire' ? 'Montant calculé' : 'Salaire net mensuel'}</span>
+              <span className="font-semibold text-ink">{fmtMAD(base)}</span>
+            </div>
+          )}
 
           {monthPrimes.length > 0 && (
             <div className="py-2.5 border-b border-border/60">
