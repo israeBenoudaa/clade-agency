@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { useData } from '../../context/DataContext'
 import { useAuth } from '../../context/AuthContext'
+import { supabase } from '../../lib/supabase'
 import NouvelleTransactionModal from '../../components/NouvelleTransactionModal'
 import NouvelleChargeFixeModal from '../../components/NouvelleChargeFixeModal'
 import { exportTransactionsExcel } from '../../utils/exportExcel'
@@ -195,10 +196,33 @@ export default function FinancePage() {
     return '2000000'
   })
 
-  const immat = agenceSettings.immatriculation || {}
-  const updateImmat = (field, value) => {
-    updateAgenceSettings({ immatriculation: { ...immat, [field]: value } })
+  const [immatDraft, setImmatDraft] = useState(() => agenceSettings.immatriculation || {})
+  const [immatSaving, setImmatSaving] = useState(false)
+  // Sync draft when context loads data from Supabase
+  useEffect(() => {
+    if (agenceSettings.immatriculation && Object.keys(agenceSettings.immatriculation).length > 0) {
+      setImmatDraft(agenceSettings.immatriculation)
+    }
+  }, [agenceSettings.immatriculation])
+
+  const saveImmat = async () => {
+    setImmatSaving(true)
+    try {
+      updateAgenceSettings({ immatriculation: immatDraft })
+      if (supabase) {
+        const { error } = await supabase
+          .from('agence_settings')
+          .upsert({ id: 1, immatriculation: JSON.stringify(immatDraft) }, { onConflict: 'id' })
+        if (error) throw error
+      }
+      toast.success('Immatriculation sauvegardée ✓')
+    } catch (err) {
+      toast.error('Erreur : ' + (err?.message || 'sauvegarde échouée'))
+    } finally {
+      setImmatSaving(false)
+    }
   }
+  const immat = immatDraft
 
   // ── Monthly aggregation ──
   const monthlyData = useMemo(() => {
@@ -1100,24 +1124,33 @@ export default function FinancePage() {
                 <label className="text-[10px] font-semibold text-muted uppercase tracking-wide block mb-1">{label}</label>
                 <input
                   type="text"
-                  value={immat[field] || ''}
-                  onChange={e => updateImmat(field, e.target.value)}
+                  value={immatDraft[field] || ''}
+                  onChange={e => setImmatDraft(d => ({ ...d, [field]: e.target.value }))}
                   placeholder={placeholder}
                   className="w-full px-3 py-2 text-sm bg-paper-warm border border-border rounded-xl focus:outline-none focus:border-electric transition-colors"
                 />
               </div>
             ))}
           </div>
-          {(immat.nom || immat.cnss) && (
-            <div className="mt-4 px-4 py-3 bg-paper-warm border border-border rounded-xl">
-              <div className="text-[10px] font-semibold text-muted uppercase tracking-wide mb-1">Aperçu pied de page</div>
-              <div className="text-[11px] text-muted leading-relaxed font-mono">
-                {[immat.nom, immat.adresse, immat.telFax && `Tél/Fax : ${immat.telFax}`].filter(Boolean).join(' · ')}<br />
-                {[immat.cnss && `CNSS N° : ${immat.cnss}`, immat.patente && `Patente N° : ${immat.patente}`, immat.identifiantFiscale && `Identifiant Fiscale : ${immat.identifiantFiscale}`, immat.ice && `ICE : ${immat.ice}`].filter(Boolean).join(' --- ')}
-                {immat.rib && <><br />{immat.rib}</>}
+          <div className="mt-4 flex items-center justify-between gap-4 flex-wrap">
+            {(immatDraft.nom || immatDraft.cnss) && (
+              <div className="flex-1 px-4 py-3 bg-paper-warm border border-border rounded-xl min-w-0">
+                <div className="text-[10px] font-semibold text-muted uppercase tracking-wide mb-1">Aperçu pied de page</div>
+                <div className="text-[11px] text-muted leading-relaxed font-mono">
+                  {[immatDraft.nom, immatDraft.adresse, immatDraft.telFax && `Tél/Fax : ${immatDraft.telFax}`].filter(Boolean).join(' · ')}<br />
+                  {[immatDraft.cnss && `CNSS N° : ${immatDraft.cnss}`, immatDraft.patente && `Patente N° : ${immatDraft.patente}`, immatDraft.identifiantFiscale && `Identifiant Fiscale : ${immatDraft.identifiantFiscale}`, immatDraft.ice && `ICE : ${immatDraft.ice}`].filter(Boolean).join(' --- ')}
+                  {immatDraft.rib && <><br />{immatDraft.rib}</>}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+            <button
+              onClick={saveImmat}
+              disabled={immatSaving}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-ink text-white text-sm font-semibold hover:bg-ink/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+            >
+              {immatSaving ? 'Enregistrement…' : 'Enregistrer'}
+            </button>
+          </div>
         </div>
       )}
 
