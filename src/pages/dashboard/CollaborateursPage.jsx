@@ -25,7 +25,7 @@ function catColor(idx) {
 
 export default function CollaborateursPage() {
   const {
-    categoriesCollab, collaborateurs,
+    categoriesCollab, collaborateurs, supaLoaded,
     addCategorieCollab, deleteCategorieCollab,
     deleteCollaborateur,
   } = useData()
@@ -253,7 +253,25 @@ export default function CollaborateursPage() {
         </div>
 
         {/* Grid */}
-        {filtered.length === 0 ? (
+        {!supaLoaded && collaborateurs.length === 0 ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+            {[1,2,3].map(i => (
+              <div key={i} className="bg-paper-warm border border-border rounded-2xl p-4 animate-pulse">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="w-11 h-11 rounded-xl bg-border flex-shrink-0" />
+                  <div className="flex-1 space-y-2 pt-1">
+                    <div className="h-3 bg-border rounded w-2/3" />
+                    <div className="h-2.5 bg-border rounded w-1/3" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="h-2.5 bg-border rounded w-1/2" />
+                  <div className="h-2.5 bg-border rounded w-3/4" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="text-center py-14 text-muted text-sm border border-dashed border-border rounded-2xl">
             {collaborateurs.length === 0
               ? 'Aucun collaborateur. Cliquez sur "Nouveau collaborateur" pour commencer.'
