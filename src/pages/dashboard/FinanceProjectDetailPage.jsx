@@ -31,7 +31,7 @@ function makeInvoiceNum(projectId, missionId) {
 export default function FinanceProjectDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { projects, addTransaction, removeTransaction, updateProjectFinances } = useData()
+  const { projects, addTransaction, removeTransaction, updateProjectFinances, clients, prospects } = useData()
 
   const project = projects.find(p => String(p.id) === id)
 
@@ -64,7 +64,7 @@ export default function FinanceProjectDetailPage() {
 
   const handleHonSave = (missionId) => {
     const raw = editHon[missionId]
-    const montant = parseFloat(raw)
+    const montant = parseFloat(raw) / 1.2 // L'utilisateur saisit en TTC, on stocke en HT
     if (isNaN(montant) || montant < 0) { toast.error('Montant invalide'); return }
     const newHon = { ...honoraires, [missionId]: montant }
     updateProjectFinances(project.id, { honoraires: newHon })
@@ -135,11 +135,15 @@ export default function FinanceProjectDetailPage() {
     if (!montant) { toast.error('Définissez l\'honoraire avant d\'envoyer'); return }
     const invoiceNum = makeInvoiceNum(project.id, mission.id)
     const fmtMontant = fmtMAD(montant * 1.2) + ' TTC'
+    const clientEntry = clients.find(c => c.id === project.clientId)
+      || prospects.find(p => p.id === project.prospectId)
+      || prospects.find(p => `${p.prenom} ${p.nom}`.trim() === project.client?.trim())
+    const clientEmail = clientEntry?.email || ''
     const subject = encodeURIComponent(`Facture ${invoiceNum} — ${project.nom}`)
     const body = encodeURIComponent(
-      `Madame, Monsieur ${project.client},\n\nVeuillez trouver ci-joint la facture ${invoiceNum} relative à la mission :\n\n  ${mission.nom}\n  Projet : ${project.nom}\n  Montant : ${fmtMontant}\n\nNous restons à votre disposition pour toute question.\n\nCordialement,\nL'équipe CLADE Architecture`
+      `Bonjour ${project.client},\n\nVeuillez trouver ci-joint la facture ${invoiceNum} relative à la mission :\n\n  ${mission.nom}\n  Projet : ${project.nom}\n  Montant : ${fmtMontant}\n\nNous restons à votre disposition pour toute question.\n\nCordialement,\nL'équipe CLADE Architecture`
     )
-    window.open(`mailto:?subject=${subject}&body=${body}`, '_blank')
+    window.open(`mailto:${clientEmail}?subject=${subject}&body=${body}`, '_blank')
   }
 
   const handleExportExcel = () => {
@@ -171,8 +175,8 @@ export default function FinanceProjectDetailPage() {
           </div>
           <div className="flex gap-4 sm:text-right flex-wrap">
             <div>
-              <div className="label-text text-[10px]">Total honoraires HT</div>
-              <div className="font-display text-2xl text-ink">{fmtMAD(totalHT)}</div>
+              <div className="label-text text-[10px]">Total honoraires TTC</div>
+              <div className="font-display text-2xl text-ink">{fmtMAD(totalHT * 1.2)}</div>
             </div>
             <div>
               <div className="label-text text-[10px]">Encaissé</div>
@@ -185,7 +189,7 @@ export default function FinanceProjectDetailPage() {
         <div className="mt-4">
           <div className="flex justify-between text-xs text-muted mb-1.5">
             <span>Progression des paiements</span>
-            <span className="font-semibold text-ink">{fmtMAD(paidHT)} / {fmtMAD(totalHT)}</span>
+            <span className="font-semibold text-ink">{fmtMAD(paidHT * 1.2)} / {fmtMAD(totalHT * 1.2)}</span>
           </div>
           <div className="h-2 bg-paper-warm rounded-full overflow-hidden">
             <motion.div
@@ -225,8 +229,7 @@ export default function FinanceProjectDetailPage() {
               <thead>
                 <tr className="border-b border-border">
                   <th className="text-left label-text pb-3 pr-4 font-medium">Mission</th>
-                  <th className="text-left label-text pb-3 pr-4 font-medium w-44">Honoraire HT (MAD)</th>
-                  <th className="text-left label-text pb-3 pr-4 font-medium">Total TTC</th>
+                  <th className="text-left label-text pb-3 pr-4 font-medium w-44">Honoraire TTC (MAD)</th>
                   <th className="text-left label-text pb-3 pr-4 font-medium">Paiement</th>
                   <th className="text-right label-text pb-3 font-medium">Actions</th>
                 </tr>
@@ -260,7 +263,7 @@ export default function FinanceProjectDetailPage() {
                             step="500"
                             className="input-field text-sm py-1.5 w-28"
                             placeholder="0"
-                            value={isEditing ? editHon[mission.id] : (hon || '')}
+                            value={isEditing ? editHon[mission.id] : (hon ? Math.round(hon * 1.2) : '')}
                             onChange={(e) => handleHonChange(mission.id, e.target.value)}
                             onFocus={(e) => !isEditing && handleHonChange(mission.id, hon || '')}
                           />
@@ -274,12 +277,6 @@ export default function FinanceProjectDetailPage() {
                             </button>
                           )}
                         </div>
-                      </td>
-
-                      {/* TTC */}
-                      <td className="py-4 pr-4">
-                        <span className="text-sm font-semibold text-ink">{hon ? fmtMAD(hon * 1.2) : '—'}</span>
-                        {hon > 0 && <div className="text-[10px] text-muted">TVA 20%: {fmtMAD(hon * 0.2)}</div>}
                       </td>
 
                       {/* Payment status */}
@@ -327,14 +324,13 @@ export default function FinanceProjectDetailPage() {
               <tfoot>
                 <tr className="border-t-2 border-ink/20 bg-paper-warm">
                   <td className="py-3 pr-4 font-semibold text-sm text-ink">Total</td>
-                  <td className="py-3 pr-4 font-bold text-sm text-ink">{fmtMAD(totalHT)}</td>
                   <td className="py-3 pr-4 font-bold text-sm text-ink">{fmtMAD(totalHT * 1.2)}</td>
                   <td className="py-3 pr-4">
                     <div className="text-xs text-emerald-700 font-semibold">
-                      Encaissé : {fmtMAD(paidHT)}
+                      Encaissé : {fmtMAD(paidHT * 1.2)}
                     </div>
                     <div className="text-xs text-amber-700 font-semibold">
-                      Restant : {fmtMAD(totalHT - paidHT)}
+                      Restant : {fmtMAD((totalHT - paidHT) * 1.2)}
                     </div>
                   </td>
                   <td />

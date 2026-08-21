@@ -778,13 +778,14 @@ export function DataProvider({ children }) {
     const onVisible = async () => {
       if (document.visibilityState !== 'visible') return
       syncReadyRef.current = false
-      const [{ data: p }, { data: tx }, { data: cl }, { data: pr }, { data: e }, { data: co }] = await Promise.all([
+      const [{ data: p }, { data: tx }, { data: cl }, { data: pr }, { data: e }, { data: co }, { data: fo }] = await Promise.all([
         supabase.from('projects').select('*'),
         supabase.from('transactions').select('*'),
         supabase.from('clients').select('*'),
         supabase.from('prospects').select('*'),
         supabase.from('employes').select('*'),
         supabase.from('collaborateurs').select('*'),
+        supabase.from('formations').select('*'),
       ])
       if (p)  setProjects(p.map(fromDbProject))
       if (tx) setTransactions(tx.map(fromDbTransaction))
@@ -792,6 +793,7 @@ export function DataProvider({ children }) {
       if (pr) setProspects(pr.map(fromDbProspect))
       if (e)  setEmployes(e.map(fromDbEmploye))
       if (co) setCollaborateurs(co.map(fromDbCollaborateur))
+      if (fo) setFormations(fo.map(fromDbFormation))
       setTimeout(() => { syncReadyRef.current = true }, 2000)
     }
     document.addEventListener('visibilitychange', onVisible)

@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Flag, Calendar, Users, CheckCircle, Pencil, Upload, Link2, Trash2, FileText, Search, ChevronDown, Check } from 'lucide-react'
+import { X, Flag, Calendar, Users, CheckCircle, Pencil, Upload, Link2, Trash2, FileText, Search, ChevronDown, Check, MapPin } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const COULEURS = [
@@ -43,6 +43,7 @@ const toForm = (item) => item ? {
   livrablesLinks:     item.livrables?.links || [],
   livrablesFromProject: item.livrables?.fromProject || [],
   livrablesLinkInput: '',
+  lieu: item?.lieu || '',
 } : {
   nom: '', debut: '', fin: '', date: '',
   heureDebut: '09:00', heureFin: '10:00',
@@ -51,6 +52,7 @@ const toForm = (item) => item ? {
   description: '',
   livrablesFiles: [], livrablesLinks: [], livrablesFromProject: [],
   livrablesLinkInput: '',
+  lieu: '',
 }
 
 export default function AjouterGanttModal({ onClose, onAdd, onEdit, item, projectLivrables = [], employes = [], clients = [], collaborateurs = [] }) {
@@ -131,6 +133,7 @@ export default function AjouterGanttModal({ onClose, onAdd, onEdit, item, projec
       ...(type === 'rdv'     && {
         heureDebut: form.heureDebut || '09:00',
         heureFin:   form.heureFin   || '10:00',
+        lieu:       form.lieu.trim() || null,
         personnesIds: form.personnesIds,
         clientIds: form.clientIds,
         collabIds: form.collabIds,
@@ -422,6 +425,13 @@ export default function AjouterGanttModal({ onClose, onAdd, onEdit, item, projec
                   <label className="label-text mb-1.5 block">Heure fin</label>
                   <input type="time" className="input-field" value={form.heureFin} onChange={set('heureFin')} />
                 </div>
+              </div>
+            )}
+
+            {type === 'rdv' && (
+              <div>
+                <label className="label-text mb-1.5 flex items-center gap-1 block"><MapPin size={11} /> Lieu</label>
+                <input className="input-field" placeholder="Salle de réunion, adresse, lien visio…" value={form.lieu} onChange={set('lieu')} />
               </div>
             )}
 

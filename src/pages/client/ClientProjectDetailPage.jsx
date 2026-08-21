@@ -100,7 +100,7 @@ export default function ClientProjectDetailPage() {
           <div className="text-electric text-xs tracking-[0.25em] uppercase mb-3">◆ Votre projet</div>
           <h1 className="font-display text-3xl lg:text-5xl leading-[1.05] mb-4 max-w-2xl">{projet.nom}</h1>
           <p className="text-paper/70 text-sm lg:text-base leading-relaxed max-w-xl mb-6">
-            {projet.type}{projet.localisation && projet.localisation !== '—' ? ` · ${projet.localisation}` : ''}
+            {projet.localisation && projet.localisation !== '—' ? projet.localisation : ''}
           </p>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {[
@@ -321,71 +321,6 @@ export default function ClientProjectDetailPage() {
             ))}
           </div>
         )}
-      </div>
-
-      {/* Feedback client */}
-      <div className="card p-5 lg:p-7">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
-            <MessageSquare size={16} className="text-blue-600" />
-          </div>
-          <div>
-            <div className="label-text mb-0.5">Communication</div>
-            <div className="font-display text-xl text-ink">Vos messages à l'équipe</div>
-          </div>
-        </div>
-
-        {/* Historique des messages */}
-        {(projet.clientFeedback || []).length > 0 && (
-          <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
-            {(projet.clientFeedback || []).map(f => (
-              <div key={f.id} className="flex gap-3 bg-paper-warm rounded-xl px-4 py-3">
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-ink to-electric flex items-center justify-center flex-shrink-0">
-                  <span className="text-white text-[10px] font-bold">C</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-xs font-semibold text-ink">Vous</span>
-                    <span className="text-[10px] text-muted">
-                      {new Date(f.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                  <p className="text-sm text-ink/80 leading-relaxed">{f.message}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Zone de saisie */}
-        <div className="flex gap-2">
-          <input
-            className="input-field flex-1 text-sm"
-            placeholder="Poser une question, signaler un point, valider une étape..."
-            value={feedbackDraft}
-            onChange={e => setFeedbackDraft(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter' && !e.shiftKey && feedbackDraft.trim()) {
-                e.preventDefault()
-                addClientFeedback(projet.id, feedbackDraft)
-                setFeedbackDraft('')
-                toast.success('Message envoyé à l\'équipe')
-              }
-            }}
-          />
-          <button
-            onClick={() => {
-              if (!feedbackDraft.trim()) return
-              addClientFeedback(projet.id, feedbackDraft)
-              setFeedbackDraft('')
-              toast.success('Message envoyé à l\'équipe')
-            }}
-            className="w-10 h-10 rounded-xl bg-ink text-paper flex items-center justify-center hover:bg-ink/90 transition-colors flex-shrink-0"
-          >
-            <Send size={14} />
-          </button>
-        </div>
-        <p className="text-[10px] text-muted mt-2">L'équipe sera notifiée et vous répondra par messages.</p>
       </div>
 
       {/* Personnel référent */}

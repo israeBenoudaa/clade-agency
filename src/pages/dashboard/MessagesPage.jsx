@@ -414,9 +414,18 @@ export default function MessagesPage() {
       list.push({ ...forcedClientConv, lastMsg: null })
     }
 
+    // Prospects ayant une conv client_ directe (messages envoyés depuis le portail)
     const clientConvIds = new Set(messages.filter(m => m.conversationId.startsWith('client_')).map(m => m.conversationId))
+    // Prospects ayant déjà une conv cdm_ (message direct client→staff) → on ne duplique pas avec client_
+    const prospectsWithDm = new Set(
+      messages.filter(m => m.conversationId.startsWith('cdm_')).map(m => {
+        const parts = m.conversationId.split('_')
+        return parts[1] // prospectId
+      }).filter(Boolean)
+    )
     prospects.filter(p => p.clientCredentials).forEach(p => {
       const convId = `client_${p.id}`
+      if (prospectsWithDm.has(String(p.id))) return // déjà une conv cdm_ pour ce client
       if (!list.find(c => c.id === convId)) {
         const msgs = messages.filter(m => m.conversationId === convId)
         list.push({
