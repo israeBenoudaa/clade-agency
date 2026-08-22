@@ -25,6 +25,12 @@ const readFileAsDataUrl = (file) => new Promise((resolve) => {
   r.readAsDataURL(file)
 })
 
+const FORMAT_RDV = [
+  { val: 'presentiel',   label: 'Présentiel',   icon: '📍' },
+  { val: 'meet',         label: 'Google Meet',  icon: '📹' },
+  { val: 'telephonique', label: 'Téléphonique', icon: '📞' },
+]
+
 const toForm = (item) => item ? {
   nom:                item.nom || '',
   debut:              item.debut || '',
@@ -32,6 +38,7 @@ const toForm = (item) => item ? {
   date:               item.date || '',
   heureDebut:         item.heureDebut || '09:00',
   heureFin:           item.heureFin || '10:00',
+  format:             item.format || '',
   couleur:            item.couleur || '#06B6D4',
   equipe:             item.equipe || '',
   personnesIds:       item.personnesIds || [],
@@ -47,6 +54,7 @@ const toForm = (item) => item ? {
 } : {
   nom: '', debut: '', fin: '', date: '',
   heureDebut: '09:00', heureFin: '10:00',
+  format: '',
   couleur: '#06B6D4', equipe: '',
   personnesIds: [], clientIds: [], collabIds: [], personnesExtra: '',
   description: '',
@@ -131,9 +139,11 @@ export default function AjouterGanttModal({ onClose, onAdd, onEdit, item, projec
       }),
       ...(type !== 'mission' && { date: form.date }),
       ...(type === 'rdv'     && {
-        heureDebut: form.heureDebut || '09:00',
-        heureFin:   form.heureFin   || '10:00',
-        lieu:       form.lieu.trim() || null,
+        heureDebut:  form.heureDebut || '09:00',
+        heureFin:    form.heureFin   || '10:00',
+        format:      form.format || null,
+        lieu:        form.lieu.trim() || null,
+        description: form.description.trim() || null,
         personnesIds: form.personnesIds,
         clientIds: form.clientIds,
         collabIds: form.collabIds,
@@ -416,23 +426,49 @@ export default function AjouterGanttModal({ onClose, onAdd, onEdit, item, projec
             )}
 
             {type === 'rdv' && (
-              <div className="grid grid-cols-2 gap-3">
+              <>
+                {/* Format */}
                 <div>
-                  <label className="label-text mb-1.5 block">Heure début</label>
-                  <input type="time" className="input-field" value={form.heureDebut} onChange={set('heureDebut')} />
+                  <label className="label-text mb-1.5 block">Format</label>
+                  <div className="flex gap-2">
+                    {FORMAT_RDV.map(f => (
+                      <button key={f.val} type="button"
+                        onClick={() => setForm(fm => ({ ...fm, format: fm.format === f.val ? '' : f.val }))}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
+                          form.format === f.val
+                            ? 'border-ink bg-ink text-white'
+                            : 'border-border text-muted hover:text-ink hover:border-ink/30'
+                        }`}>
+                        {f.icon} {f.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div>
-                  <label className="label-text mb-1.5 block">Heure fin</label>
-                  <input type="time" className="input-field" value={form.heureFin} onChange={set('heureFin')} />
-                </div>
-              </div>
-            )}
 
-            {type === 'rdv' && (
-              <div>
-                <label className="label-text mb-1.5 flex items-center gap-1 block"><MapPin size={11} /> Lieu</label>
-                <input className="input-field" placeholder="Salle de réunion, adresse, lien visio…" value={form.lieu} onChange={set('lieu')} />
-              </div>
+                {/* Heures */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="label-text mb-1.5 block">Heure début</label>
+                    <input type="time" className="input-field" value={form.heureDebut} onChange={set('heureDebut')} />
+                  </div>
+                  <div>
+                    <label className="label-text mb-1.5 block">Heure fin</label>
+                    <input type="time" className="input-field" value={form.heureFin} onChange={set('heureFin')} />
+                  </div>
+                </div>
+
+                {/* Lieu */}
+                <div>
+                  <label className="label-text mb-1.5 flex items-center gap-1 block"><MapPin size={11} /> Lieu</label>
+                  <input className="input-field" placeholder="Salle de réunion, adresse, lien visio…" value={form.lieu} onChange={set('lieu')} />
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="label-text mb-1.5 block">Description</label>
+                  <textarea className="input-field resize-none" rows={2} placeholder="Ordre du jour, contexte de la réunion…" value={form.description} onChange={set('description')} />
+                </div>
+              </>
             )}
 
             {type === 'rdv' && (
