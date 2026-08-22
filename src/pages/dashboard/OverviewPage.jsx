@@ -1265,7 +1265,8 @@ export default function OverviewPage() {
   const [editingRdv, setEditingRdv] = useState(null)
   const [showAutoformationModal, setShowAutoformationModal] = useState(false)
   const [editingAutoformation, setEditingAutoformation] = useState(null)
-  const [rdvWeekOffset, setRdvWeekOffset] = useState(0)
+  const [rdvViewMode, setRdvViewMode] = useState('semaine')
+  const [rdvOffset, setRdvOffset] = useState(0)
   const [editingRdvProspect, setEditingRdvProspect] = useState(null)
   const weekDays = useMemo(() => getWeekDates(weekOffset), [weekOffset])
   const weekLabel = `${weekDays[0].toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })} — ${weekDays[6].toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })}`
@@ -1546,13 +1547,33 @@ export default function OverviewPage() {
     [projectDayRdvs]
   )
 
-  const rdvWeekDays = useMemo(() => getWeekDates(rdvWeekOffset), [rdvWeekOffset])
-  const filteredRdvs = useMemo(() => {
-    const start = toISO(rdvWeekDays[0])
-    const end = toISO(rdvWeekDays[6])
-    return myRdvs.filter(rdv => rdv.date >= start && rdv.date <= end)
-  }, [myRdvs, rdvWeekDays])
-  const rdvWeekLabel = `${rdvWeekDays[0].toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })} — ${rdvWeekDays[6].toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })}`
+  const rdvRange = useMemo(() => {
+    if (rdvViewMode === 'semaine') {
+      const days = getWeekDates(rdvOffset)
+      return {
+        start: toISO(days[0]),
+        end: toISO(days[6]),
+        label: `${days[0].toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })} — ${days[6].toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })}`,
+      }
+    }
+    if (rdvViewMode === 'mois') {
+      const now = new Date()
+      const d = new Date(now.getFullYear(), now.getMonth() + rdvOffset, 1)
+      const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0)
+      return {
+        start: toISO(d),
+        end: toISO(lastDay),
+        label: d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }),
+      }
+    }
+    const year = new Date().getFullYear() + rdvOffset
+    return { start: `${year}-01-01`, end: `${year}-12-31`, label: String(year) }
+  }, [rdvViewMode, rdvOffset])
+
+  const filteredRdvs = useMemo(() =>
+    myRdvs.filter(rdv => rdv.date >= rdvRange.start && rdv.date <= rdvRange.end),
+    [myRdvs, rdvRange]
+  )
 
   // Task deadlines for non-approved tasks in my projects
   const taskDeadlines = useMemo(() =>
@@ -2203,26 +2224,36 @@ export default function OverviewPage() {
           )}
         </div>
 
-        {/* Week navigation */}
+        {/* View mode tabs */}
+        <div className="flex items-center gap-1 mb-2">
+          {[['semaine', 'Semaine'], ['mois', 'Mois'], ['annee', 'Année']].map(([mode, label]) => (
+            <button key={mode} onClick={() => { setRdvViewMode(mode); setRdvOffset(0) }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${rdvViewMode === mode ? 'bg-ink text-white' : 'text-muted hover:text-ink hover:bg-paper-warm'}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Navigation */}
         <div className="flex items-center gap-2 mb-3 bg-paper-warm rounded-xl px-3 py-2">
-          <button onClick={() => setRdvWeekOffset(w => w - 1)}
+          <button onClick={() => setRdvOffset(o => o - 1)}
             className="w-7 h-7 rounded-lg hover:bg-white border border-border flex items-center justify-center text-muted flex-shrink-0">
             <ChevronLeft size={14} />
           </button>
-          <span className="flex-1 text-xs font-medium text-ink text-center">{rdvWeekLabel}</span>
-          <button onClick={() => setRdvWeekOffset(0)}
+          <span className="flex-1 text-xs font-medium text-ink text-center capitalize">{rdvRange.label}</span>
+          <button onClick={() => setRdvOffset(0)}
             className="text-[10px] text-muted hover:text-ink px-2 font-medium flex-shrink-0">
             Auj.
           </button>
-          <button onClick={() => setRdvWeekOffset(w => w + 1)}
+          <button onClick={() => setRdvOffset(o => o + 1)}
             className="w-7 h-7 rounded-lg hover:bg-white border border-border flex items-center justify-center text-muted flex-shrink-0">
             <ChevronRight size={14} />
           </button>
         </div>
 
         {(() => {
-          const _rdvWeekStart = toISO(rdvWeekDays[0])
-          const _rdvWeekEnd   = toISO(rdvWeekDays[6])
+          const _rdvWeekStart = rdvRange.start
+          const _rdvWeekEnd   = rdvRange.end
           const visibleItems = [
             ...filteredRdvs.filter(r => r.type !== 'deadline'),
             ...projectDeadlines.filter(dl => !dl.validated && dl.date >= _rdvWeekStart && dl.date <= _rdvWeekEnd),
@@ -2230,7 +2261,8 @@ export default function OverviewPage() {
               .map(t => ({ ...t, date: t.deadline, _isTask: true })),
           ].sort((a, b) => (a.date || '').localeCompare(b.date || ''))
           if (visibleItems.length === 0) {
-            return <div className="py-6 text-center text-sm text-muted">Aucun élément cette semaine</div>
+            const emptyLabel = rdvViewMode === 'mois' ? 'ce mois' : rdvViewMode === 'annee' ? 'cette année' : 'cette semaine'
+            return <div className="py-6 text-center text-sm text-muted">Aucun élément {emptyLabel}</div>
           }
           return (
             <div className="space-y-2">

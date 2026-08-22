@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import {
   Calendar, Plus, MapPin, Lock, Globe, ArrowRight, Trash2,
-  Building2, FolderGit2, Target, X, CheckCircle, ChevronDown, Search, Filter,
+  Building2, FolderGit2, Target, X, CheckCircle, ChevronDown, Search, Filter, UserCircle,
 } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ProgressBar } from '../../components/ui'
@@ -92,8 +92,8 @@ function StatutDropdown({ statut, projectId, onUpdate }) {
 
 // ─── Nouveau Projet Interne Modal ─────────────────────────────────────────────
 function NouveauProjetInterneModal({ onClose }) {
-  const { addProject } = useData()
-  const [form, setForm] = useState({ nom: '', description: '', objectif: '' })
+  const { addProject, employes } = useData()
+  const [form, setForm] = useState({ nom: '', description: '', objectif: '', architecteReferentId: '' })
   const [errors, setErrors] = useState({})
 
   const set = (key) => (e) => {
@@ -107,6 +107,7 @@ function NouveauProjetInterneModal({ onClose }) {
     if (!form.nom.trim()) errs.nom = 'Le nom est requis'
     if (Object.keys(errs).length) { setErrors(errs); return }
 
+    const archRef = employes.find(e => String(e.id) === form.architecteReferentId)
     addProject({
       nom: form.nom.trim(),
       description: form.description.trim(),
@@ -117,6 +118,8 @@ function NouveauProjetInterneModal({ onClose }) {
       tasks: [],
       avancement: 0,
       client: '—',
+      architecteReferentId: archRef?.id || null,
+      architecteReferentNom: archRef?.nom || '',
     })
     toast.success(`Projet interne "${form.nom.trim()}" créé`)
     onClose()
@@ -191,6 +194,26 @@ function NouveauProjetInterneModal({ onClose }) {
                 value={form.objectif}
                 onChange={set('objectif')}
               />
+            </div>
+
+            {/* Référent */}
+            <div>
+              <label className="label-text mb-1.5 flex items-center gap-1">
+                <UserCircle size={11} /> Personnel référent
+              </label>
+              <select
+                className="input-field w-full"
+                value={form.architecteReferentId}
+                onChange={set('architecteReferentId')}
+              >
+                <option value="">— Aucun référent —</option>
+                {employes.map(e => (
+                  <option key={e.id} value={e.id}>
+                    {e.nom}{e.isDirecteur ? ' — Directeur Général' : e.poste ? ` — ${e.poste}` : ''}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[10px] text-muted mt-1">Responsable principal du projet interne</p>
             </div>
           </form>
 

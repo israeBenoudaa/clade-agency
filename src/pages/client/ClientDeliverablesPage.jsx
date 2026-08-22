@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { FileText, ExternalLink, FolderOpen, Download, CalendarDays, ArrowLeft, ChevronRight, File } from 'lucide-react'
+import { FileText, ExternalLink, FolderOpen, Download, CalendarDays, ArrowLeft, ChevronRight, File, CheckCircle } from 'lucide-react'
 import { useData } from '../../context/DataContext'
 import { useAuth } from '../../context/AuthContext'
 import { useClientLang } from '../../context/ClientLangContext'
@@ -54,8 +54,9 @@ function ProjectDeliverablesContent({ projet, t }) {
   const missionDeliverables = missions.filter(m =>
     m.livrables?.files?.length > 0 || m.livrables?.links?.length > 0 || m.livrables?.fromProject?.length > 0
   )
+  const validatedMissions = (projet.livrables || []).filter(l => l.source === 'mission')
 
-  if (taskDeliverables.length === 0 && missionDeliverables.length === 0) {
+  if (taskDeliverables.length === 0 && missionDeliverables.length === 0 && validatedMissions.length === 0) {
     return (
       <div className="card p-10 text-center">
         <FolderOpen size={28} className="text-muted mx-auto mb-3" />
@@ -153,6 +154,33 @@ function ProjectDeliverablesContent({ projet, t }) {
             })}
           </div>
         ))}
+
+        {validatedMissions.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 my-2">
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-[10px] font-semibold text-muted uppercase tracking-widest px-2">Missions validées</span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+            {validatedMissions.map((l, idx) => (
+              <motion.div key={l.id || idx} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.04 }}
+                className="flex items-center gap-3 p-3 rounded-xl border border-emerald-200 bg-emerald-50/60 mb-2">
+                <div className="w-11 h-11 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                  <CheckCircle size={18} className="text-emerald-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-ink truncate">{l.nom}</div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs text-emerald-700 font-medium">Mission validée</span>
+                    {l.addedAt && (
+                      <span className="flex items-center gap-0.5 text-[10px] text-muted/70"><CalendarDays size={9} />{fmtDate(l.addedAt)}</span>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
 
         {taskDeliverables.map(task => (
           <div key={task.id}>

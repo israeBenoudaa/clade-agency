@@ -5,7 +5,7 @@ import {
   ArrowLeft, Plus, MapPin, Euro, Calendar, Users, Lock, Globe,
   CheckCircle, AlertCircle, Loader, Paperclip, Link2, X,
   ChevronDown, Star, ThumbsDown, Upload, ExternalLink, Flag, Pencil, Trash2,
-  BadgeCheck, RotateCcw, FileText, Download, FolderGit2, TrendingUp,
+  BadgeCheck, RotateCcw, FileText, Download, FolderGit2, TrendingUp, Share2,
   Wallet, ChevronRight, UserCircle, MessageSquare, Send, Target,
   Lightbulb, LayoutGrid, Ruler, ClipboardList, Layers2,
 } from 'lucide-react'
@@ -1189,7 +1189,7 @@ export default function ProjectDetailPage({ backPath = '/app/projects' }) {
                   </button>
                 </div>
                 <div className="p-5 space-y-2 max-h-96 overflow-y-auto">
-                  {employes.filter(e => !e.isDirecteur).map(e => {
+                  {employes.filter(e => !e.isDirecteur || isInterne).map(e => {
                     const sid = String(e.id)
                     const isRef = sid === referentId
                     const isMembre = equipeIds.includes(sid)
@@ -1621,6 +1621,20 @@ export default function ProjectDetailPage({ backPath = '/app/projects' }) {
                             ? <Loader size={12} className="animate-spin" />
                             : <Download size={12} />}
                           PDF
+                        </button>
+                        <button
+                          onClick={() => updateMission(project.id, rdv.id, {
+                            compteRendu: { ...rdv.compteRendu, partageClient: !rdv.compteRendu.partageClient }
+                          })}
+                          className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border transition-colors ${
+                            rdv.compteRendu.partageClient
+                              ? 'border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                              : 'border-border text-muted hover:text-ink hover:border-ink/30 hover:bg-white'
+                          }`}
+                          title={rdv.compteRendu.partageClient ? 'Retirer du portail client' : 'Partager avec le client'}
+                        >
+                          <Share2 size={12} />
+                          {rdv.compteRendu.partageClient ? 'Partagé ✓' : 'Partager'}
                         </button>
                       </>
                     ) : (

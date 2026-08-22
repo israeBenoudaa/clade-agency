@@ -1,6 +1,6 @@
-import { useMemo } from 'react'
-import { motion } from 'framer-motion'
-import { Calendar, Clock, MapPin, Video, Phone, Users } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Calendar, Clock, MapPin, Video, Phone, Users, FileText, ChevronDown } from 'lucide-react'
 import { useData } from '../../context/DataContext'
 import { useAuth } from '../../context/AuthContext'
 import { useClientLang } from '../../context/ClientLangContext'
@@ -82,6 +82,8 @@ export default function ClientRdvsPage() {
 function RdvCard({ rdv, i, t, fmtDate, FORMAT_CFG }) {
   const fmt = FORMAT_CFG[rdv.format] || null
   const FormatIcon = fmt?.icon
+  const [showCR, setShowCR] = useState(false)
+  const hasCR = rdv.compteRendu?.partageClient && rdv.compteRendu?.contenu
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -116,6 +118,12 @@ function RdvCard({ rdv, i, t, fmtDate, FORMAT_CFG }) {
               {t(fmt.labelKey)}
             </span>
           )}
+          {rdv.lieu && (
+            <span className="flex items-center gap-1">
+              <MapPin size={13} className="flex-shrink-0" />
+              {rdv.lieu}
+            </span>
+          )}
         </div>
         {rdv.projectNom && (
           <div className="mt-1.5 text-xs text-muted flex items-center gap-1">
@@ -135,6 +143,33 @@ function RdvCard({ rdv, i, t, fmtDate, FORMAT_CFG }) {
           >
             <Video size={12} /> {t('rdvs.join_meet')} Google Meet
           </a>
+        )}
+        {hasCR && (
+          <div className="mt-3">
+            <button
+              onClick={() => setShowCR(v => !v)}
+              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-border text-muted hover:text-ink hover:border-ink/30 hover:bg-paper-warm transition-colors"
+            >
+              <FileText size={12} />
+              Compte rendu
+              <ChevronDown size={12} className={`transition-transform ${showCR ? 'rotate-180' : ''}`} />
+            </button>
+            <AnimatePresence>
+              {showCR && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div
+                    className="mt-2 prose prose-sm max-w-none text-ink border border-border rounded-xl px-4 py-3 bg-paper-warm text-sm leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: rdv.compteRendu.contenu }}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         )}
       </div>
     </motion.div>
