@@ -350,7 +350,7 @@ export function DataProvider({ children }) {
           { data: dbDemandesRH },
           { data: dbRecs },
           { data: dbCands },
-          { data: dbFormations },
+          { data: dbFormations, error: eFormations },
           { data: dbCollabs, error: eCollabs },
           { data: dbCatCollabs },
           { data: dbJF },
@@ -473,14 +473,17 @@ export function DataProvider({ children }) {
         } else if (dbCands !== null && candidaturesSpont.length) {
           supabase.from('candidatures_spont').upsert(candidaturesSpont.map(toDbCandidatureSpont), { onConflict: 'id' })
         }
-        if (dbFormations?.length) {
+        if (eFormations) {
+          console.error('[Supabase] formations SELECT error:', eFormations.message, eFormations)
+          toast.error(`Table formations Supabase : ${eFormations.message}`, { duration: 15000, id: 'formation-table-err' })
+        } else if (dbFormations?.length) {
           setFormations(dbFormations.map(fromDbFormation))
-        } else if (dbFormations !== null && formations.length) {
+        } else if (formations.length) {
           supabase.from('formations').upsert(formations.map(toDbFormation), { onConflict: 'id' })
             .then(({ error }) => {
               if (error) {
-                console.error('[Supabase] formations initial push failed:', error.message, error)
-                toast.error(`Sync formations échoué : ${error.message}`, { duration: 10000, id: 'formation-init-err' })
+                console.error('[Supabase] formations push failed:', error.message, error)
+                toast.error(`Sync formations : ${error.message}`, { duration: 15000, id: 'formation-push-err' })
               }
             })
         }
