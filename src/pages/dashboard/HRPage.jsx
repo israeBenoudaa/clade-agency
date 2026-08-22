@@ -966,7 +966,7 @@ export default function HRPage() {
     recrutements, addRecrutement, deleteRecrutement,
     candidaturesSpont, addCandidatureSpont, updateCandidatureSpont, deleteCandidatureSpont, refreshCandidatures,
     joursFerier, addJourFerie, updateJourFerie, deleteJourFerie,
-    addPlanningEvent } = useData()
+    addPlanningEvent, deleteGroupPlanningEvent } = useData()
 
   useEffect(() => { refreshCandidatures?.() }, [])
 
@@ -1428,7 +1428,7 @@ export default function HRPage() {
                               toast((t) => (
                                 <div className="flex items-center gap-3">
                                   <span className="text-sm">Supprimer <strong>{f.nom}</strong> ?</span>
-                                  <button onClick={() => { deleteFormation(f.id); toast.dismiss(t.id); toast.success('Formation supprimée') }}
+                                  <button onClick={() => { deleteFormation(f.id); deleteGroupPlanningEvent(f.id); toast.dismiss(t.id); toast.success('Formation supprimée') }}
                                     className="text-xs bg-rose-500 text-white px-3 py-1.5 rounded-lg font-semibold">Supprimer</button>
                                   <button onClick={() => toast.dismiss(t.id)} className="text-xs text-muted">Annuler</button>
                                 </div>

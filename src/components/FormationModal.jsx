@@ -11,7 +11,7 @@ function initials(nom) {
 }
 
 export default function FormationModal({ onClose, employes, formation }) {
-  const { addFormation, updateFormation } = useData()
+  const { addFormation, updateFormation, addPlanningEvent, deletePlanningEvent, updateGroupPlanningEvent } = useData()
   const { profile } = useAuth()
   const byName = profile?.nom || profile?.full_name || ''
   const isEdit = Boolean(formation)
@@ -40,11 +40,53 @@ export default function FormationModal({ onClose, employes, formation }) {
     e.preventDefault()
     if (!form.nom.trim() || !form.date) { toast.error('Nom et date requis'); return }
     const data = { ...form, nom: form.nom.trim(), personnes: form.personnes.map(String) }
+
     if (isEdit) {
       updateFormation(formation.id, data)
+      // Sync planning events: update details for all participants
+      updateGroupPlanningEvent(formation.id, {
+        titre: data.nom,
+        date: data.date,
+        heureDebut: data.heureDebut,
+        heureFin: data.heureFin,
+        description: data.description,
+      })
+      // Add event for newly added participants
+      const prevIds = (formation.personnes || []).map(String)
+      const newIds = data.personnes.filter(id => !prevIds.includes(id))
+      newIds.forEach(empId => {
+        addPlanningEvent(empId, {
+          id: `formation_${formation.id}_${empId}`,
+          groupId: formation.id,
+          titre: data.nom,
+          type: 'formation',
+          date: data.date,
+          heureDebut: data.heureDebut,
+          heureFin: data.heureFin,
+          description: data.description,
+        })
+      })
+      // Remove event for removed participants
+      const removedIds = prevIds.filter(id => !data.personnes.includes(id))
+      removedIds.forEach(empId => {
+        deletePlanningEvent(empId, `formation_${formation.id}_${empId}`)
+      })
       toast.success('Formation modifiée')
     } else {
-      addFormation({ ...data, confirmedBy: [] }, byName)
+      const f = addFormation({ ...data, confirmedBy: [] }, byName)
+      // Add planning event for each participant
+      data.personnes.forEach(empId => {
+        addPlanningEvent(empId, {
+          id: `formation_${f.id}_${empId}`,
+          groupId: f.id,
+          titre: data.nom,
+          type: 'formation',
+          date: data.date,
+          heureDebut: data.heureDebut,
+          heureFin: data.heureFin,
+          description: data.description,
+        })
+      })
       toast.success('Formation ajoutée')
     }
     onClose()
