@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import toast from 'react-hot-toast'
 import { supabase } from '../lib/supabase'
 import { createSupabaseUser } from '../lib/supabaseAuth'
 import { projets as mockProjets, clients as mockClients, employes as mockEmployes } from '../data/mockData'
@@ -128,7 +129,7 @@ const fromDbRecrutement = (r) => ({ id: r.id, intitule: r.intitule, dept: r.dept
 const toDbCandidatureSpont = (c) => ({ id: c.id, prenom: c.prenom || null, nom: c.nom || null, email: c.email || null, telephone: c.telephone || null, poste_vise: c.posteVise || c.posteSouhaite || null, message: c.message || null, cv_url: c.cvUrl || null, statut: c.statut || 'nouveau', date_reception: c.dateReception || null, notes: c.notes || null, offre_id: c.offreId || null, departement: c.departement || null, portfolio_url: c.portfolioUrl || null })
 const fromDbCandidatureSpont = (r) => ({ id: r.id, prenom: r.prenom, nom: r.nom, email: r.email, telephone: r.telephone, posteVise: r.poste_vise, posteSouhaite: r.poste_vise, message: r.message, cvUrl: r.cv_url, statut: r.statut, dateReception: r.date_reception, notes: r.notes, offreId: r.offre_id || null, departement: r.departement || null, portfolioUrl: r.portfolio_url || null })
 
-const toDbFormation = (f) => ({ id: f.id, nom: f.nom, date: f.date || null, duree: f.duree || null, formateur: f.formateur || null, participants: f.personnes || f.participants || [], heure_debut: f.heureDebut || null, heure_fin: f.heureFin || null, budget: Number(f.budget) || null, statut: f.statut || null, description: f.description || null })
+const toDbFormation = (f) => ({ id: f.id, nom: f.nom, date: f.date || null, participants: f.personnes || f.participants || [], heure_debut: f.heureDebut || null, heure_fin: f.heureFin || null, description: f.description || null, formateur: f.formateur || f.formateurs || null })
 const fromDbFormation = (r) => ({ id: r.id, nom: r.nom, date: r.date, duree: r.duree, formateur: r.formateur, personnes: r.participants || [], participants: r.participants || [], confirmedBy: r.confirmed_by || [], heureDebut: r.heure_debut || null, heureFin: r.heure_fin || null, budget: r.budget, statut: r.statut, description: r.description })
 
 const toDbCollaborateur = (c) => ({ id: c.id, nom: c.nomSociete || c.nom || null, specialite: c.specialite || null, categorie_id: c.categorieId || null, email: c.email || null, telephone: c.telephone || null, tarif: Number(c.tarif) || null, notes: c.notes || null, ville: c.ville || null, adresse: c.adresse || null, prestations: c.prestations || null })
@@ -476,6 +477,12 @@ export function DataProvider({ children }) {
           setFormations(dbFormations.map(fromDbFormation))
         } else if (dbFormations !== null && formations.length) {
           supabase.from('formations').upsert(formations.map(toDbFormation), { onConflict: 'id' })
+            .then(({ error }) => {
+              if (error) {
+                console.error('[Supabase] formations initial push failed:', error.message, error)
+                toast.error(`Sync formations échoué : ${error.message}`, { duration: 10000, id: 'formation-init-err' })
+              }
+            })
         }
         if (eCollabs) {
           console.error('[Supabase] collaborateurs:', eCollabs.message)
@@ -1499,10 +1506,19 @@ export function DataProvider({ children }) {
     })
   }
 
+  const upsertFormation = async (payload) => {
+    if (!supabase) return
+    const { error } = await supabase.from('formations').upsert(toDbFormation(payload), { onConflict: 'id' })
+    if (error) {
+      console.error('[Supabase formations upsert]', error.message, error)
+      toast.error(`Supabase formations : ${error.message}`, { duration: 8000, id: 'formation-sync-err' })
+    }
+  }
+
   const addFormation = (data, by = '') => {
     const f = { id: `form${Date.now()}`, ...data }
     setFormations(prev => [f, ...prev])
-    sbUpsert('formations', toDbFormation(f))
+    upsertFormation(f)
     logActivity({ action: 'Formation créée', details: `${data.nom}${data.date ? ` — ${data.date}` : ''}`, category: 'formation', by })
     return f
   }
@@ -1511,7 +1527,7 @@ export function DataProvider({ children }) {
     setFormations(prev => {
       const next = prev.map(f => f.id === id ? { ...f, ...updates } : f)
       const updated = next.find(f => f.id === id)
-      if (updated) sbUpsert('formations', toDbFormation(updated))
+      if (updated) upsertFormation(updated)
       return next
     })
   }
