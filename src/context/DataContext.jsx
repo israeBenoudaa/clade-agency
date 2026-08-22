@@ -460,11 +460,23 @@ export function DataProvider({ children }) {
         } else if (dbCharges !== null && chargesFixe.length) {
           supabase.from('charges_fixes').upsert(chargesFixe.map(toDbChargeFixe), { onConflict: 'id' })
         }
-        if (dbMessages)    setMessages(dbMessages.map(fromDbMessage))
-        if (dbDemandesRH)  setDemandesRH(dbDemandesRH.map(fromDbDemandeRH))
-        if (dbRecs)        setRecrutements(dbRecs.map(fromDbRecrutement))
-        if (dbCands)       setCandidaturesSpont(dbCands.map(fromDbCandidatureSpont))
-        if (dbFormations)  setFormations(dbFormations.map(fromDbFormation))
+        if (dbMessages?.length)   setMessages(dbMessages.map(fromDbMessage))
+        if (dbDemandesRH?.length) setDemandesRH(dbDemandesRH.map(fromDbDemandeRH))
+        if (dbRecs?.length) {
+          setRecrutements(dbRecs.map(fromDbRecrutement))
+        } else if (dbRecs !== null && recrutements.length) {
+          supabase.from('recrutements').upsert(recrutements.map(toDbRecrutement), { onConflict: 'id' })
+        }
+        if (dbCands?.length) {
+          setCandidaturesSpont(dbCands.map(fromDbCandidatureSpont))
+        } else if (dbCands !== null && candidaturesSpont.length) {
+          supabase.from('candidatures_spont').upsert(candidaturesSpont.map(toDbCandidatureSpont), { onConflict: 'id' })
+        }
+        if (dbFormations?.length) {
+          setFormations(dbFormations.map(fromDbFormation))
+        } else if (dbFormations !== null && formations.length) {
+          supabase.from('formations').upsert(formations.map(toDbFormation), { onConflict: 'id' })
+        }
         if (eCollabs) {
           console.error('[Supabase] collaborateurs:', eCollabs.message)
         } else if (dbCollabs?.length) {
