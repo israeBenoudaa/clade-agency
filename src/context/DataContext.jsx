@@ -1162,7 +1162,12 @@ export function DataProvider({ children }) {
       equipeIds = (p.equipeProjet || []).map(String)
       const missions = p.missions.map(m => m.id === missionId ? { ...m, statut: 'valide', validatedAt: new Date().toISOString() } : m)
       const avancement = calcAvancement(missions) ?? p.avancement
-      const updated = { ...p, missions, avancement }
+      const existingLivrable = (p.livrables || []).some(l => l.missionId === missionId && l.source === 'mission')
+      const livrables = existingLivrable ? (p.livrables || []) : [
+        ...(p.livrables || []),
+        { id: `livrable_mission_${missionId}`, nom: mission?.nom || 'Livrable mission', type: 'mission', source: 'mission', missionId, addedAt: new Date().toISOString() },
+      ]
+      const updated = { ...p, missions, avancement, livrables }
       sbUpsert('projects', toDbProject(updated))
       return updated
     }))

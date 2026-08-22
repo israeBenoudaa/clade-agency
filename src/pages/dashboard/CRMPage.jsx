@@ -404,47 +404,47 @@ export default function CRMPage() {
     const parent = p.parentId ? prospects.find(r => r.id === p.parentId) : null
     return (
       <div key={p.id}
-        className="flex gap-3 px-4 py-3 hover:bg-paper-warm/60 transition-colors group">
+        className="flex gap-3 px-4 py-3 hover:bg-paper-warm/60 transition-colors group cursor-pointer"
+        onClick={() => navigate(`/app/crm/prospect/${p.id}`)}>
         {/* Avatar */}
         <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-0.5"
           style={{ background: 'linear-gradient(135deg, #0A1E3F, #3B82F6)' }}>
           {p.prenom?.[0]}{p.nom?.[0]}
         </div>
 
-        {/* Contenu cliquable */}
-        <button className="flex-1 min-w-0 text-left" onClick={() => navigate(`/app/crm/prospect/${p.id}`)}>
-          <div className="text-sm font-semibold text-ink hover:text-electric transition-colors">
-            {p.prenom} {p.nom}
+        {/* Contenu */}
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-semibold text-ink flex items-center gap-2 flex-wrap">
+            <span>{p.prenom} {p.nom}</span>
             {parent && (
-              <span className="ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-electric/10 text-electric">
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-electric/10 text-electric">
                 Nouveau projet
               </span>
             )}
           </div>
-          <div className="mt-0.5">
+          <div className="mt-0.5 truncate">
             <span className="text-xs text-muted">
               {[p.typeProjet, p.localisation, p.surface > 0 && `${p.surface} m²`, p.budget > 0 && fmtMAD(p.budget)].filter(Boolean).join(' · ')}
             </span>
           </div>
-          <div className="mt-1.5">
+          <div className="mt-1.5" onClick={e => e.stopPropagation()}>
             <select value={p.statut}
-              onChange={e => { e.stopPropagation(); handleStatutChange(p, e.target.value) }}
-              onClick={e => e.stopPropagation()}
-              className={`w-auto shrink-0 text-[10px] font-semibold px-2 py-1 rounded-lg border-0 cursor-pointer appearance-none ${cfg.cls}`}>
+              onChange={e => handleStatutChange(p, e.target.value)}
+              className={`w-auto text-[10px] font-semibold px-2 py-1 rounded-lg border-0 cursor-pointer appearance-none ${cfg.cls}`}>
               {STATUT_ORDER.map(s => (
                 <option key={s} value={s}>{STATUT_CONFIG[s].label}</option>
               ))}
             </select>
           </div>
-        </button>
+        </div>
 
-        {/* Actions : modifier en haut, supprimer en bas */}
+        {/* Actions */}
         <div className="flex flex-col justify-between items-center flex-shrink-0 py-0.5">
-          <button onClick={(e) => openModal(p, e)}
+          <button onClick={(e) => { e.stopPropagation(); openModal(p, e) }}
             className="w-7 h-7 flex items-center justify-center rounded-lg text-muted hover:text-ink hover:bg-paper-warm transition-colors">
             <Pencil size={12} />
           </button>
-          <button onClick={(e) => handleDeleteProspect(p, e)}
+          <button onClick={(e) => { e.stopPropagation(); handleDeleteProspect(p, e) }}
             className="w-7 h-7 flex items-center justify-center rounded-lg text-muted hover:text-rose-500 hover:bg-rose-50 transition-colors">
             <Trash2 size={13} />
           </button>
@@ -486,14 +486,14 @@ export default function CRMPage() {
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {p.budget > 0 && (
-            <span className="text-sm font-semibold text-emerald-700 mr-1">{fmtMAD(p.budget)}</span>
+            <span className="hidden sm:inline text-sm font-semibold text-emerald-700 mr-1">{fmtMAD(p.budget)}</span>
           )}
           <button onClick={(e) => openModal(p, e)}
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-muted hover:text-ink hover:bg-white transition-colors opacity-0 group-hover:opacity-100">
+            className="w-7 h-7 hidden sm:flex items-center justify-center rounded-lg text-muted hover:text-ink hover:bg-white transition-colors opacity-0 group-hover:opacity-100">
             <Pencil size={12} />
           </button>
           <button onClick={(e) => handleDeleteProspect(p, e)}
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-muted hover:text-rose-500 hover:bg-rose-50 transition-colors opacity-0 group-hover:opacity-100">
+            className="w-7 h-7 hidden sm:flex items-center justify-center rounded-lg text-muted hover:text-rose-500 hover:bg-rose-50 transition-colors opacity-0 group-hover:opacity-100">
             <Trash2 size={13} />
           </button>
           <ChevronRight size={14} className="text-muted group-hover:text-ink transition-colors" />

@@ -8,13 +8,14 @@ const AV = "font-family:'Averia Libre',Georgia,serif;"
 
 function buildPortraitGrid(images, cols) {
   if (!images.length) return ''
+  const imgH = cols <= 3 ? 200 : 150
   const rows = []
   for (let i = 0; i < images.length; i += cols) rows.push(images.slice(i, i + cols))
   return `
     <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:10px;">
       ${rows.map(row => row.map(img => `
-        <div style="border-radius:6px;overflow:hidden;border:0.5px solid #E0DBD3;">
-          <img src="${img.dataUrl}" style="display:block;width:100%;aspect-ratio:9/16;object-fit:cover;" />
+        <div style="border-radius:6px;overflow:hidden;border:0.5px solid #E0DBD3;height:${imgH}px;background:#F8F5F0;">
+          <img src="${img.dataUrl}" style="display:block;width:100%;height:${imgH}px;object-fit:cover;" />
         </div>
       `).join('')).join('')}
     </div>`

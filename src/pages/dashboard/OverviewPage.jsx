@@ -1841,23 +1841,23 @@ export default function OverviewPage() {
 
       {/* ── PLANNING GRID ── */}
       <div className="card p-5 lg:p-7">
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <div className="label-text mb-1">Mon planning</div>
-            <div className="flex items-center gap-2.5">
+        <div className="mb-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="label-text mb-1">Mon planning</div>
               <div className="font-display text-2xl text-ink">{weekLabel}</div>
-              {pendingCount > 0 && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 whitespace-nowrap">
-                  {pendingCount} invitation{pendingCount > 1 ? 's' : ''} en attente
-                </span>
-              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setWeekOffset(w => w - 1)} className="w-8 h-8 rounded-lg hover:bg-paper-warm border border-border flex items-center justify-center text-muted"><ChevronLeft size={15} /></button>
+              <button onClick={() => setWeekOffset(0)} className="px-3 py-1.5 text-xs border border-border rounded-lg hover:bg-paper-warm text-muted">Aujourd'hui</button>
+              <button onClick={() => setWeekOffset(w => w + 1)} className="w-8 h-8 rounded-lg hover:bg-paper-warm border border-border flex items-center justify-center text-muted"><ChevronRight size={15} /></button>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setWeekOffset(w => w - 1)} className="w-8 h-8 rounded-lg hover:bg-paper-warm border border-border flex items-center justify-center text-muted"><ChevronLeft size={15} /></button>
-            <button onClick={() => setWeekOffset(0)} className="px-3 py-1.5 text-xs border border-border rounded-lg hover:bg-paper-warm text-muted">Aujourd'hui</button>
-            <button onClick={() => setWeekOffset(w => w + 1)} className="w-8 h-8 rounded-lg hover:bg-paper-warm border border-border flex items-center justify-center text-muted"><ChevronRight size={15} /></button>
-          </div>
+          {pendingCount > 0 && (
+            <span className="mt-2 inline-flex text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+              {pendingCount} invitation{pendingCount > 1 ? 's' : ''} en attente
+            </span>
+          )}
         </div>
 
         {/* Formation legend */}

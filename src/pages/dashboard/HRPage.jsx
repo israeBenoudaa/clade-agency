@@ -1,6 +1,6 @@
 ﻿import { useState, useRef, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Users, CheckCircle2, Calendar, AlertTriangle, Plus, Trash2, BookOpen, X, ChevronDown, ChevronUp, Pencil, FileText, ClipboardList, Clock, Check, Ban, Paperclip, Building2, UserSearch, Filter, Sun, Inbox, ExternalLink, Send, CalendarCheck, ChevronRight, Mail, Download, Award, Bold, Italic, Underline, List, ListOrdered, Undo2, PhoneCall, Globe } from 'lucide-react'
+import { Users, CheckCircle, CheckCircle2, Calendar, AlertTriangle, Plus, Trash2, BookOpen, X, ChevronDown, ChevronUp, Pencil, FileText, ClipboardList, Clock, Check, Ban, Paperclip, Building2, UserSearch, Filter, Sun, Inbox, ExternalLink, Send, CalendarCheck, ChevronRight, Mail, Download, Award, Bold, Italic, Underline, List, ListOrdered, Undo2, PhoneCall, Globe } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useData } from '../../context/DataContext'
 import NouveauEmployeModal from '../../components/NouveauEmployeModal'
@@ -1021,6 +1021,7 @@ export default function HRPage() {
   }
 
   const pendingDemandes = demandesRH.filter(d => d.statut === 'en_attente')
+    .sort((a, b) => (b.managerApproval === 'approuve' ? 1 : 0) - (a.managerApproval === 'approuve' ? 1 : 0))
   const recentDemandes = demandesRH.filter(d => d.statut !== 'en_attente').slice(0, 5)
 
   const _now = new Date()
@@ -1576,9 +1577,15 @@ export default function HRPage() {
                         )}
                         {pendingDemandes.map(d => (
                           <button key={d.id} onClick={() => setSelectedDemande(d)}
-                            className="w-full flex items-start gap-3 p-3 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 transition-colors text-left">
-                            <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center flex-shrink-0 shadow-sm">
-                              <Clock size={13} className="text-amber-600" />
+                            className={`w-full flex items-start gap-3 p-3 rounded-xl border hover:opacity-90 transition-colors text-left ${
+                              d.managerApproval === 'approuve'
+                                ? 'border-emerald-300 bg-emerald-50 hover:bg-emerald-100'
+                                : 'border-amber-200 bg-amber-50 hover:bg-amber-100'
+                            }`}>
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm ${d.managerApproval === 'approuve' ? 'bg-emerald-100' : 'bg-white'}`}>
+                              {d.managerApproval === 'approuve'
+                                ? <CheckCircle size={13} className="text-emerald-600" />
+                                : <Clock size={13} className="text-amber-600" />}
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="text-xs font-semibold text-ink truncate">{d.employeNom}</div>
@@ -1590,6 +1597,12 @@ export default function HRPage() {
                                   {new Date(d.dateDebut).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
                                   {d.dateFin && d.dateFin !== d.dateDebut && ` → ${new Date(d.dateFin).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}`}
                                 </div>
+                              )}
+                              {d.managerApproval === 'approuve' && (
+                                <div className="text-[9px] font-semibold text-emerald-700 mt-0.5">✓ Avis favorable du responsable</div>
+                              )}
+                              {d.managerApproval === 'refuse' && (
+                                <div className="text-[9px] font-semibold text-rose-600 mt-0.5">✗ Avis défavorable du responsable</div>
                               )}
                             </div>
                           </button>

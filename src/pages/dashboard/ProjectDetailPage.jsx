@@ -242,29 +242,30 @@ function GanttSection({ missions, onAdd, onEditMission, isManager, onValidate, o
                   </div>
                   {isManager && (
                     <div className="pl-3 w-44 flex-shrink-0 flex items-center gap-1.5">
-                      {isValidated ? (
-                        <button
-                          onClick={() => onUnvalidateDeadline?.(m.id)}
-                          className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-lg bg-rose-50 text-rose-500 hover:bg-rose-100 transition-colors"
-                          title="Annuler la validation"
-                        >
-                          <RotateCcw size={11} /> Annuler
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => onValidateDeadline?.(m.id)}
-                          className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
-                          title="Marquer comme atteint"
-                        >
-                          <CheckCircle size={11} /> Valider
-                        </button>
-                      )}
                       <button onClick={() => onEditMission(m)} className="w-7 h-7 flex items-center justify-center rounded-lg text-muted hover:text-electric hover:bg-electric/10 transition-colors" title="Modifier">
                         <Pencil size={12} />
                       </button>
                       <button onClick={() => { if (window.confirm(`Supprimer "${m.nom}" ?`)) onDeleteMission(m.id) }} className="w-7 h-7 flex items-center justify-center rounded-lg text-muted hover:text-rose-500 hover:bg-rose-50 transition-colors" title="Supprimer">
                         <Trash2 size={12} />
                       </button>
+                      {isValidated ? (
+                        <button
+                          onClick={() => onUnvalidateDeadline?.(m.id)}
+                          className="flex items-center gap-1 text-[10px] text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg hover:bg-white transition-colors"
+                          title="Annuler la validation"
+                        >
+                          <BadgeCheck size={11} /> Atteint
+                          <RotateCcw size={9} className="ml-1 opacity-60" />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => onValidateDeadline?.(m.id)}
+                          className="flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-paper-warm border border-border text-muted hover:text-ink hover:bg-white transition-all"
+                          title="Marquer comme atteint"
+                        >
+                          <CheckCircle size={11} /> Valider
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1346,9 +1347,9 @@ export default function ProjectDetailPage({ backPath = '/app/projects' }) {
                 return (
                   <div className="sm:hidden grid grid-cols-3 gap-2">
                     {[
-                      { label: 'Total honoraires HT', sub: `${finMissions.length} mission${finMissions.length !== 1 ? 's' : ''}`, value: fmt(totalHT),     textColor: 'text-ink',         Icon: Wallet,     iconBg: 'bg-electric/10',  iconColor: 'text-electric',   border: 'border-electric/10', bg: 'bg-electric/[0.03]' },
-                      { label: 'Honoraires encaissés', sub: `${totalHT > 0 ? Math.round((paidHT / totalHT) * 100) : 0}% encaissé`, value: fmt(paidHT),     textColor: 'text-emerald-700', Icon: TrendingUp, iconBg: 'bg-emerald-100',  iconColor: 'text-emerald-600', border: 'border-emerald-100', bg: 'bg-emerald-50/30'  },
-                      { label: 'Reste à encaisser',   sub: 'non encore payé',                                                       value: fmt(remainingHT), textColor: 'text-amber-700',   Icon: Wallet,     iconBg: 'bg-amber-100',    iconColor: 'text-amber-600',   border: 'border-amber-100',   bg: 'bg-amber-50/30'    },
+                      { label: 'Total honoraires TTC', sub: `${finMissions.length} mission${finMissions.length !== 1 ? 's' : ''}`, value: fmt(totalHT * 1.2),     textColor: 'text-ink',         Icon: Wallet,     iconBg: 'bg-electric/10',  iconColor: 'text-electric',   border: 'border-electric/10', bg: 'bg-electric/[0.03]' },
+                      { label: 'Honoraires encaissés', sub: `${totalHT > 0 ? Math.round((paidHT / totalHT) * 100) : 0}% encaissé`, value: fmt(paidHT * 1.2),     textColor: 'text-emerald-700', Icon: TrendingUp, iconBg: 'bg-emerald-100',  iconColor: 'text-emerald-600', border: 'border-emerald-100', bg: 'bg-emerald-50/30'  },
+                      { label: 'Reste à encaisser',   sub: 'non encore payé',                                                       value: fmt(remainingHT * 1.2), textColor: 'text-amber-700',   Icon: Wallet,     iconBg: 'bg-amber-100',    iconColor: 'text-amber-600',   border: 'border-amber-100',   bg: 'bg-amber-50/30'    },
                     ].map((f, i) => (
                       <div key={i} className={`card p-3 border ${f.border} ${f.bg} flex flex-col items-center text-center`}>
                         <div className={`w-7 h-7 rounded-lg ${f.iconBg} flex items-center justify-center mb-2 flex-shrink-0`}>
@@ -1371,10 +1372,10 @@ export default function ProjectDetailPage({ backPath = '/app/projects' }) {
                     <div className="w-9 h-9 rounded-xl bg-electric/10 flex items-center justify-center">
                       <Wallet size={16} className="text-electric" />
                     </div>
-                    <div className="label-text text-[10px]">Total honoraires HT</div>
+                    <div className="label-text text-[10px]">Total honoraires TTC</div>
                   </div>
                   <div className="font-display text-2xl text-ink leading-none">
-                    {Number(totalHT).toLocaleString('fr-MA')} <span className="text-sm font-normal text-muted">DH</span>
+                    {Number(totalHT * 1.2).toLocaleString('fr-MA')} <span className="text-sm font-normal text-muted">DH</span>
                   </div>
                   <div className="text-xs text-muted mt-1.5">{finMissions.length} mission{finMissions.length !== 1 ? 's' : ''}</div>
                 </div>
@@ -1386,7 +1387,7 @@ export default function ProjectDetailPage({ backPath = '/app/projects' }) {
                     <div className="label-text text-[10px]">Honoraires encaissés</div>
                   </div>
                   <div className="font-display text-2xl text-emerald-700 leading-none">
-                    {Number(paidHT).toLocaleString('fr-MA')} <span className="text-sm font-normal text-muted">DH</span>
+                    {Number(paidHT * 1.2).toLocaleString('fr-MA')} <span className="text-sm font-normal text-muted">DH</span>
                   </div>
                   <div className="text-xs text-muted mt-1.5">
                     {totalHT > 0 ? `${Math.round((paidHT / totalHT) * 100)}%` : '0%'} encaissé
@@ -1400,7 +1401,7 @@ export default function ProjectDetailPage({ backPath = '/app/projects' }) {
                     <div className="label-text text-[10px]">Reste à encaisser</div>
                   </div>
                   <div className="font-display text-2xl text-amber-700 leading-none">
-                    {Number(remainingHT).toLocaleString('fr-MA')} <span className="text-sm font-normal text-muted">DH</span>
+                    {Number(remainingHT * 1.2).toLocaleString('fr-MA')} <span className="text-sm font-normal text-muted">DH</span>
                   </div>
                   <div className="text-xs text-muted mt-1.5">Missions non encore payées</div>
                 </div>
@@ -1764,33 +1765,45 @@ export default function ProjectDetailPage({ backPath = '/app/projects' }) {
                   const isMine = String(l.addedById) === myId
                   return (
                     <div key={l.id} className="flex items-center gap-3 p-3.5 rounded-xl border border-border bg-paper-warm hover:bg-white hover:shadow-sm transition-all">
-                      <div className="w-9 h-9 rounded-xl bg-electric/10 flex items-center justify-center flex-shrink-0">
-                        {l.type === 'link' ? <Link2 size={15} className="text-electric" /> : <Paperclip size={15} className="text-electric" />}
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${l.type === 'mission' ? 'bg-emerald-50' : 'bg-electric/10'}`}>
+                        {l.type === 'link' ? <Link2 size={15} className="text-electric" />
+                          : l.type === 'mission' ? <CheckCircle size={15} className="text-emerald-600" />
+                          : <Paperclip size={15} className="text-electric" />}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-semibold text-ink truncate">{l.nom}</div>
                         <div className="text-[10px] text-muted flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                          <span>{l.addedByNom}</span>
-                          {l.addedAt && <span>· Ajouté le {new Date(l.addedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>}
-                          {l.updatedAt && <span className="text-muted/70">· Modifié le {new Date(l.updatedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>}
-                          {l.source === 'task' && l.taskNom && (
+                          {l.source === 'mission' ? (
                             <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold text-[9px]">
-                              <CheckCircle size={8} /> Tâche approuvée : {l.taskNom}
+                              <CheckCircle size={8} /> Mission validée
                             </span>
+                          ) : (
+                            <>
+                              <span>{l.addedByNom}</span>
+                              {l.addedAt && <span>· Ajouté le {new Date(l.addedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>}
+                              {l.updatedAt && <span className="text-muted/70">· Modifié le {new Date(l.updatedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>}
+                              {l.source === 'task' && l.taskNom && (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold text-[9px]">
+                                  <CheckCircle size={8} /> Tâche approuvée : {l.taskNom}
+                                </span>
+                              )}
+                            </>
                           )}
                         </div>
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
-                        <a
-                          href={l.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="w-8 h-8 rounded-lg flex items-center justify-center text-electric hover:bg-electric/10 transition-colors"
-                          title="Ouvrir"
-                        >
-                          <ExternalLink size={14} />
-                        </a>
-                        {isMine && (
+                        {l.url && (
+                          <a
+                            href={l.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-electric hover:bg-electric/10 transition-colors"
+                            title="Ouvrir"
+                          >
+                            <ExternalLink size={14} />
+                          </a>
+                        )}
+                        {(isMine || (isManager && l.source === 'mission')) && (
                           <>
                             <button
                               onClick={() => setLivrableModal(l)}

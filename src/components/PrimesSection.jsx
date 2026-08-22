@@ -42,8 +42,7 @@ export default function PrimesSection({ employe, addTransaction, removeTransacti
     if (!form.date) { toast.error('Date requise'); return }
 
     if (editingId) {
-      // Modifier : retirer l'ancienne transaction, ajouter la nouvelle avec le même ID
-      removeTransaction(editingId)
+      // Modifier : upsert avec le même ID (addTransaction filtre et remplace)
       addTransaction({
         id:        editingId,
         type:      'sortie',

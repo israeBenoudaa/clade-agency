@@ -4,6 +4,7 @@ import {
   ArrowLeft, MousePointer2, StickyNote, Type, ImagePlus, Hand,
   Trash2, RotateCcw, Minus, Plus, LayoutGrid, Copy, MoveRight,
 } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { useData } from '../../context/DataContext'
 import { useAuth } from '../../context/AuthContext'
 
@@ -35,9 +36,64 @@ function loadBoard(id) {
     return s ? (JSON.parse(s).elements || []) : []
   } catch { return [] }
 }
+function saveBoard(id, elements) {
+  try {
+    localStorage.setItem(`clade_board_${id}`, JSON.stringify({ elements }))
+    return true
+  } catch (e) {
+    if (e?.name === 'QuotaExceededError' || e?.code === 22) return false
+    return false
+  }
+}
+
+// ── anchor / arrow helpers ────────────────────────────────────────────────────
+function getElementBounds(el) {
+  if (el.type === 'sticky') return { x: el.x, y: el.y, w: el.w || 200, h: el.h || 160 }
+  if (el.type === 'image')  return { x: el.x, y: el.y, w: el.w || 300, h: el.h || 200 }
+  if (el.type === 'text')   return { x: el.x, y: el.y, w: 180, h: 32 }
+  return null
+}
+function getAnchorPoints(el) {
+  const b = getElementBounds(el)
+  if (!b) return []
+  return [
+    { key: 'top',    x: b.x + b.w / 2, y: b.y },
+    { key: 'right',  x: b.x + b.w,     y: b.y + b.h / 2 },
+    { key: 'bottom', x: b.x + b.w / 2, y: b.y + b.h },
+    { key: 'left',   x: b.x,           y: b.y + b.h / 2 },
+  ]
+}
+function resolveArrowEndpoints(el, allElements) {
+  let { x1 = 0, y1 = 0, x2 = 100, y2 = 0 } = el
+  if (el.fromId) {
+    const src = allElements.find(e => e.id === el.fromId)
+    if (src) {
+      const a = getAnchorPoints(src).find(a => a.key === el.fromAnchor)
+      if (a) { x1 = a.x; y1 = a.y }
+    }
+  }
+  if (el.toId) {
+    const dst = allElements.find(e => e.id === el.toId)
+    if (dst) {
+      const a = getAnchorPoints(dst).find(a => a.key === el.toAnchor)
+      if (a) { x2 = a.x; y2 = a.y }
+    }
+  }
+  return { x1, y1, x2, y2 }
+}
+function snapToAnchor(cx, cy, allElements, excludeId, radius = 32) {
+  for (const el of allElements) {
+    if (el.type === 'arrow' || el.id === excludeId) continue
+    for (const a of getAnchorPoints(el)) {
+      const dx = a.x - cx, dy = a.y - cy
+      if (dx * dx + dy * dy <= radius * radius) return { elId: el.id, anchor: a.key, x: a.x, y: a.y }
+    }
+  }
+  return null
+}
 
 // ── sub-components ────────────────────────────────────────────────────────────
-function StickyEl({ el, selected, editing, onMouseDown, onTouchStart, onDoubleClick, onChangeText, onDelete }) {
+function StickyEl({ el, selected, editing, onMouseDown, onTouchStart, onDoubleClick, onChangeText, onDelete, onHoverEnter, onHoverLeave }) {
   const lastTap = useRef(0)
   const handleTouchEnd = (e) => {
     const now = Date.now()
@@ -65,13 +121,12 @@ function StickyEl({ el, selected, editing, onMouseDown, onTouchStart, onDoubleCl
       onTouchStart={e => { if (!editing) { e.stopPropagation(); onTouchStart?.(e) } }}
       onTouchEnd={handleTouchEnd}
       onDoubleClick={e => { e.stopPropagation(); onDoubleClick() }}
+      onMouseEnter={onHoverEnter}
+      onMouseLeave={onHoverLeave}
     >
       {/* drag strip */}
       <div
-        style={{
-          height: 10, flexShrink: 0, cursor: 'move',
-          background: 'rgba(0,0,0,0.12)',
-        }}
+        style={{ height: 10, flexShrink: 0, cursor: 'move', background: 'rgba(0,0,0,0.12)' }}
         onMouseDown={e => { e.stopPropagation(); onMouseDown(e) }}
         onTouchStart={e => { e.stopPropagation(); onTouchStart?.(e) }}
       />
@@ -120,7 +175,7 @@ function StickyEl({ el, selected, editing, onMouseDown, onTouchStart, onDoubleCl
   )
 }
 
-function TextEl({ el, selected, editing, onMouseDown, onTouchStart, onDoubleClick, onChangeText, onDelete }) {
+function TextEl({ el, selected, editing, onMouseDown, onTouchStart, onDoubleClick, onChangeText, onDelete, onHoverEnter, onHoverLeave }) {
   const lines = Math.max(1, (el.content || '').split('\n').length)
   const lastTap = useRef(0)
   const handleTouchEnd = (e) => {
@@ -143,6 +198,8 @@ function TextEl({ el, selected, editing, onMouseDown, onTouchStart, onDoubleClic
       onTouchStart={e => { if (!editing) { e.stopPropagation(); onTouchStart?.(e) } }}
       onTouchEnd={handleTouchEnd}
       onDoubleClick={e => { e.stopPropagation(); onDoubleClick() }}
+      onMouseEnter={onHoverEnter}
+      onMouseLeave={onHoverLeave}
     >
       {editing ? (
         <textarea
@@ -187,7 +244,7 @@ function TextEl({ el, selected, editing, onMouseDown, onTouchStart, onDoubleClic
   )
 }
 
-function ImageEl({ el, selected, onMouseDown, onDelete }) {
+function ImageEl({ el, selected, onMouseDown, onTouchStart, onDelete, onHoverEnter, onHoverLeave }) {
   return (
     <div
       style={{
@@ -203,6 +260,8 @@ function ImageEl({ el, selected, onMouseDown, onDelete }) {
       }}
       onMouseDown={e => { e.stopPropagation(); onMouseDown(e) }}
       onTouchStart={e => { e.stopPropagation(); onTouchStart?.(e) }}
+      onMouseEnter={onHoverEnter}
+      onMouseLeave={onHoverLeave}
     >
       <img
         src={el.content} alt="" draggable={false}
@@ -242,19 +301,20 @@ export default function ProjectBoardPage() {
   const [editingId,    setEditingId]    = useState(null)
   const [colorIdx,     setColorIdx]     = useState(0)
   const [history,      setHistory]      = useState([])
-  const [selBox,       setSelBox]       = useState(null) // rubber-band: { x1,y1,x2,y2 } canvas coords
-  const [addMode,      setAddMode]      = useState(false) // additive multi-select toggle
-  const [arrowDraft,   setArrowDraft]   = useState(null) // { x1,y1,x2,y2 } while drawing
+  const [selBox,       setSelBox]       = useState(null)
+  const [addMode,      setAddMode]      = useState(false)
+  const [arrowDraft,   setArrowDraft]   = useState(null)
+  const [hoveredElId,  setHoveredElId]  = useState(null) // for anchor points
 
-  // ── refs (for window handlers — avoid stale closures) ────────────────────
+  // ── refs (for window handlers) ────────────────────────────────────────────
   const canvasRef       = useRef(null)
   const fileRef         = useRef(null)
-  const dragRef         = useRef(null)      // { multi, id, startX, startY, elX, elY, positions }
-  const panRef          = useRef(null)      // { startX, startY, panX, panY }
-  const arrowRef        = useRef(null)      // { x1, y1, x2, y2 } canvas coords while drawing
-  const selBoxActive    = useRef(false)     // true while rubber-banding
-  const selBoxCtrl      = useRef(false)     // was Ctrl held when rubber-band started?
-  const ctrlHeld        = useRef(false)     // Ctrl / Cmd key currently held
+  const dragRef         = useRef(null)
+  const panRef          = useRef(null)
+  const arrowRef        = useRef(null)
+  const selBoxActive    = useRef(false)
+  const selBoxCtrl      = useRef(false)
+  const ctrlHeld        = useRef(false)
   const spaceHeld       = useRef(false)
   const zoomRef         = useRef(zoom)
   const panStateRef     = useRef(pan)
@@ -262,6 +322,7 @@ export default function ProjectBoardPage() {
   const historyRef      = useRef(history)
   const selBoxStateRef  = useRef(null)
   const selectedIdsRef  = useRef(selectedIds)
+  const prevIdRef       = useRef(id)
 
   useEffect(() => { zoomRef.current = zoom },         [zoom])
   useEffect(() => { panStateRef.current = pan },      [pan])
@@ -269,15 +330,27 @@ export default function ProjectBoardPage() {
   useEffect(() => { historyRef.current = history },   [history])
   useEffect(() => { selBoxStateRef.current = selBox }, [selBox])
   useEffect(() => { selectedIdsRef.current = selectedIds }, [selectedIds])
-  useEffect(() => { if (tool !== 'select') setAddMode(false) }, [tool])
+  useEffect(() => { if (tool !== 'select') { setAddMode(false); setHoveredElId(null) } }, [tool])
 
-  // ── persist ───────────────────────────────────────────────────────────────
+  // ── persist (with id-change guard + quota detection) ─────────────────────
   useEffect(() => {
-    try { localStorage.setItem(`clade_board_${id}`, JSON.stringify({ elements })) } catch {}
+    if (prevIdRef.current !== id) {
+      // Board switched — reload data for new id, don't save old data
+      prevIdRef.current = id
+      setElements(loadBoard(id))
+      setSelectedIds(new Set())
+      setEditingId(null)
+      setHistory([])
+      return
+    }
+    const timer = setTimeout(() => {
+      const ok = saveBoard(id, elements)
+      if (!ok) toast.error('Espace insuffisant — retirez des images pour sauvegarder', { id: 'board-quota', duration: 5000 })
+    }, 350)
+    return () => clearTimeout(timer)
   }, [elements, id])
 
   // ── history helpers ───────────────────────────────────────────────────────
-  // Always call these OUTSIDE of any state updater function (prev => …)
   const snapshotHistory = useCallback(() => {
     const snap = JSON.parse(JSON.stringify(elementsRef.current))
     setHistory(prev => [...prev.slice(-29), snap])
@@ -302,7 +375,12 @@ export default function ProjectBoardPage() {
 
   const deleteIds = useCallback((ids) => {
     snapshotHistory()
-    setElements(prev => prev.filter(e => !ids.has(e.id)))
+    // Also delete arrows connected to deleted elements
+    setElements(prev => prev.filter(e => {
+      if (ids.has(e.id)) return false
+      if (e.type === 'arrow' && (ids.has(e.fromId) || ids.has(e.toId))) return false
+      return true
+    }))
     setSelectedIds(new Set())
     setEditingId(null)
   }, [snapshotHistory])
@@ -322,7 +400,7 @@ export default function ProjectBoardPage() {
     const copies = snapshot
       .filter(e => ids.has(e.id))
       .map(e => e.type === 'arrow'
-        ? { ...e, id: newId(), x1: e.x1 + 24, y1: e.y1 + 24, x2: e.x2 + 24, y2: e.y2 + 24, z: Date.now() }
+        ? { ...e, id: newId(), x1: e.x1 + 24, y1: e.y1 + 24, x2: e.x2 + 24, y2: e.y2 + 24, z: Date.now(), fromId: undefined, toId: undefined }
         : { ...e, id: newId(), x: e.x + 24, y: e.y + 24, z: Date.now() }
       )
     const newIds = new Set(copies.map(c => c.id))
@@ -331,7 +409,7 @@ export default function ProjectBoardPage() {
     setSelectedIds(newIds)
   }, [snapshotHistory])
 
-  // ── window mouse handlers (FIX: ensures mouseup always fires) ────────────
+  // ── window mouse handlers ─────────────────────────────────────────────────
   useEffect(() => {
     const onMove = (e) => {
       const z = zoomRef.current
@@ -357,12 +435,18 @@ export default function ProjectBoardPage() {
       }
 
       if (dragRef.current) {
-        // Capture snapshot before setElements — in React 18 concurrent mode the updater
-        // may run after onUp has already cleared dragRef.current to null.
         const drag = dragRef.current
         const dx = (e.clientX - drag.startX) / z
         const dy = (e.clientY - drag.startY) / z
-        if (drag.multi) {
+
+        if (drag.type === 'arrow') {
+          // Move whole arrow (disconnects from anchors)
+          setElements(prev => prev.map(el =>
+            el.id === drag.id
+              ? { ...el, x1: drag.x1 + dx, y1: drag.y1 + dy, x2: drag.x2 + dx, y2: drag.y2 + dy, fromId: undefined, toId: undefined, fromAnchor: undefined, toAnchor: undefined }
+              : el
+          ))
+        } else if (drag.multi) {
           setElements(prev => prev.map(el => {
             const orig = drag.positions.get(el.id)
             return orig ? { ...el, x: orig.x + dx, y: orig.y + dy } : el
@@ -385,8 +469,8 @@ export default function ProjectBoardPage() {
       }
     }
 
-    const onUp = () => {
-      // commit rubber-band selection
+    const onUp = (e) => {
+      // Commit rubber-band selection
       if (selBoxActive.current) {
         const sb = selBoxStateRef.current
         if (sb) {
@@ -404,14 +488,10 @@ export default function ProjectBoardPage() {
                 .map(el => el.id)
             )
             if (ids.size) {
-              if (selBoxCtrl.current) {
-                setSelectedIds(prev => new Set([...prev, ...ids]))
-              } else {
-                setSelectedIds(ids)
-              }
+              if (selBoxCtrl.current) setSelectedIds(prev => new Set([...prev, ...ids]))
+              else setSelectedIds(ids)
             }
           } else {
-            // simple click on empty canvas → always deselect
             setSelectedIds(new Set())
           }
         }
@@ -419,12 +499,23 @@ export default function ProjectBoardPage() {
         selBoxActive.current = false
         selBoxCtrl.current = false
       }
+
       if (arrowRef.current) {
         const a = arrowRef.current
         const dx = a.x2 - a.x1, dy = a.y2 - a.y1
         if (dx * dx + dy * dy > 100) {
+          // Try to snap endpoint to an anchor
+          const snap = snapToAnchor(a.x2, a.y2, elementsRef.current, null)
+          const finalX2 = snap ? snap.x : a.x2
+          const finalY2 = snap ? snap.y : a.y2
           snapshotHistory()
-          const el = { id: newId(), type: 'arrow', x1: a.x1, y1: a.y1, x2: a.x2, y2: a.y2, color: '#0A1E3F', z: Date.now() }
+          const el = {
+            id: newId(), type: 'arrow',
+            x1: a.x1, y1: a.y1, x2: finalX2, y2: finalY2,
+            fromId: a.fromId, fromAnchor: a.fromAnchor,
+            toId: snap?.elId, toAnchor: snap?.anchor,
+            color: '#0A1E3F', z: Date.now(),
+          }
           setElements(prev => [...prev, el])
         }
         arrowRef.current = null
@@ -453,7 +544,7 @@ export default function ProjectBoardPage() {
       window.removeEventListener('touchmove', onTouchMove)
       window.removeEventListener('touchend',  onTouchEnd)
     }
-  }, []) // empty deps — dynamic values accessed via refs
+  }, []) // empty deps — dynamic values via refs
 
   // ── wheel ─────────────────────────────────────────────────────────────────
   const handleWheel = useCallback((e) => {
@@ -481,18 +572,14 @@ export default function ProjectBoardPage() {
   useEffect(() => {
     const onDown = (e) => {
       const inText = e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT'
-
-      // Escape: exit edit → deselect
       if (e.key === 'Escape') {
         if (editingId) { e.target.blur?.(); setEditingId(null) }
         else           { setSelectedIds(new Set()); setSelBox(null) }
         return
       }
-
       if (e.key === 'Control' || e.key === 'Meta') ctrlHeld.current = true
       if (e.code === 'Space' && !inText) { spaceHeld.current = true; e.preventDefault() }
       if (inText) return
-
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedIdsRef.current.size > 0) {
         deleteIds(new Set(selectedIdsRef.current))
       }
@@ -519,7 +606,7 @@ export default function ProjectBoardPage() {
     }
   }, [editingId, deleteIds, undo, duplicateSelected])
 
-  // ── canvas mousedown (create / pan / rubber-band) ─────────────────────────
+  // ── canvas mousedown ──────────────────────────────────────────────────────
   const handleCanvasDown = (e) => {
     if (e.button === 1 || spaceHeld.current || tool === 'hand') {
       e.preventDefault()
@@ -527,8 +614,6 @@ export default function ProjectBoardPage() {
       return
     }
     if (e.button !== 0) return
-
-    // clicking canvas while editing exits edit mode
     if (editingId) { setEditingId(null); return }
 
     const rect = canvasRef.current.getBoundingClientRect()
@@ -542,7 +627,6 @@ export default function ProjectBoardPage() {
       setEditingId(el.id)
       return
     }
-
     if (tool === 'text') {
       const el = { id: newId(), type: 'text', x: cx, y: cy, content: '', fontSize: 20, color: '#1e1e2e', z: Date.now() }
       addEl(el)
@@ -550,17 +634,13 @@ export default function ProjectBoardPage() {
       setEditingId(el.id)
       return
     }
-
     if (tool === 'image') { fileRef.current?.click(); return }
-
     if (tool === 'arrow') {
       e.preventDefault()
       arrowRef.current = { x1: cx, y1: cy, x2: cx, y2: cy }
       setArrowDraft({ x1: cx, y1: cy, x2: cx, y2: cy })
       return
     }
-
-    // select mode — start rubber-band selection
     if (tool === 'select') {
       selBoxCtrl.current = e.ctrlKey || e.metaKey || ctrlHeld.current || addMode
       selBoxActive.current = true
@@ -570,7 +650,6 @@ export default function ProjectBoardPage() {
 
   // ── element mousedown (drag start) ────────────────────────────────────────
   const handleElDown = (e, el) => {
-    // hand tool or space held → pan the board, don't drag the element
     if (tool === 'hand' || spaceHeld.current) {
       e.preventDefault?.()
       e.stopPropagation?.()
@@ -582,7 +661,6 @@ export default function ProjectBoardPage() {
     e.stopPropagation()
     if (editingId) { setEditingId(null); return }
 
-    // Ctrl/Cmd+clic ou mode ajout → toggle l'élément dans la sélection sans drag
     if (e.ctrlKey || e.metaKey || ctrlHeld.current || addMode) {
       const cur = selectedIdsRef.current
       const next = new Set(cur)
@@ -599,7 +677,6 @@ export default function ProjectBoardPage() {
     bringFront(new Set([el.id]))
 
     const dragSet = (alreadyInSel && curSel.size > 1) ? curSel : newSel
-
     snapshotHistory()
     if (dragSet.size > 1) {
       const positions = new Map()
@@ -611,6 +688,16 @@ export default function ProjectBoardPage() {
       dragRef.current = { multi: false, id: el.id, startX: e.clientX, startY: e.clientY, elX: el.x, elY: el.y }
     }
   }
+
+  // ── arrow mousedown (drag arrow) ──────────────────────────────────────────
+  const handleArrowDown = useCallback((e, el) => {
+    if (tool !== 'select') return
+    e.stopPropagation()
+    setSelectedIds(new Set([el.id]))
+    snapshotHistory()
+    const { x1, y1, x2, y2 } = resolveArrowEndpoints(el, elementsRef.current)
+    dragRef.current = { type: 'arrow', id: el.id, startX: e.clientX, startY: e.clientY, x1, y1, x2, y2 }
+  }, [tool, snapshotHistory])
 
   // ── image upload ──────────────────────────────────────────────────────────
   const handleImageUpload = (e) => {
@@ -639,14 +726,13 @@ export default function ProjectBoardPage() {
     if (!touch) return
     handleCanvasDown({ clientX: touch.clientX, clientY: touch.clientY, button: 0, preventDefault: () => e.preventDefault() })
   }
-
   const handleElTouch = (e, el) => {
     const touch = e.touches[0]
     if (!touch) return
     handleElDown({ clientX: touch.clientX, clientY: touch.clientY, preventDefault: () => e.preventDefault(), stopPropagation: () => e.stopPropagation() }, el)
   }
 
-  // ── zoom helpers ──────────────────────────────────────────────────────────
+  // ── zoom ──────────────────────────────────────────────────────────────────
   const zoomTo = (nz) => {
     const rect = canvasRef.current?.getBoundingClientRect()
     if (!rect) { setZoom(nz); return }
@@ -656,12 +742,11 @@ export default function ProjectBoardPage() {
   }
 
   // ── cursor ────────────────────────────────────────────────────────────────
-  const isActuallyPanning = panRef.current !== null
   const cursor = (() => {
-    if (isActuallyPanning)                  return 'grabbing'
-    if (tool === 'hand' || spaceHeld.current) return 'grab'
+    if (panRef.current !== null)                   return 'grabbing'
+    if (tool === 'hand' || spaceHeld.current)      return 'grab'
     if (tool === 'sticky' || tool === 'text' || tool === 'arrow') return 'crosshair'
-    if (tool === 'image')                   return 'cell'
+    if (tool === 'image')                          return 'cell'
     return 'default'
   })()
 
@@ -678,18 +763,49 @@ export default function ProjectBoardPage() {
 
   const selCount = selectedIds.size
 
+  // ── anchor dots for hovered element ───────────────────────────────────────
+  const anchorDots = (() => {
+    if (tool !== 'arrow' || !hoveredElId) return null
+    const hel = elements.find(e => e.id === hoveredElId)
+    if (!hel || hel.type === 'arrow') return null
+    return getAnchorPoints(hel).map(a => (
+      <div
+        key={a.key}
+        style={{
+          position: 'absolute',
+          left: a.x - 8, top: a.y - 8,
+          width: 16, height: 16,
+          borderRadius: '50%',
+          background: 'white',
+          border: '2.5px solid #3B82F6',
+          pointerEvents: 'auto',
+          cursor: 'crosshair',
+          zIndex: 99999,
+          boxShadow: '0 0 0 4px rgba(59,130,246,0.18)',
+          transition: 'transform 0.1s',
+        }}
+        onMouseEnter={() => setHoveredElId(hoveredElId)}
+        onMouseDown={e => {
+          e.stopPropagation()
+          e.preventDefault()
+          arrowRef.current = { x1: a.x, y1: a.y, x2: a.x, y2: a.y, fromId: hoveredElId, fromAnchor: a.key }
+          setArrowDraft({ x1: a.x, y1: a.y, x2: a.x, y2: a.y })
+        }}
+      />
+    ))
+  })()
+
   // ── render ────────────────────────────────────────────────────────────────
   return (
     <div
       className="fixed inset-0 flex flex-col"
       style={{ zIndex: 100, background: '#eeeef4', fontFamily: 'Inter Tight, sans-serif' }}
     >
-      {/* ── top bar ──────────────────────────────────────────────────────── */}
+      {/* top bar */}
       <div
         className="flex items-center px-3 sm:px-4 py-2 bg-white border-b border-border z-20 flex-shrink-0 gap-3"
         style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}
       >
-        {/* Left — back + project name (flex-1 pushes actions to the right) */}
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <button
             onClick={() => navigate(-1)}
@@ -710,12 +826,9 @@ export default function ProjectBoardPage() {
           </div>
         </div>
 
-        {/* Right — unified pill (addMode + selection actions) + undo */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          {/* unified pill: always visible when select tool, grows when elements are selected */}
           {tool === 'select' && (
             <div className="flex items-center gap-1 bg-paper-warm border border-border rounded-xl px-1.5 py-1.5">
-              {/* addMode toggle — single button, always first */}
               <button
                 onClick={() => setAddMode(m => !m)}
                 title={addMode ? 'Désactiver sélection multiple' : 'Ajouter à la sélection'}
@@ -725,16 +838,12 @@ export default function ProjectBoardPage() {
               >
                 <Plus size={14} strokeWidth={2.5} />
               </button>
-
-              {/* count + actions — only when something is selected */}
               {selCount > 0 && (
                 <>
                   <div className="w-px h-4 bg-border mx-0.5" />
-                  {/* mobile: count badge */}
                   <div className="sm:hidden flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-electric text-white text-[10px] font-bold leading-none">
                     {selCount}
                   </div>
-                  {/* desktop: full label */}
                   <span className="hidden sm:inline text-xs text-muted font-medium px-1">{selCount} sélectionné{selCount > 1 ? 's' : ''}</span>
                   <div className="w-px h-4 bg-border mx-0.5" />
                   <button onClick={duplicateSelected} title="Dupliquer (Ctrl+D)"
@@ -749,7 +858,6 @@ export default function ProjectBoardPage() {
               )}
             </div>
           )}
-          {/* undo */}
           <button onClick={undo} disabled={history.length === 0} title="Annuler (Ctrl+Z)"
             className="sm:hidden w-8 h-8 flex items-center justify-center rounded-lg text-muted hover:text-ink hover:bg-paper-warm transition-colors disabled:opacity-35">
             <RotateCcw size={14} />
@@ -761,10 +869,10 @@ export default function ProjectBoardPage() {
         </div>
       </div>
 
-      {/* ── body ─────────────────────────────────────────────────────────── */}
+      {/* body */}
       <div className="flex flex-1 overflow-hidden">
 
-        {/* ── left toolbar ─────────────────────────────────────────────── */}
+        {/* left toolbar */}
         <div
           className="flex flex-col items-center py-3 gap-1 bg-white border-r border-border z-20 flex-shrink-0"
           style={{ width: 52 }}
@@ -783,8 +891,6 @@ export default function ProjectBoardPage() {
               <Icon size={16} />
             </button>
           ))}
-
-          {/* color swatches for sticky tool */}
           {tool === 'sticky' && (
             <>
               <div className="w-8 h-px bg-border my-2" />
@@ -804,9 +910,16 @@ export default function ProjectBoardPage() {
               ))}
             </>
           )}
+          {tool === 'arrow' && (
+            <div style={{ marginTop: 8, padding: '0 6px', textAlign: 'center' }}>
+              <div style={{ fontSize: 8, color: '#999', lineHeight: 1.4 }}>
+                Survole un élément pour voir les points de connexion
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* ── canvas ───────────────────────────────────────────────────── */}
+        {/* canvas */}
         <div
           ref={canvasRef}
           className="flex-1 relative overflow-hidden select-none"
@@ -815,16 +928,12 @@ export default function ProjectBoardPage() {
           onTouchStart={handleCanvasTouch}
         >
           {/* dot grid */}
-          <svg
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
-          >
+          <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
             <defs>
               <pattern
                 id="bd"
-                x={pan.x % (24 * zoom)}
-                y={pan.y % (24 * zoom)}
-                width={24 * zoom}
-                height={24 * zoom}
+                x={pan.x % (24 * zoom)} y={pan.y % (24 * zoom)}
+                width={24 * zoom} height={24 * zoom}
                 patternUnits="userSpaceOnUse"
               >
                 <circle cx={1} cy={1} r={Math.min(1.2, zoom * 0.85 + 0.1)} fill="#b4b4cc" />
@@ -833,7 +942,7 @@ export default function ProjectBoardPage() {
             <rect width="100%" height="100%" fill="url(#bd)" />
           </svg>
 
-          {/* elements container — inset 0 so mobile touch hit-testing works on overflowing children */}
+          {/* transform container */}
           <div
             style={{
               position: 'absolute', inset: 0,
@@ -843,10 +952,8 @@ export default function ProjectBoardPage() {
               pointerEvents: 'none',
             }}
           >
-            {/* SVG layer for arrows */}
-            <svg
-              style={{ position: 'absolute', left: 0, top: 0, overflow: 'visible', pointerEvents: 'none' }}
-            >
+            {/* SVG arrows layer */}
+            <svg style={{ position: 'absolute', left: 0, top: 0, overflow: 'visible', pointerEvents: 'none' }}>
               <defs>
                 <marker id="arh-dark" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto" markerUnits="userSpaceOnUse">
                   <path d="M0,0 L0,7 L10,3.5 z" fill="#0A1E3F" />
@@ -858,24 +965,37 @@ export default function ProjectBoardPage() {
                   <path d="M0,0 L0,7 L10,3.5 z" fill="#0A1E3F" opacity="0.5" />
                 </marker>
               </defs>
+
               {sortedEls.filter(el => el.type === 'arrow').map(el => {
                 const isSel = selectedIds.has(el.id)
+                const { x1, y1, x2, y2 } = resolveArrowEndpoints(el, elements)
                 return (
                   <g key={el.id}>
-                    <line x1={el.x1} y1={el.y1} x2={el.x2} y2={el.y2}
+                    {/* wide transparent hit area */}
+                    <line x1={x1} y1={y1} x2={x2} y2={y2}
                       stroke="transparent" strokeWidth={16}
-                      style={{ pointerEvents: 'auto', cursor: 'pointer' }}
-                      onMouseDown={e => { e.stopPropagation(); setSelectedIds(new Set([el.id])) }}
+                      style={{ pointerEvents: 'auto', cursor: tool === 'select' ? 'move' : 'pointer' }}
+                      onMouseDown={e => { e.stopPropagation(); handleArrowDown(e, el) }}
                     />
-                    <line x1={el.x1} y1={el.y1} x2={el.x2} y2={el.y2}
+                    {/* visible line */}
+                    <line x1={x1} y1={y1} x2={x2} y2={y2}
                       stroke={isSel ? '#3B82F6' : (el.color || '#0A1E3F')}
                       strokeWidth={isSel ? 2.5 : 2}
                       markerEnd={isSel ? 'url(#arh-sel)' : 'url(#arh-dark)'}
                       style={{ pointerEvents: 'none' }}
                     />
+                    {/* endpoint handles when selected */}
+                    {isSel && (
+                      <>
+                        <circle cx={x1} cy={y1} r={5} fill="white" stroke="#3B82F6" strokeWidth={2} style={{ pointerEvents: 'none' }} />
+                        <circle cx={x2} cy={y2} r={5} fill="#3B82F6" stroke="white" strokeWidth={1.5} style={{ pointerEvents: 'none' }} />
+                      </>
+                    )}
                   </g>
                 )
               })}
+
+              {/* arrow being drawn */}
               {arrowDraft && (
                 <line
                   x1={arrowDraft.x1} y1={arrowDraft.y1}
@@ -887,6 +1007,7 @@ export default function ProjectBoardPage() {
               )}
             </svg>
 
+            {/* sticky / text / image elements */}
             {sortedEls.map(el => {
               const isSel = selectedIds.has(el.id)
               const isEditing = editingId === el.id
@@ -899,15 +1020,20 @@ export default function ProjectBoardPage() {
                 onDoubleClick: () => { setEditingId(el.id); setSelectedIds(new Set([el.id])) },
                 onChangeText: (t) => updateEl(el.id, { content: t }),
                 onDelete: () => deleteIds(new Set([el.id])),
+                onHoverEnter: tool === 'arrow' ? () => setHoveredElId(el.id) : undefined,
+                onHoverLeave: tool === 'arrow' ? () => setHoveredElId(v => v === el.id ? null : v) : undefined,
               }
               if (el.type === 'sticky') return <StickyEl key={el.id} {...common} />
               if (el.type === 'text')   return <TextEl   key={el.id} {...common} />
               if (el.type === 'image')  return <ImageEl  key={el.id} {...common} />
               return null
             })}
+
+            {/* anchor dots (Miro-style) */}
+            {anchorDots}
           </div>
 
-          {/* rubber-band selection box (screen coords) */}
+          {/* rubber-band selection box */}
           {selBox && (
             <div
               style={{
@@ -925,20 +1051,16 @@ export default function ProjectBoardPage() {
         </div>
       </div>
 
-      {/* ── zoom controls — floating bottom-right ───────────────────────── */}
-      <div
-        className="absolute bottom-5 right-4 flex flex-col items-center gap-1 z-20"
-        style={{ pointerEvents: 'auto' }}
-      >
+      {/* zoom controls */}
+      <div className="absolute bottom-5 right-4 flex flex-col items-center gap-1 z-20" style={{ pointerEvents: 'auto' }}>
         <button onClick={() => zoomTo(Math.min(MAX_ZOOM, zoom * 1.2))}
-          style={{ width: 34, height: 34, borderRadius: 10, border: '1px solid rgba(0,0,0,0.10)', background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', boxShadow: '0 2px 8px rgba(0,0,0,0.10)', cursor: 'pointer', transition: 'background 0.15s' }}
+          style={{ width: 34, height: 34, borderRadius: 10, border: '1px solid rgba(0,0,0,0.10)', background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', boxShadow: '0 2px 8px rgba(0,0,0,0.10)', cursor: 'pointer' }}
           onMouseEnter={e => e.currentTarget.style.background = '#f5f5fa'}
           onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.95)'}
         >
           <Plus size={15} />
         </button>
-        <button onClick={() => zoomTo(1)}
-          title="100%"
+        <button onClick={() => zoomTo(1)} title="100%"
           style={{ width: 34, height: 22, borderRadius: 8, border: '1px solid rgba(0,0,0,0.10)', background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#444', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', cursor: 'pointer', fontFamily: 'Inter Tight, sans-serif', letterSpacing: '-0.3px' }}
           onMouseEnter={e => e.currentTarget.style.background = '#f5f5fa'}
           onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.95)'}
@@ -946,7 +1068,7 @@ export default function ProjectBoardPage() {
           {Math.round(zoom * 100)}%
         </button>
         <button onClick={() => zoomTo(Math.max(MIN_ZOOM, zoom / 1.2))}
-          style={{ width: 34, height: 34, borderRadius: 10, border: '1px solid rgba(0,0,0,0.10)', background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', boxShadow: '0 2px 8px rgba(0,0,0,0.10)', cursor: 'pointer', transition: 'background 0.15s' }}
+          style={{ width: 34, height: 34, borderRadius: 10, border: '1px solid rgba(0,0,0,0.10)', background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', boxShadow: '0 2px 8px rgba(0,0,0,0.10)', cursor: 'pointer' }}
           onMouseEnter={e => e.currentTarget.style.background = '#f5f5fa'}
           onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.95)'}
         >
@@ -954,34 +1076,25 @@ export default function ProjectBoardPage() {
         </button>
       </div>
 
-      {/* ── bottom hint ──────────────────────────────────────────────────── */}
+      {/* bottom hint */}
       <div
         className="absolute bottom-5 left-1/2 -translate-x-1/2 pointer-events-none select-none"
-        style={{
-          background: 'rgba(255,255,255,0.88)', backdropFilter: 'blur(8px)',
-          border: '1px solid rgba(0,0,0,0.07)', borderRadius: 20,
-          padding: '4px 12px', fontSize: 10, color: '#999', whiteSpace: 'nowrap',
-        }}
+        style={{ background: 'rgba(255,255,255,0.88)', backdropFilter: 'blur(8px)', border: '1px solid rgba(0,0,0,0.07)', borderRadius: 20, padding: '4px 12px', fontSize: 10, color: '#999', whiteSpace: 'nowrap' }}
       >
-        <span className="hidden sm:inline">Double-clic = éditer · Espace+glisser = naviguer · Molette = zoomer · Ctrl+D = dupliquer</span>
+        <span className="hidden sm:inline">
+          {tool === 'arrow'
+            ? 'Survole un élément → points bleus → glisse pour connecter · Flèche libre : cliquer-glisser sur le canvas'
+            : 'Double-clic = éditer · Espace+glisser = naviguer · Molette = zoomer · Ctrl+D = dupliquer'}
+        </span>
         <span className="sm:hidden">Curseur = sélectionner · Main = naviguer · Double-tap = éditer</span>
       </div>
 
-      {/* ── empty state ──────────────────────────────────────────────────── */}
+      {/* empty state */}
       {elements.length === 0 && (
-        <div
-          className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"
-          style={{ left: 52, top: 46 }}
-        >
-          <div style={{
-            background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(6px)',
-            borderRadius: 18, padding: '32px 44px', textAlign: 'center',
-            border: '1px solid rgba(0,0,0,0.06)',
-          }}>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style={{ left: 52, top: 46 }}>
+          <div style={{ background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(6px)', borderRadius: 18, padding: '32px 44px', textAlign: 'center', border: '1px solid rgba(0,0,0,0.06)' }}>
             <div style={{ fontSize: 38, marginBottom: 10 }}>🗒️</div>
-            <div style={{ fontSize: 16, fontWeight: 600, color: '#1e1e2e', marginBottom: 6, fontFamily: DISPLAY_FONT }}>
-              Board vide
-            </div>
+            <div style={{ fontSize: 16, fontWeight: 600, color: '#1e1e2e', marginBottom: 6, fontFamily: DISPLAY_FONT }}>Board vide</div>
             <div style={{ fontSize: 12, color: '#888', maxWidth: 220, lineHeight: 1.6 }}>
               Sélectionnez un outil à gauche pour ajouter des post-its, textes ou images
             </div>
@@ -990,13 +1103,7 @@ export default function ProjectBoardPage() {
       )}
 
       {/* hidden file input */}
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={handleImageUpload}
-      />
+      <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
     </div>
   )
 }
