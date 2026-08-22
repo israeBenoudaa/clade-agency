@@ -1196,10 +1196,17 @@ export default function OverviewPage() {
       })
   }, [formations, employe, isDir])
 
-  const allPlanningEvents = useMemo(() =>
-    [...personalPlanning, ...formationEvents],
-    [personalPlanning, formationEvents]
-  )
+  const allPlanningEvents = useMemo(() => {
+    // Formation events covered by formationEvents (from formations state)
+    const coveredFormationIds = new Set(
+      formationEvents.map(ev => ev.formationData?.id).filter(Boolean)
+    )
+    // Remove personal planning events that duplicate a formationEvents entry
+    const filteredPersonal = personalPlanning.filter(ev =>
+      ev.type !== 'formation' || !coveredFormationIds.has(ev.groupId)
+    )
+    return [...filteredPersonal, ...formationEvents]
+  }, [personalPlanning, formationEvents])
 
   const pendingCount = useMemo(() =>
     allPlanningEvents.filter(ev => ev.statut === 'pending').length,
@@ -1292,11 +1299,16 @@ export default function OverviewPage() {
     if (!employe) return
     const isFormationEv = ev.isFormation || ev.type === 'formation'
     if (isFormationEv) {
-      const f = ev.formationData || formations.find(fm => fm.id === (ev.groupId || ev.formationId))
+      const formationId = ev.formationData?.id || ev.groupId || ev.formationId
+      const f = ev.formationData || formations.find(fm => fm.id === formationId)
       if (f) updateFormation(f.id, {
         confirmedBy: [...new Set([...(f.confirmedBy || []), String(employe.id)])]
       })
-      // Also mark the personal planning event as confirmed (if it exists)
+      // Also confirm any personal planning event for this formation
+      const personalEv = (employe.planning || []).find(pe =>
+        pe.type === 'formation' && pe.groupId === formationId
+      )
+      if (personalEv) updatePlanningEvent(employe.id, personalEv.id, { statut: 'confirmed' })
       if (ev.type === 'formation') updatePlanningEvent(employe.id, ev.id, { statut: 'confirmed' })
       toast.success('Formation acceptée ✓')
     } else {
@@ -1310,11 +1322,17 @@ export default function OverviewPage() {
     if (!employe) return
     const isFormationEv = ev.isFormation || ev.type === 'formation'
     if (isFormationEv) {
-      const f = ev.formationData || formations.find(fm => fm.id === (ev.groupId || ev.formationId))
+      const formationId = ev.formationData?.id || ev.groupId || ev.formationId
+      const f = ev.formationData || formations.find(fm => fm.id === formationId)
       if (f) updateFormation(f.id, {
         personnes: (f.personnes || []).filter(p => String(p) !== String(employe.id))
       })
-      deletePlanningEvent(employe.id, ev.id)
+      // Also remove any personal planning event for this formation
+      const personalEv = (employe.planning || []).find(pe =>
+        pe.type === 'formation' && pe.groupId === formationId
+      )
+      if (personalEv) deletePlanningEvent(employe.id, personalEv.id)
+      if (ev.type === 'formation') deletePlanningEvent(employe.id, ev.id)
       toast.success('Formation déclinée')
     } else {
       deletePlanningEvent(employe.id, ev.id)
