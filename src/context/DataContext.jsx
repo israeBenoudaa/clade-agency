@@ -129,7 +129,7 @@ const fromDbRecrutement = (r) => ({ id: r.id, intitule: r.intitule, dept: r.dept
 const toDbCandidatureSpont = (c) => ({ id: c.id, prenom: c.prenom || null, nom: c.nom || null, email: c.email || null, telephone: c.telephone || null, poste_vise: c.posteVise || c.posteSouhaite || null, message: c.message || null, cv_url: c.cvUrl || null, statut: c.statut || 'nouveau', date_reception: c.dateReception || null, notes: c.notes || null, offre_id: c.offreId || null, departement: c.departement || null, portfolio_url: c.portfolioUrl || null })
 const fromDbCandidatureSpont = (r) => ({ id: r.id, prenom: r.prenom, nom: r.nom, email: r.email, telephone: r.telephone, posteVise: r.poste_vise, posteSouhaite: r.poste_vise, message: r.message, cvUrl: r.cv_url, statut: r.statut, dateReception: r.date_reception, notes: r.notes, offreId: r.offre_id || null, departement: r.departement || null, portfolioUrl: r.portfolio_url || null })
 
-const toDbFormation = (f) => ({ id: f.id, nom: f.nom, date: f.date || null, participants: f.personnes || f.participants || [], heure_debut: f.heureDebut || null, heure_fin: f.heureFin || null, description: f.description || null, formateur: f.formateur || f.formateurs || null })
+const toDbFormation = (f) => ({ id: f.id, nom: f.nom, date: f.date || null, participants: f.personnes || f.participants || [], heure_debut: f.heureDebut || null, heure_fin: f.heureFin || null, description: f.description || null, formateur: f.formateur || f.formateurs || null, confirmed_by: f.confirmedBy || [] })
 const fromDbFormation = (r) => ({ id: r.id, nom: r.nom, date: r.date, duree: r.duree, formateur: r.formateur, personnes: r.participants || [], participants: r.participants || [], confirmedBy: r.confirmed_by || [], heureDebut: r.heure_debut || null, heureFin: r.heure_fin || null, budget: r.budget, statut: r.statut, description: r.description })
 
 const toDbCollaborateur = (c) => ({ id: c.id, nom: c.nomSociete || c.nom || null, specialite: c.specialite || null, categorie_id: c.categorieId || null, email: c.email || null, telephone: c.telephone || null, tarif: Number(c.tarif) || null, notes: c.notes || null, ville: c.ville || null, adresse: c.adresse || null, prestations: c.prestations || null })
@@ -706,7 +706,15 @@ export function DataProvider({ children }) {
         if (eventType === 'DELETE') {
           setFormations(prev => prev.filter(f => f.id !== old.id))
         } else if (row?.id) {
-          setFormations(prev => [...prev.filter(f => f.id !== row.id), fromDbFormation(row)])
+          setFormations(prev => {
+            const existing = prev.find(f => f.id === row.id)
+            const fromDb = fromDbFormation(row)
+            // Preserve confirmedBy from local state if DB column absent/empty
+            if (!fromDb.confirmedBy?.length && existing?.confirmedBy?.length) {
+              fromDb.confirmedBy = existing.confirmedBy
+            }
+            return [...prev.filter(f => f.id !== row.id), fromDb]
+          })
         }
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, ({ eventType, new: row, old }) => {
