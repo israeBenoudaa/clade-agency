@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Flag, Calendar, Users, CheckCircle, Pencil, Upload, Link2, Trash2, FileText, Search, ChevronDown, Check, MapPin } from 'lucide-react'
+import { X, Flag, Calendar, Users, CheckCircle, Pencil, Upload, Link2, Trash2, FileText, Search, ChevronDown, Check, MapPin, Phone, Video, ExternalLink } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const COULEURS = [
@@ -26,9 +26,9 @@ const readFileAsDataUrl = (file) => new Promise((resolve) => {
 })
 
 const FORMAT_RDV = [
-  { val: 'presentiel',   label: 'Présentiel',   icon: '📍' },
-  { val: 'meet',         label: 'Google Meet',  icon: '📹' },
-  { val: 'telephonique', label: 'Téléphonique', icon: '📞' },
+  { val: 'presentiel',   label: 'Présentiel',   Icon: MapPin },
+  { val: 'telephonique', label: 'Téléphonique', Icon: Phone },
+  { val: 'meet',         label: 'Google Meet',  Icon: Video },
 ]
 
 const toForm = (item) => item ? {
@@ -429,17 +429,17 @@ export default function AjouterGanttModal({ onClose, onAdd, onEdit, item, projec
               <>
                 {/* Format */}
                 <div>
-                  <label className="label-text mb-1.5 block">Format</label>
+                  <label className="label-text mb-2 block">Format</label>
                   <div className="flex gap-2">
                     {FORMAT_RDV.map(f => (
                       <button key={f.val} type="button"
                         onClick={() => setForm(fm => ({ ...fm, format: fm.format === f.val ? '' : f.val }))}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold transition-all ${
                           form.format === f.val
                             ? 'border-ink bg-ink text-white'
                             : 'border-border text-muted hover:text-ink hover:border-ink/30'
                         }`}>
-                        {f.icon} {f.label}
+                        <f.Icon size={13} /> {f.label}
                       </button>
                     ))}
                   </div>
@@ -457,11 +457,33 @@ export default function AjouterGanttModal({ onClose, onAdd, onEdit, item, projec
                   </div>
                 </div>
 
-                {/* Lieu */}
-                <div>
-                  <label className="label-text mb-1.5 flex items-center gap-1 block"><MapPin size={11} /> Lieu</label>
-                  <input className="input-field" placeholder="Salle de réunion, adresse, lien visio…" value={form.lieu} onChange={set('lieu')} />
-                </div>
+                {/* Lieu — adaptatif selon le format */}
+                {form.format !== 'telephonique' && (
+                  <div>
+                    <label className="label-text mb-1.5 flex items-center gap-1 block">
+                      {form.format === 'meet' ? <Video size={11} /> : <MapPin size={11} />}
+                      {form.format === 'meet' ? 'Lien Google Meet' : 'Adresse / Localisation'}
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        className="input-field flex-1"
+                        placeholder={form.format === 'meet' ? 'https://meet.google.com/abc-defg-hij' : 'Salle de réunion, adresse…'}
+                        value={form.lieu}
+                        onChange={set('lieu')}
+                      />
+                      {form.format === 'meet' && (
+                        <a
+                          href="https://meet.google.com/new"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold hover:bg-blue-100 transition-colors flex-shrink-0"
+                        >
+                          <ExternalLink size={12} /> Ouvrir Meet
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Description */}
                 <div>

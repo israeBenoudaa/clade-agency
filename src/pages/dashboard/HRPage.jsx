@@ -1477,7 +1477,8 @@ export default function HRPage() {
           <div className="space-y-2">
             {recrutements.map(rec => {
               const dc = rec.dept ? deptColor(rec.dept) : null
-              const totalCands = (rec.candidats || []).length
+              const portfolioCount = candidaturesSpont.filter(c => c.offreId === rec.id).length
+              const totalCands = (rec.candidats || []).length + portfolioCount
               const acceptes = (rec.candidats || []).filter(c => c.statut === 'accepte').length
               const entretiens = (rec.candidats || []).filter(c => c.statut === 'entretien').length
               const statutStyle = rec.statut === 'ouvert'

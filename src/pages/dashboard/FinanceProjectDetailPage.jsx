@@ -130,7 +130,7 @@ export default function FinanceProjectDetailPage() {
     }
   }
 
-  const handleEmail = (mission) => {
+  const handleEmail = async (mission) => {
     const montant = honoraires[mission.id]
     if (!montant) { toast.error('Définissez l\'honoraire avant d\'envoyer'); return }
     const invoiceNum = makeInvoiceNum(project.id, mission.id)
@@ -143,6 +143,23 @@ export default function FinanceProjectDetailPage() {
     const body = encodeURIComponent(
       `Bonjour ${project.client},\n\nVeuillez trouver ci-joint la facture ${invoiceNum} relative à la mission :\n\n  ${mission.nom}\n  Projet : ${project.nom}\n  Montant : ${fmtMontant}\n\nNous restons à votre disposition pour toute question.\n\nCordialement,\nL'équipe CLADE Architecture`
     )
+    setGenerating(mission.id)
+    try {
+      await generateInvoicePdf({
+        invoiceNum,
+        projectNom: project.nom,
+        client: project.client,
+        missionNom: mission.nom,
+        honoraire: montant,
+        paiement: paiements[mission.id] || 'non_paye',
+        date: new Date().toISOString().slice(0, 10),
+      })
+      toast.success('PDF téléchargé — veuillez l\'attacher manuellement à l\'email', { duration: 5000 })
+    } catch {
+      toast.error('Erreur lors de la génération du PDF')
+    } finally {
+      setGenerating(null)
+    }
     window.open(`mailto:${clientEmail}?subject=${subject}&body=${body}`, '_blank')
   }
 
