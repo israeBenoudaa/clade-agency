@@ -616,6 +616,11 @@ export default function MessagesPage() {
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [activeMessages])
 
+  // Auto-mark active conversation as read whenever new messages arrive while viewing it
+  useEffect(() => {
+    if (activeConv && activeMessages.length > 0) markConvRead(myId, activeConv)
+  }, [activeMessages, activeConv])
+
   const handleSend = (e) => {
     e.preventDefault()
     if (!draft.trim() && stagedFiles.length === 0) return

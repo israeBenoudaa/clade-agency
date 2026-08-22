@@ -138,11 +138,12 @@ export default function StaffLayout() {
 
     let count = 0
     for (const convId of accessibleConvIds) {
-      const lastRead = myReadState[convId] || sessionStartRef.current
-      const hasUnread = messages.some(
-        m => m.conversationId === convId && m.senderId !== myId && new Date(m.timestamp) > new Date(lastRead)
-      )
-      if (hasUnread) count++
+      const lastRead = myReadState[convId] || null
+      count += messages.filter(
+        m => m.conversationId === convId &&
+             String(m.senderId) !== myId &&
+             (!lastRead || m.timestamp > lastRead)
+      ).length
     }
     return count
   }, [messages, msgReadState, myId, isDirector, isDirectorMode, isDemoMode])

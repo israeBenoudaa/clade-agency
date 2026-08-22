@@ -568,18 +568,17 @@ export default function FinancePage() {
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {KPIS.map((k, i) => {
           const Icon = k.icon
-          const isMain = i === 0
           return (
             <div
               key={i}
-              className={`card p-4 lg:p-5 animate-slide-up ${isMain ? 'col-span-2 lg:col-span-1 flex items-center gap-4 lg:flex-col lg:items-start' : ''}`}
+              className={`card p-4 lg:p-5 flex flex-col animate-slide-up ${i === 0 ? 'col-span-2 lg:col-span-1' : ''}`}
               style={{ animationDelay: `${i * 60}ms` }}
             >
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 lg:mb-3" style={{ background: `${k.color}18` }}>
-                <Icon size={isMain ? 18 : 16} color={k.color} strokeWidth={1.8} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mb-3" style={{ background: `${k.color}18` }}>
+                <Icon size={16} color={k.color} strokeWidth={1.8} />
               </div>
-              <div className={isMain ? '' : 'mt-0'}>
-                <div className={`font-display text-ink leading-none mb-1 ${isMain ? 'text-2xl lg:text-xl' : 'text-lg lg:text-xl'}`}>{k.value}</div>
+              <div>
+                <div className="font-display text-xl text-ink leading-none mb-1">{k.value}</div>
                 <div className="text-xs text-muted">{k.label}</div>
                 <div className="text-[10px] text-muted/70 mt-0.5">{k.sub}</div>
               </div>

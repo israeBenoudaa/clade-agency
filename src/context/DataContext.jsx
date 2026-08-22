@@ -130,7 +130,15 @@ const toDbCandidatureSpont = (c) => ({ id: c.id, prenom: c.prenom || null, nom: 
 const fromDbCandidatureSpont = (r) => ({ id: r.id, prenom: r.prenom, nom: r.nom, email: r.email, telephone: r.telephone, posteVise: r.poste_vise, posteSouhaite: r.poste_vise, message: r.message, cvUrl: r.cv_url, statut: r.statut, dateReception: r.date_reception, notes: r.notes, offreId: r.offre_id || null, departement: r.departement || null, portfolioUrl: r.portfolio_url || null })
 
 const toDbFormation = (f) => ({ id: f.id, nom: f.nom, date: f.date || null, participants: f.personnes || f.participants || [], heure_debut: f.heureDebut || null, heure_fin: f.heureFin || null, description: f.description || null, formateur: f.formateur || f.formateurs || null, confirmed_by: f.confirmedBy || [] })
-const fromDbFormation = (r) => ({ id: r.id, nom: r.nom, date: r.date, duree: r.duree, formateur: r.formateur, personnes: r.participants || [], participants: r.participants || [], confirmedBy: r.confirmed_by || [], heureDebut: r.heure_debut || null, heureFin: r.heure_fin || null, budget: r.budget, statut: r.statut, description: r.description })
+const parseJsonArray = (v) => {
+  if (Array.isArray(v)) return v.map(String)
+  if (typeof v === 'string') { try { const p = JSON.parse(v); return Array.isArray(p) ? p.map(String) : [] } catch { return [] } }
+  return []
+}
+const fromDbFormation = (r) => {
+  const personnes = parseJsonArray(r.participants)
+  return { id: r.id, nom: r.nom, date: r.date, duree: r.duree, formateur: r.formateur, formateurs: r.formateur, personnes, participants: personnes, confirmedBy: parseJsonArray(r.confirmed_by), heureDebut: r.heure_debut || null, heureFin: r.heure_fin || null, budget: r.budget, statut: r.statut, description: r.description }
+}
 
 const toDbCollaborateur = (c) => ({ id: c.id, nom: c.nomSociete || c.nom || null, specialite: c.specialite || null, categorie_id: c.categorieId || null, email: c.email || null, telephone: c.telephone || null, tarif: Number(c.tarif) || null, notes: c.notes || null, ville: c.ville || null, adresse: c.adresse || null, prestations: c.prestations || null })
 const fromDbCollaborateur = (r) => ({ id: r.id, nom: r.nom, nomSociete: r.nom, specialite: r.specialite, categorieId: r.categorie_id, email: r.email, telephone: r.telephone, tarif: r.tarif, notes: r.notes, ville: r.ville, adresse: r.adresse, prestations: r.prestations })
@@ -817,13 +825,13 @@ export function DataProvider({ children }) {
         supabase.from('collaborateurs').select('*'),
         supabase.from('formations').select('*'),
       ])
-      if (p)  setProjects(p.map(fromDbProject))
-      if (tx) setTransactions(tx.map(fromDbTransaction))
-      if (cl) setClients(cl.map(fromDbClient))
-      if (pr) setProspects(pr.map(fromDbProspect))
-      if (e)  setEmployes(e.map(fromDbEmploye))
-      if (co) setCollaborateurs(co.map(fromDbCollaborateur))
-      if (fo) setFormations(fo.map(fromDbFormation))
+      if (p?.length)  setProjects(p.map(fromDbProject))
+      if (tx?.length) setTransactions(tx.map(fromDbTransaction))
+      if (cl?.length) setClients(cl.map(fromDbClient))
+      if (pr?.length) setProspects(pr.map(fromDbProspect))
+      if (e?.length)  setEmployes(e.map(fromDbEmploye))
+      if (co?.length) setCollaborateurs(co.map(fromDbCollaborateur))
+      if (fo?.length) setFormations(fo.map(fromDbFormation))
       setTimeout(() => { syncReadyRef.current = true }, 2000)
     }
     document.addEventListener('visibilitychange', onVisible)

@@ -2237,7 +2237,7 @@ export default function OverviewPage() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="label-text">Agenda</div>
-            <div className="font-display text-xl text-ink">Mes RDVs & deadlines</div>
+            <div className="font-display text-xl text-ink">Mes RDVs</div>
           </div>
           {employe && (
             <button onClick={() => setShowRdvModal(true)}

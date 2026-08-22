@@ -288,6 +288,10 @@ export default function ClientMessagesPage() {
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [activeMessages])
 
+  useEffect(() => {
+    if (activeConv && activeMessages.length > 0) markConvRead(myId, activeConv)
+  }, [activeMessages, activeConv])
+
   const openConv = (id) => {
     setActiveConv(id)
     setMobileView('chat')
