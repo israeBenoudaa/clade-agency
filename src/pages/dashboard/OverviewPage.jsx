@@ -1290,11 +1290,14 @@ export default function OverviewPage() {
 
   const handleAcceptInvite = (ev) => {
     if (!employe) return
-    if (ev.isFormation) {
-      const f = ev.formationData
+    const isFormationEv = ev.isFormation || ev.type === 'formation'
+    if (isFormationEv) {
+      const f = ev.formationData || formations.find(fm => fm.id === (ev.groupId || ev.formationId))
       if (f) updateFormation(f.id, {
         confirmedBy: [...new Set([...(f.confirmedBy || []), String(employe.id)])]
       })
+      // Also mark the personal planning event as confirmed (if it exists)
+      if (ev.type === 'formation') updatePlanningEvent(employe.id, ev.id, { statut: 'confirmed' })
       toast.success('Formation acceptée ✓')
     } else {
       updatePlanningEvent(employe.id, ev.id, { statut: 'confirmed' })
@@ -1305,11 +1308,13 @@ export default function OverviewPage() {
 
   const handleDeclineInvite = (ev) => {
     if (!employe) return
-    if (ev.isFormation) {
-      const f = ev.formationData
+    const isFormationEv = ev.isFormation || ev.type === 'formation'
+    if (isFormationEv) {
+      const f = ev.formationData || formations.find(fm => fm.id === (ev.groupId || ev.formationId))
       if (f) updateFormation(f.id, {
         personnes: (f.personnes || []).filter(p => String(p) !== String(employe.id))
       })
+      deletePlanningEvent(employe.id, ev.id)
       toast.success('Formation déclinée')
     } else {
       deletePlanningEvent(employe.id, ev.id)
@@ -1959,12 +1964,12 @@ export default function OverviewPage() {
                     ))}
                     {dayEvents.map(ev => {
                       const { top, height } = evStyle(ev)
-                      const isFormation = ev.isFormation
+                      const isFormation = ev.isFormation || ev.type === 'formation'
                       const isRdv = ev.type === 'rdv'
                       const isGanttRdv = ev.type === 'gantt_rdv'
                       const isRdvProspect = ev.type === 'rdv_prospect'
                       const isAutoformation = ev.type === 'autoformation' || ev.type === 'autoformation_complete'
-                      const isPending = ev.statut === 'pending'
+                      const isPending = ev.statut === 'pending' || (ev.type === 'formation' && ev.statut !== 'confirmed')
                       const isReadOnly = (isFormation && !isPending) || isGanttRdv
                       const evColor = getEvColor(ev)
                       const prefix = isFormation ? '📚 ' : isRdv || isGanttRdv ? '📅 ' : isRdvProspect ? '📞 ' : isAutoformation ? '🎓 ' : ''
