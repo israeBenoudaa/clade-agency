@@ -668,6 +668,10 @@ export function DataProvider({ children }) {
       .channel('portfolio-inserts')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'prospects' }, ({ new: row }) => {
         setProspects(prev => prev.some(p => p.id === row.id) ? prev : [fromDbProspect(row), ...prev])
+        // Create notification for CRM users — write only to Supabase, app-sync will update state
+        const name = [row.prenom, row.nom].filter(Boolean).join(' ') || 'Sans nom'
+        const notif = { id: uid('notif'), type: 'new_prospect', message: `Nouveau prospect : ${name}`, targetUserId: 'mod:crm', read: false, createdAt: new Date().toISOString(), link: '/app/crm' }
+        supabase.from('notifications').insert(toDbNotification(notif))
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'candidatures_spont' }, ({ new: row }) => {
         setCandidaturesSpont(prev => prev.some(c => c.id === row.id) ? prev : [fromDbCandidatureSpont(row), ...prev])
@@ -676,9 +680,9 @@ export function DataProvider({ children }) {
         const message = isSpontaneous
           ? `Nouvelle candidature spontanée de ${name}${row.poste_vise ? ` — ${row.poste_vise}` : ''}`
           : `${name} a postulé pour un poste ouvert`
+        // Write only to Supabase — app-sync notifications handler will add to state (no duplicate)
         const notif = { id: uid('notif'), type: 'new_candidature', message, targetUserId: 'mod:hr', read: false, createdAt: new Date().toISOString(), link: isSpontaneous ? '/app/hr' : '/app/recrutement' }
-        setNotifications(prev => [notif, ...prev])
-        sbUpsert('notifications', toDbNotification(notif))
+        supabase.from('notifications').insert(toDbNotification(notif))
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
@@ -952,12 +956,14 @@ export function DataProvider({ children }) {
     return snapshot.id
   }, [logActivity])
 
-  const restoreCheckpoint = useCallback((checkpointId, by = '') => {
+  const restoreCheckpoint = useCallback(async (checkpointId, by = '') => {
     const cp = checkpoints.find(c => c.id === checkpointId)
     if (!cp) return false
     logActivity({ action: 'Données restaurées', details: cp.label, category: 'data', by })
     createCheckpoint(`Avant restauration — ${cp.label}`, 'avant_restauration')
     const { data } = cp
+
+    // Update React state immediately
     if (data.projects)          setProjects(data.projects)
     if (data.employes)          setEmployes(data.employes)
     if (data.clients)           setClients(data.clients)
@@ -979,6 +985,45 @@ export function DataProvider({ children }) {
     if (data.hiddenConvs)       setHiddenConvs(data.hiddenConvs)
     if (data.msgReadState)      setMsgReadState(data.msgReadState)
     if (data.notifications)     setNotifications(data.notifications)
+
+    // Sync to Supabase so the restored state persists across devices and page refreshes
+    if (supabase) {
+      const syncTable = async (table, rows, toDb) => {
+        if (!rows) return
+        // Fetch current IDs in Supabase for this table
+        const { data: current } = await supabase.from(table).select('id')
+        const currentIds = (current || []).map(r => String(r.id))
+        const cpIds = new Set(rows.map(r => String(r.id)))
+        // Delete rows that exist in Supabase but not in the checkpoint
+        const toDelete = currentIds.filter(id => !cpIds.has(id))
+        if (toDelete.length > 0) await supabase.from(table).delete().in('id', toDelete)
+        // Upsert all checkpoint rows
+        if (rows.length > 0) await supabase.from(table).upsert(rows.map(toDb), { onConflict: 'id' })
+      }
+      toast.loading('Synchronisation Supabase en cours…', { id: 'restore-sync' })
+      try {
+        await syncTable('projects',           data.projects,          toDbProject)
+        await syncTable('employes',           data.employes,          toDbEmploye)
+        await syncTable('clients',            data.clients,           toDbClient)
+        await syncTable('prospects',          data.prospects,         toDbProspect)
+        await syncTable('transactions',       data.transactions,      toDbTransaction)
+        await syncTable('charges_fixes',      data.chargesFixe,       toDbChargeFixe)
+        await syncTable('messages',           data.messages,          toDbMessage)
+        await syncTable('formations',         data.formations,        toDbFormation)
+        await syncTable('recrutements',       data.recrutements,      toDbRecrutement)
+        await syncTable('collaborateurs',     data.collaborateurs,    toDbCollaborateur)
+        await syncTable('categories_collab',  data.categoriesCollab,  c => c)
+        await syncTable('demandes_rh',        data.demandesRH,        toDbDemandeRH)
+        await syncTable('candidatures_spont', data.candidaturesSpont, toDbCandidatureSpont)
+        await syncTable('jours_feries',       data.joursFerier,       toDbJourFerie)
+        await syncTable('workflows',          data.workflows,         toDbWorkflow)
+        await syncTable('notifications',      data.notifications,     toDbNotification)
+        toast.success('Restauration synchronisée avec Supabase', { id: 'restore-sync' })
+      } catch (e) {
+        console.error('[restoreCheckpoint] Supabase sync error:', e)
+        toast.error('Erreur de synchronisation — rechargez la page', { id: 'restore-sync' })
+      }
+    }
     return true
   }, [checkpoints, createCheckpoint, logActivity])
 
