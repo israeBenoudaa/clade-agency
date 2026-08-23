@@ -59,10 +59,10 @@ function SingleToaster() {
 
   return (
     <Toaster
-      position="top-center"
-      gutter={0}
+      position="bottom-center"
+      gutter={8}
       toastOptions={TOAST_OPTIONS}
-      containerStyle={{ top: 20, pointerEvents: 'none' }}
+      containerStyle={{ bottom: 24 }}
     />
   )
 }

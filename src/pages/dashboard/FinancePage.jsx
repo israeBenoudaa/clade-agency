@@ -363,22 +363,26 @@ export default function FinancePage() {
   const handleDelete = (tx) => {
     if (tx.auto) { toast.error('Transaction générée automatiquement'); return }
     toast((t) => (
-      <div className="flex items-center gap-3">
-        <span className="text-sm truncate max-w-[180px]">Supprimer <strong>{tx.libelle}</strong> ?</span>
-        <button onClick={() => { removeTransaction(tx.id, byName); toast.dismiss(t.id); toast.success('Transaction supprimée') }}
-          className="text-xs bg-rose-500 text-white px-3 py-1.5 rounded-lg font-semibold flex-shrink-0 hover:bg-rose-600">Supprimer</button>
-        <button onClick={() => toast.dismiss(t.id)} className="text-xs text-muted flex-shrink-0">Annuler</button>
+      <div className="flex flex-col gap-2.5 min-w-0">
+        <span className="text-sm">Supprimer <strong>{tx.libelle}</strong> ?</span>
+        <div className="flex items-center gap-2">
+          <button onClick={() => { removeTransaction(tx.id, byName); toast.dismiss(t.id); toast.success('Transaction supprimée') }}
+            className="text-xs bg-rose-500 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-rose-600">Supprimer</button>
+          <button onClick={() => toast.dismiss(t.id)} className="text-xs text-muted">Annuler</button>
+        </div>
       </div>
     ), { duration: 6000 })
   }
 
   const handleDeleteCharge = (charge) => {
     toast((t) => (
-      <div className="flex items-center gap-3">
-        <span className="text-sm truncate max-w-[180px]">Supprimer <strong>{charge.libelle}</strong> ?</span>
-        <button onClick={() => { deleteChargeFixe(charge.id, byName); toast.dismiss(t.id); toast.success('Charge supprimée') }}
-          className="text-xs bg-rose-500 text-white px-3 py-1.5 rounded-lg font-semibold flex-shrink-0 hover:bg-rose-600">Supprimer</button>
-        <button onClick={() => toast.dismiss(t.id)} className="text-xs text-muted flex-shrink-0">Annuler</button>
+      <div className="flex flex-col gap-2.5 min-w-0">
+        <span className="text-sm">Supprimer <strong>{charge.libelle}</strong> ?</span>
+        <div className="flex items-center gap-2">
+          <button onClick={() => { deleteChargeFixe(charge.id, byName); toast.dismiss(t.id); toast.success('Charge supprimée') }}
+            className="text-xs bg-rose-500 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-rose-600">Supprimer</button>
+          <button onClick={() => toast.dismiss(t.id)} className="text-xs text-muted">Annuler</button>
+        </div>
       </div>
     ), { duration: 6000 })
   }
