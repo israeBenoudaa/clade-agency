@@ -9,6 +9,7 @@ import {
 import toast from 'react-hot-toast'
 import { useData } from '../../context/DataContext'
 import { useAuth } from '../../context/AuthContext'
+import { supabase } from '../../lib/supabase'
 
 const fmtTime = (ts) => {
   if (!ts) return ''
@@ -264,7 +265,7 @@ export default function MessagesPage() {
   const { profile, isDirector, isDirectorMode } = useAuth()
   const {
     messages, addMessage, editMessage, deleteMessage, deleteConversation,
-    hiddenMessages, hiddenConvs, msgReadState, markConvRead,
+    hiddenMessages, hiddenConvs, msgReadState, markConvRead, mergeReadStateForUser,
     prospects, employes, projects,
   } = useData()
   const location = useLocation()
@@ -620,6 +621,23 @@ export default function MessagesPage() {
   useEffect(() => {
     if (activeConv && activeMessages.length > 0) markConvRead(myId, activeConv)
   }, [activeMessages, activeConv])
+
+  // Cross-device read-state sync via Supabase
+  useEffect(() => {
+    if (!supabase || !myId || myId === 'unknown') return
+    // Fetch once on mount so stale localStorage gets updated from another device's reads
+    supabase.from('user_msg_read').select('state').eq('user_id', myId).single()
+      .then(({ data }) => { if (data?.state) mergeReadStateForUser(myId, data.state) })
+    // Realtime: receive updates when read on another device
+    const channel = supabase
+      .channel(`msg_read_${myId}`)
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'user_msg_read',
+        filter: `user_id=eq.${myId}`,
+      }, ({ new: row }) => { if (row?.state) mergeReadStateForUser(myId, row.state) })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [myId]) // eslint-disable-line
 
   const handleSend = (e) => {
     e.preventDefault()

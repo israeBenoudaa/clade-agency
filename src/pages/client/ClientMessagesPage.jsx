@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { useData } from '../../context/DataContext'
 import { useAuth } from '../../context/AuthContext'
+import { supabase } from '../../lib/supabase'
 
 const fmtTime = (ts) => {
   if (!ts) return ''
@@ -123,7 +124,7 @@ function NewGroupModal({ employes, onClose, onCreate }) {
 
 export default function ClientMessagesPage() {
   const { profile, prospectId } = useAuth()
-  const { messages, addMessage, prospects, employes, projects, msgReadState, markConvRead, deleteConversation } = useData()
+  const { messages, addMessage, prospects, employes, projects, msgReadState, markConvRead, mergeReadStateForUser, deleteConversation } = useData()
   const location = useLocation()
 
   const myId = String(profile?.id || 'client')
@@ -291,6 +292,21 @@ export default function ClientMessagesPage() {
   useEffect(() => {
     if (activeConv && activeMessages.length > 0) markConvRead(myId, activeConv)
   }, [activeMessages, activeConv])
+
+  // Cross-device read-state sync via Supabase
+  useEffect(() => {
+    if (!supabase || !myId || myId === 'client') return
+    supabase.from('user_msg_read').select('state').eq('user_id', myId).single()
+      .then(({ data }) => { if (data?.state) mergeReadStateForUser(myId, data.state) })
+    const channel = supabase
+      .channel(`msg_read_${myId}`)
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'user_msg_read',
+        filter: `user_id=eq.${myId}`,
+      }, ({ new: row }) => { if (row?.state) mergeReadStateForUser(myId, row.state) })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [myId]) // eslint-disable-line
 
   const openConv = (id) => {
     setActiveConv(id)

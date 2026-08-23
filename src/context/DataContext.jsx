@@ -1656,7 +1656,30 @@ export function DataProvider({ children }) {
   }
 
   const markConvRead = (userId, convId) => {
-    setMsgReadState(prev => ({ ...prev, [userId]: { ...(prev[userId] || {}), [convId]: new Date().toISOString() } }))
+    setMsgReadState(prev => {
+      const userState = { ...(prev[userId] || {}), [convId]: new Date().toISOString() }
+      const next = { ...prev, [userId]: userState }
+      // Sync to Supabase so other devices pick it up via realtime
+      if (supabase) {
+        supabase.from('user_msg_read')
+          .upsert({ user_id: userId, state: userState }, { onConflict: 'user_id' })
+          .then(({ error }) => { if (error) console.warn('[markConvRead sync]', error.message) })
+      }
+      return next
+    })
+  }
+
+  // Merge remote read state (takes the most recent timestamp per conv)
+  const mergeReadStateForUser = (userId, remoteState) => {
+    if (!remoteState || typeof remoteState !== 'object') return
+    setMsgReadState(prev => {
+      const local = prev[userId] || {}
+      const merged = { ...local }
+      for (const [convId, ts] of Object.entries(remoteState)) {
+        if (!merged[convId] || ts > merged[convId]) merged[convId] = ts
+      }
+      return { ...prev, [userId]: merged }
+    })
   }
 
   const deleteConversation = (conversationId, deleteForAll, userId) => {
@@ -2233,7 +2256,7 @@ export function DataProvider({ children }) {
       addCandidat, updateCandidat, deleteCandidat,
       addTransaction, removeTransaction, updateProjectFinances, refetchFinanceData,
       addChargeFixe, updateChargeFixe, deleteChargeFixe, setTauxImpot, updateAgenceSettings,
-      addMessage, editMessage, deleteMessage, deleteConversation, markConvRead,
+      addMessage, editMessage, deleteMessage, deleteConversation, markConvRead, mergeReadStateForUser,
       addDemandeRH, updateDemandeRH, approveDemandeRHManager, deleteDemandeRH, archiveDemandeForManager,
       addCandidatureSpont, updateCandidatureSpont, deleteCandidatureSpont, refreshCandidatures,
       addJourFerie, updateJourFerie, deleteJourFerie,
