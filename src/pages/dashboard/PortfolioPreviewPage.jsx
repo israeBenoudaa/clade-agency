@@ -329,11 +329,12 @@ function ProjectModal({ defaultAxis, onClose, onSave }) {
       tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
       span: form.span, display_order: Number(form.display_order) || 0, visible: form.visible,
     }
-    const { error } = await supabase.from(TABLE).insert([payload])
+    const { error, data } = await supabase.from(TABLE).insert([payload]).select()
     setSaving(false)
     if (error) { toast.error('Erreur : ' + error.message); return }
     toast.success('Projet ajouté ✓')
-    onSave()
+    const savedRow = data?.[0] ?? { id: `tmp-${Date.now()}`, ...payload, created_at: new Date().toISOString() }
+    onSave(savedRow)
   }
 
   const MODAL_BG  = '#0E0F10'
@@ -354,17 +355,17 @@ function ProjectModal({ defaultAxis, onClose, onSave }) {
   )
 
   return (
+    <>
     <motion.div
-      style={{ position: 'fixed', inset: 0, zIndex: 2000, display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
+      style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       onClick={onClose}
+    />
+    <motion.div
+      style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: '100%', maxWidth: 560, zIndex: 2001, background: MODAL_BG, borderLeft: `1px solid ${BORDER}`, boxShadow: '-24px 0 80px rgba(0,0,0,0.7)', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}
+      initial={{ x: 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 40, opacity: 0 }}
+      transition={{ type: 'spring', damping: 28, stiffness: 300 }}
     >
-      <motion.div
-        style={{ position: 'relative', height: '100%', width: '100%', maxWidth: 560, background: MODAL_BG, borderLeft: `1px solid ${BORDER}`, boxShadow: '-24px 0 80px rgba(0,0,0,0.7)', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}
-        initial={{ x: 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 40, opacity: 0 }}
-        transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-        onClick={e => e.stopPropagation()}
-      >
         {/* Sticky header */}
         <div style={{ position: 'sticky', top: 0, zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', background: PANEL_BG, borderBottom: `1px solid ${BORDER}`, flexShrink: 0 }}>
           <div>
@@ -476,8 +477,8 @@ function ProjectModal({ defaultAxis, onClose, onSave }) {
             </div>
           </Section>
         </div>
-      </motion.div>
     </motion.div>
+    </>
   )
 }
 
@@ -884,7 +885,7 @@ export default function PortfolioPage() {
 
       {/* ── Modals ── */}
       <AnimatePresence>
-        {modal && <ProjectModal key="modal" defaultAxis={modal.defaultAxis} onClose={() => setModal(null)} onSave={() => { setModal(null); loadProjects() }} />}
+        {modal && <ProjectModal key="modal" defaultAxis={modal.defaultAxis} onClose={() => setModal(null)} onSave={(saved) => { setModal(null); if (saved) setProjects(ps => [...ps, saved]) }} />}
         {toDelete && <DeleteModal key="delete" project={toDelete} onConfirm={handleDeleteProject} onClose={() => setToDelete(null)} />}
       </AnimatePresence>
 
