@@ -62,7 +62,7 @@ function SingleToaster() {
       position="top-center"
       gutter={0}
       toastOptions={TOAST_OPTIONS}
-      containerStyle={{ top: 20 }}
+      containerStyle={{ top: 20, pointerEvents: 'none' }}
     />
   )
 }
