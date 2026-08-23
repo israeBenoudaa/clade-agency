@@ -40,12 +40,14 @@ export default function ClientProjectFinancePage() {
 
   const totalHT = missions.reduce((s, m) => s + (honoraires[m.id] || 0), 0)
   const paidHT = missions.reduce((s, m) => paiements[m.id] === 'paye' ? s + (honoraires[m.id] || 0) : s, 0)
-  const remainingHT = totalHT - paidHT
+  const totalTTC = totalHT * 1.2
+  const paidTTC = paidHT * 1.2
+  const remainingTTC = totalTTC - paidTTC
 
   const kpis = [
-    { label: 'Total honoraires HT', value: fmtDH(totalHT),     color: 'text-electric',     bg: 'bg-electric/10', Icon: Wallet      },
-    { label: 'Honoraires réglés',   value: fmtDH(paidHT),      color: 'text-emerald-600',  bg: 'bg-emerald-50',  Icon: CheckCircle2 },
-    { label: 'Reste à régler',      value: fmtDH(remainingHT), color: 'text-amber-600',    bg: 'bg-amber-50',    Icon: AlertCircle  },
+    { label: 'Total honoraires TTC', value: fmtDH(totalTTC),    color: 'text-electric',     bg: 'bg-electric/10', Icon: Wallet      },
+    { label: 'Honoraires réglés',    value: fmtDH(paidTTC),     color: 'text-emerald-600',  bg: 'bg-emerald-50',  Icon: CheckCircle2 },
+    { label: 'Reste à régler',       value: fmtDH(remainingTTC),color: 'text-amber-600',    bg: 'bg-amber-50',    Icon: AlertCircle  },
   ]
 
   return (
@@ -107,14 +109,15 @@ export default function ClientProjectFinancePage() {
                     <div className={`text-xs mt-0.5 ${style.text}`}>{style.label}</div>
                   </div>
                   <div className="flex-shrink-0 text-right">
-                    <div className={`font-display text-xl ${style.text}`}>{fmtDH(montant)}</div>
+                    <div className={`font-display text-xl ${style.text}`}>{fmtDH(montant * 1.2)}</div>
+                    <div className="text-[10px] text-muted">TTC</div>
                   </div>
                 </motion.div>
               )
             })}
             <div className="flex items-center justify-between px-4 pt-4 border-t border-border">
-              <span className="text-sm font-semibold text-ink">Total HT</span>
-              <span className="font-display text-2xl text-electric">{fmtDH(totalHT)}</span>
+              <span className="text-sm font-semibold text-ink">Total TTC</span>
+              <span className="font-display text-2xl text-electric">{fmtDH(totalTTC)}</span>
             </div>
           </div>
         )}

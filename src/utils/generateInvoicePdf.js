@@ -42,21 +42,17 @@ export async function generateInvoicePdf({ invoiceNum, projectNom, client, missi
       <table style="width:100%;border-collapse:collapse;margin-bottom:6px;">
         <thead>
           <tr style="border-bottom:0.5px solid #0C0C0B;">
-            <th style="font-size:7px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:#ABA79F;padding:0 0 9px;text-align:left;width:46%;">Désignation</th>
-            <th style="font-size:7px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:#ABA79F;padding:0 0 9px;text-align:right;">Montant HT</th>
-            <th style="font-size:7px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:#ABA79F;padding:0 0 9px;text-align:right;">TVA 20%</th>
-            <th style="font-size:7px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:#ABA79F;padding:0 0 9px;text-align:right;">Total TTC</th>
+            <th style="font-size:7px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:#ABA79F;padding:0 0 9px;text-align:left;">Désignation</th>
+            <th style="font-size:7px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:#ABA79F;padding:0 0 9px;text-align:right;">Montant TTC</th>
           </tr>
         </thead>
         <tbody>
           <tr style="border-bottom:0.5px solid #F0ECE6;">
             <td style="padding:11px 0;font-size:12px;font-weight:500;color:#0C0C0B;">${missionNom}</td>
-            <td style="padding:11px 0;font-size:11.5px;font-weight:400;color:#9B968F;text-align:right;font-variant-numeric:tabular-nums;">${fmtMAD(ht)}</td>
-            <td style="padding:11px 0;font-size:11.5px;font-weight:400;color:#9B968F;text-align:right;font-variant-numeric:tabular-nums;">${fmtMAD(tva)}</td>
             <td style="padding:11px 0;font-size:12px;font-weight:500;color:#0C0C0B;text-align:right;font-variant-numeric:tabular-nums;">${fmtMAD(ttc)}</td>
           </tr>
           <tr>
-            <td colspan="3" style="padding:13px 0 2px;border-top:0.5px solid #0C0C0B;">
+            <td style="padding:13px 0 2px;border-top:0.5px solid #0C0C0B;">
               <span style="${AV}font-size:13px;font-style:italic;color:#9B8157;">Total à régler</span>
             </td>
             <td style="padding:13px 0 2px;border-top:0.5px solid #0C0C0B;text-align:right;font-variant-numeric:tabular-nums;">

@@ -15,7 +15,7 @@ function buildPortraitGrid(images, cols) {
     <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:10px;">
       ${rows.map(row => row.map(img => `
         <div style="border-radius:6px;overflow:hidden;border:0.5px solid #E0DBD3;height:${imgH}px;background:#F8F5F0;">
-          <img src="${img.dataUrl}" style="display:block;width:100%;height:${imgH}px;object-fit:cover;" />
+          <img src="${img.url || img.dataUrl}" style="display:block;width:100%;height:${imgH}px;object-fit:cover;" crossorigin="anonymous" />
         </div>
       `).join('')).join('')}
     </div>`

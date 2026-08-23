@@ -1824,7 +1824,15 @@ export function DataProvider({ children }) {
     setProjects(prev => prev.map(p => {
       if (p.id !== projectId) return p
       const updated = { ...p, concept: { ...(p.concept || {}), clientResponse: response } }
-      sbUpsert('projects', toDbProject(updated))
+      if (supabase) {
+        supabase.from('projects').upsert(toDbProject(updated), { onConflict: 'id' })
+          .then(({ error }) => {
+            if (error) {
+              console.error('[saveConceptResponse] Supabase error:', error.message)
+              toast.error('Erreur lors de la sauvegarde de votre réponse. Veuillez réessayer.', { duration: 8000 })
+            }
+          })
+      }
       return updated
     }))
   }

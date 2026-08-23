@@ -162,10 +162,28 @@ function RdvCard({ rdv, i, t, fmtDate, FORMAT_CFG }) {
                   exit={{ opacity: 0, height: 0 }}
                   className="overflow-hidden"
                 >
-                  <div
-                    className="mt-2 prose prose-sm max-w-none text-ink border border-border rounded-xl px-4 py-3 bg-paper-warm text-sm leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: rdv.compteRendu.contenu }}
-                  />
+                  <div className="mt-2 border border-border rounded-xl px-4 py-3 bg-paper-warm">
+                    <div
+                      className="prose-editor"
+                      dangerouslySetInnerHTML={{ __html: rdv.compteRendu.contenu }}
+                    />
+                    {rdv.compteRendu.images?.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-border grid grid-cols-2 gap-3">
+                        {rdv.compteRendu.images.map((img, i) => (
+                          <div key={i} className="rounded-xl overflow-hidden border border-border bg-white">
+                            <img
+                              src={img.src || img.url}
+                              alt={img.caption || `Photo ${i + 1}`}
+                              className="w-full aspect-video object-cover"
+                            />
+                            {img.caption && (
+                              <div className="px-2 py-1.5 text-[11px] text-muted">{img.caption}</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
