@@ -72,28 +72,28 @@ function ProjectModal({ project, onClose, onSave }) {
       visible:        form.visible,
     }
 
-    let error
+    let error, data
     if (project?.id) {
-      ;({ error } = await supabase.from(TABLE).update(payload).eq('id', project.id))
+      ;({ error, data } = await supabase.from(TABLE).update(payload).eq('id', project.id).select())
     } else {
-      ;({ error } = await supabase.from(TABLE).insert([payload]))
+      ;({ error, data } = await supabase.from(TABLE).insert([payload]).select())
     }
 
     setSaving(false)
     if (error) {
       const msg = error.message?.includes('row-level security')
-        ? 'Permission refusée (RLS). Dans Supabase SQL Editor : CREATE POLICY "admin_all_portfolio" ON portfolio_projects FOR ALL TO authenticated USING (true) WITH CHECK (true);'
+        ? 'Permission RLS bloquée. Dans Supabase SQL Editor :\nCREATE POLICY "admin_all" ON portfolio_projects FOR ALL TO authenticated USING (true) WITH CHECK (true);'
         : 'Erreur : ' + error.message
       toast.error(msg, { duration: 10000 })
       return
     }
     toast.success(project?.id ? 'Projet mis à jour' : 'Projet ajouté')
-    onSave()
+    onSave(data?.[0] || null)
   }
 
   const label  = 'block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5'
-  const input  = 'w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-electric focus:ring-1 focus:ring-electric/30 transition'
-  const select = input + ' appearance-none'
+  const input  = 'dp-input'
+  const select = 'dp-select'
 
   return (
     <motion.div
@@ -553,8 +553,16 @@ export default function PortfolioPage() {
 
       {/* Modals */}
       <AnimatePresence>
-        {modal?.type === 'add'  && <ProjectModal onClose={() => setModal(null)} onSave={() => { setModal(null); load() }} />}
-        {modal?.type === 'edit' && <ProjectModal project={modal.project} onClose={() => setModal(null)} onSave={() => { setModal(null); load() }} />}
+        {modal?.type === 'add'  && <ProjectModal onClose={() => setModal(null)} onSave={(saved) => {
+          setModal(null)
+          if (saved) setProjects(ps => [...ps, saved])
+          load()
+        }} />}
+        {modal?.type === 'edit' && <ProjectModal project={modal.project} onClose={() => setModal(null)} onSave={(saved) => {
+          setModal(null)
+          if (saved) setProjects(ps => ps.map(p => p.id === saved.id ? saved : p))
+          load()
+        }} />}
         {toDelete && <DeleteModal project={toDelete} onConfirm={handleDelete} onClose={() => setToDelete(null)} />}
       </AnimatePresence>
     </div>
