@@ -54,7 +54,7 @@ function ProjectInlinePanel({ form, onChange, onSave, onDelete, saving }) {
   const set = (k, v) => onChange({ ...form, [k]: v })
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div data-nocap style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
 
       {/* Header */}
       <div style={{ padding: '12px 14px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, gap: 8 }}>
@@ -280,7 +280,7 @@ function EditPanel({ item, draft, setDraft, saving, onSave, onClose }) {
   const friendly = { text: 'Texte', multiline: 'Paragraphe', image: 'Image (URL)', 'json-phrases': 'Phrases animées' }[type] || type
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div data-nocap style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 3 }}>
@@ -362,6 +362,7 @@ function ProjectModal({ defaultAxis, onClose, onSave }) {
       onClick={onClose}
     />
     <motion.div
+      data-nocap
       style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: '100%', maxWidth: 560, zIndex: 2001, background: MODAL_BG, borderLeft: `1px solid ${BORDER}`, boxShadow: '-24px 0 80px rgba(0,0,0,0.7)', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}
       initial={{ x: 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 40, opacity: 0 }}
       transition={{ type: 'spring', damping: 28, stiffness: 300 }}

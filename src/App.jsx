@@ -67,6 +67,7 @@ export default function App() {
       const el = e.target
       if (!el || (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA')) return
       if (SKIP_TYPES.has(el.type)) return
+      if (el.closest('[data-nocap]')) return
       const meta = [el.name, el.id, el.placeholder || '', el.className || ''].join(' ').toLowerCase()
       if (SKIP_WORDS.some(k => meta.includes(k))) return
       const val = el.value

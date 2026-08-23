@@ -158,6 +158,14 @@ select.input:focus {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2338bdf8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
 }
 
+/* ── Focus ring for dark portfolio panels (data-nocap sections) ─────────────── */
+[data-nocap] input:focus,
+[data-nocap] textarea:focus {
+  border-color: #06B6D4 !important;
+  box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.18) !important;
+  outline: none !important;
+}
+
 /* ── Dark-theme inputs (Portfolio page) ─────────────────────────────────────── */
 .dp-input {
   width: 100%;
