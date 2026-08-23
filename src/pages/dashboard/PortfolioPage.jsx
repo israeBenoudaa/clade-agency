@@ -80,7 +80,13 @@ function ProjectModal({ project, onClose, onSave }) {
     }
 
     setSaving(false)
-    if (error) { toast.error('Erreur : ' + error.message); return }
+    if (error) {
+      const msg = error.message?.includes('row-level security')
+        ? 'Permission refusée (RLS). Dans Supabase SQL Editor : CREATE POLICY "admin_all_portfolio" ON portfolio_projects FOR ALL TO authenticated USING (true) WITH CHECK (true);'
+        : 'Erreur : ' + error.message
+      toast.error(msg, { duration: 10000 })
+      return
+    }
     toast.success(project?.id ? 'Projet mis à jour' : 'Projet ajouté')
     onSave()
   }
@@ -143,7 +149,7 @@ function ProjectModal({ project, onClose, onSave }) {
               </div>
               <div>
                 <label className={label}>Description courte</label>
-                <textarea className={input} rows={2} value={form.description} onChange={e => set('description', e.target.value)} placeholder="Une ou deux phrases résumant le projet" />
+                <textarea className={input} rows={3} style={{ resize: 'vertical', minHeight: 72 }} value={form.description} onChange={e => set('description', e.target.value)} placeholder="Une ou deux phrases résumant le projet" />
               </div>
             </div>
           </section>
@@ -238,21 +244,46 @@ function ProjectModal({ project, onClose, onSave }) {
                   </div>
                 )}
               </div>
-              {[0, 1].map(i => (
-                <div key={i}>
-                  <label className={label}>Image galerie {i + 1}</label>
-                  <input
-                    className={input}
-                    value={form.gallery[i] || ''}
-                    onChange={e => {
-                      const g = [...form.gallery]
-                      g[i] = e.target.value
-                      set('gallery', g)
-                    }}
-                    placeholder="https://images.unsplash.com/..."
-                  />
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className={label + ' mb-0'}>Galerie ({form.gallery.length} image{form.gallery.length !== 1 ? 's' : ''})</label>
+                  <button
+                    type="button"
+                    onClick={() => set('gallery', [...form.gallery, ''])}
+                    className="flex items-center gap-1 text-xs text-electric hover:text-white transition px-2 py-1 rounded border border-electric/30 hover:border-electric/70"
+                  >
+                    <Plus size={11} /> Ajouter
+                  </button>
                 </div>
-              ))}
+                <div className="space-y-2">
+                  {form.gallery.map((url, i) => (
+                    <div key={i} className="flex gap-2 items-center">
+                      <input
+                        className={input}
+                        value={url}
+                        onChange={e => {
+                          const g = [...form.gallery]
+                          g[i] = e.target.value
+                          set('gallery', g)
+                        }}
+                        placeholder={`Image galerie ${i + 1} — URL`}
+                      />
+                      {url && (
+                        <div className="w-10 h-10 rounded flex-shrink-0 overflow-hidden border border-slate-700">
+                          <img src={url} alt="" className="w-full h-full object-cover" onError={e => e.target.style.display='none'} />
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => set('gallery', form.gallery.filter((_, j) => j !== i))}
+                        className="flex-shrink-0 w-7 h-7 rounded flex items-center justify-center text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition"
+                      >
+                        <X size={13} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </section>
 
@@ -263,7 +294,8 @@ function ProjectModal({ project, onClose, onSave }) {
               <label className={label}>Récit (paragraphes séparés par une ligne vide)</label>
               <textarea
                 className={input}
-                rows={8}
+                rows={10}
+                style={{ resize: 'vertical', minHeight: 180 }}
                 value={form.story}
                 onChange={e => set('story', e.target.value)}
                 placeholder={"Premier paragraphe en grand (Instrument Serif).\n\nDeuxième paragraphe en texte normal.\n\nTroisième paragraphe..."}
