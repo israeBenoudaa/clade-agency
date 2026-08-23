@@ -385,7 +385,7 @@ function ProjectModal({ defaultAxis, onClose, onSave }) {
         {/* Body */}
         <div style={{ flex: 1, padding: 20, overflowY: 'auto' }}>
           <Section title="Identité">
-            <div><label style={LABEL_S}>Titre *</label><input style={INPUT_S} value={form.title} onChange={e => set('title', e.target.value)} placeholder="Villa contemporaine" /></div>
+            <div><label style={LABEL_S}>Titre *</label><input autoFocus style={INPUT_S} value={form.title} onChange={e => set('title', e.target.value)} placeholder="Villa contemporaine" /></div>
             <Row>
               <div><label style={LABEL_S}>Ville</label><input style={INPUT_S} value={form.location} onChange={e => set('location', e.target.value)} /></div>
               <div><label style={LABEL_S}>Année</label><input style={INPUT_S} value={form.year} onChange={e => set('year', e.target.value)} /></div>
@@ -535,9 +535,10 @@ export default function PortfolioPage() {
   const [projectSaving, setProjectSaving] = useState(false)
 
   /* ── Project CRUD ── */
-  const [projects, setProjects] = useState([])
-  const [modal, setModal]       = useState(null)
-  const [toDelete, setToDelete] = useState(null)
+  const [projects, setProjects]         = useState([])
+  const [projectsLoaded, setProjectsLoaded] = useState(false)
+  const [modal, setModal]               = useState(null)
+  const [toDelete, setToDelete]         = useState(null)
 
   /* ── Path detection ── */
   const projectIdMatch       = currentPath.match(/^\/projet\/(.+)$/)
@@ -554,6 +555,7 @@ export default function PortfolioPage() {
     const { data, error } = await supabase.from(TABLE).select('*').order('display_order', { ascending: true })
     if (!error) setProjects(data || [])
     else toast.error('Erreur de chargement', { id: 'portfolio-load' })
+    setProjectsLoaded(true)
   }, [])
 
   useEffect(() => { loadProjects() }, [loadProjects])
@@ -885,11 +887,79 @@ export default function PortfolioPage() {
 
       {/* ── Modals ── */}
       <AnimatePresence>
-        {modal && <ProjectModal key="modal" defaultAxis={modal.defaultAxis} onClose={() => setModal(null)} onSave={(saved) => { setModal(null); if (saved) setProjects(ps => [...ps, saved]) }} />}
+        {modal && <ProjectModal key="modal" defaultAxis={modal.defaultAxis} onClose={() => setModal(null)} onSave={(saved) => {
+          setModal(null)
+          if (saved) {
+            setProjects(ps => [...ps, saved])
+            iframeRef.current?.contentWindow?.postMessage({ type: 'cms-reload' }, '*')
+            setTimeout(() => iframeRef.current?.contentWindow?.postMessage({ type: 'cms-enable' }, '*'), 1200)
+          }
+        }} />}
         {toDelete && <DeleteModal key="delete" project={toDelete} onConfirm={handleDeleteProject} onClose={() => setToDelete(null)} />}
       </AnimatePresence>
 
       {showUrl && <div onClick={() => setShowUrl(false)} style={{ position: 'fixed', inset: 0, zIndex: 199 }} />}
+
+      {/* ── SQL Setup notice — shown when table is empty after first load ── */}
+      <AnimatePresence>
+        {projectsLoaded && projects.length === 0 && !modal && (
+          <SqlSetupNotice />
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+/* ── SQL setup helper — shown when portfolio_projects table is empty ── */
+function SqlSetupNotice() {
+  const [open, setOpen] = useState(false)
+  const SQL = `-- 1. Accès admin (lecture + écriture)
+CREATE POLICY "admin_all_portfolio"
+  ON public.portfolio_projects
+  FOR ALL TO authenticated
+  USING (true) WITH CHECK (true);
+
+-- 2. Accès public (le site portfolio peut lire les projets visibles)
+CREATE POLICY "anon_select_portfolio"
+  ON public.portfolio_projects
+  FOR SELECT TO anon
+  USING (visible = true);`
+
+  return (
+    <div style={{ position: 'fixed', bottom: 24, left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 1500, pointerEvents: 'none' }}>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      style={{
+        pointerEvents: 'auto', maxWidth: 540, width: 'calc(100% - 48px)',
+        background: '#1A1B1C', border: '1px solid rgba(200,184,154,0.25)',
+        borderRadius: 14, boxShadow: '0 12px 48px rgba(0,0,0,0.7)',
+        fontFamily: 'Space Grotesk, sans-serif',
+      }}
+    >
+      <div style={{ padding: '14px 18px', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+        <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(200,184,154,0.1)', border: '1px solid rgba(200,184,154,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 14 }}>⚙</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#C8B89A', marginBottom: 4 }}>Configuration Supabase requise</div>
+          <div style={{ fontSize: 11, color: 'rgba(245,240,234,0.45)', lineHeight: 1.6 }}>
+            Aucun projet trouvé. Exécutez les 2 politiques RLS dans l'éditeur SQL de Supabase pour activer la gestion des projets.
+          </div>
+          <button
+            onClick={() => setOpen(o => !o)}
+            style={{ marginTop: 8, fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase', color: '#C8B89A', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+          >{open ? '▲ Masquer le SQL' : '▼ Voir le SQL à exécuter'}</button>
+          {open && (
+            <pre style={{
+              marginTop: 10, padding: '12px 14px', borderRadius: 8,
+              background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.07)',
+              fontSize: 10, color: 'rgba(245,240,234,0.7)', lineHeight: 1.7,
+              overflowX: 'auto', whiteSpace: 'pre', fontFamily: 'monospace',
+            }}>{SQL}</pre>
+          )}
+        </div>
+      </div>
+    </motion.div>
     </div>
   )
 }
