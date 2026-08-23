@@ -1614,6 +1614,8 @@ export default function OverviewPage() {
 
   // Deadline filter for the agenda section
   const [deadlineFilter, setDeadlineFilter] = useState('all')
+  const [dlViewMode, setDlViewMode] = useState('semaine')
+  const [dlOffset, setDlOffset] = useState(0)
 
   const handleRdvProspectUpdate = (updates) => {
     if (!employe || !editingRdvProspect) return
@@ -1725,17 +1727,37 @@ export default function OverviewPage() {
           ? allMyTasks
           : allMyTasks.filter(t => String(t.personnelId) === String(employe.id))
 
+        // Deadline range based on dlViewMode + dlOffset
+        const dlRange = (() => {
+          if (dlViewMode === 'semaine') {
+            const day = _now.getDay() === 0 ? 6 : _now.getDay() - 1
+            const mon = new Date(_now); mon.setDate(_now.getDate() - day + dlOffset * 7); mon.setHours(0,0,0,0)
+            const sun = new Date(mon); sun.setDate(mon.getDate() + 6)
+            return {
+              start: toISO(mon), end: toISO(sun),
+              label: `${mon.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })} — ${sun.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })}`,
+            }
+          }
+          if (dlViewMode === 'mois') {
+            const d = new Date(_now.getFullYear(), _now.getMonth() + dlOffset, 1)
+            const last = new Date(d.getFullYear(), d.getMonth() + 1, 0)
+            return { start: toISO(d), end: toISO(last), label: d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) }
+          }
+          const y = _now.getFullYear() + dlOffset
+          return { start: `${y}-01-01`, end: `${y}-12-31`, label: String(y) }
+        })()
+
         const urgentTasks = deadlineTasks
           .filter(t =>
             t.statut !== 'Done' &&
             t.approval !== 'Approved' &&
             t.approval !== 'Great work' &&
-            t.deadline && t.deadline >= _todayStr && t.deadline <= _in7Str
+            t.deadline && t.deadline >= dlRange.start && t.deadline <= dlRange.end
           )
           .sort((a, b) => a.deadline.localeCompare(b.deadline))
 
         const urgentGanttDeadlines = projectDeadlines
-          .filter(dl => !dl.validated && dl.date && dl.date >= _todayStr && dl.date <= _in7Str)
+          .filter(dl => !dl.validated && dl.date && dl.date >= dlRange.start && dl.date <= dlRange.end)
           .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
 
         const stuckTasks = (isDir ? allMyTasks : deadlineTasks).filter(t => t.statut === 'Stuck')
@@ -1805,17 +1827,13 @@ export default function OverviewPage() {
 
             {/* RIGHT — Deadlines + bloquées */}
             <div className="card p-5 flex flex-col" style={{ minHeight: 240 }}>
-              <div className="flex items-center gap-3 mb-4 flex-shrink-0">
+              <div className="flex items-center gap-3 mb-3 flex-shrink-0">
                 <div className="w-8 h-8 rounded-xl bg-rose-50 flex items-center justify-center flex-shrink-0">
                   <CalendarDays size={16} className="text-rose-500" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="label-text mb-0.5">Cette semaine</div>
-                  <div className="font-display text-xl text-ink leading-tight">
-                    {(urgentTasks.length + urgentGanttDeadlines.length) > 0
-                      ? `${urgentTasks.length + urgentGanttDeadlines.length} deadline${urgentTasks.length + urgentGanttDeadlines.length > 1 ? 's' : ''} imminente${urgentTasks.length + urgentGanttDeadlines.length > 1 ? 's' : ''}`
-                      : 'Deadlines imminentes'}
-                  </div>
+                  <div className="label-text mb-0.5">Deadlines</div>
+                  <div className="font-display text-xl text-ink leading-tight">Mes deadlines</div>
                 </div>
                 {(urgentTasks.length > 0 || urgentGanttDeadlines.length > 0 || stuckTasks.length > 0) && (
                   <span className="text-xs font-bold text-rose-600 bg-rose-50 px-2.5 py-1 rounded-full flex-shrink-0">
@@ -1824,10 +1842,37 @@ export default function OverviewPage() {
                 )}
               </div>
 
+              {/* View mode tabs */}
+              <div className="flex items-center gap-1 mb-2 flex-shrink-0">
+                {[['semaine', 'Semaine'], ['mois', 'Mois'], ['annee', 'Année']].map(([mode, label]) => (
+                  <button key={mode} onClick={() => { setDlViewMode(mode); setDlOffset(0) }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${dlViewMode === mode ? 'bg-ink text-white' : 'text-muted hover:text-ink hover:bg-paper-warm'}`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Navigator */}
+              <div className="flex items-center gap-2 mb-3 bg-paper-warm rounded-xl px-3 py-2 flex-shrink-0">
+                <button onClick={() => setDlOffset(o => o - 1)}
+                  className="w-7 h-7 rounded-lg hover:bg-white border border-border flex items-center justify-center text-muted flex-shrink-0">
+                  <ChevronLeft size={14} />
+                </button>
+                <span className="flex-1 text-xs font-medium text-ink text-center capitalize">{dlRange.label}</span>
+                <button onClick={() => setDlOffset(0)}
+                  className="text-[10px] text-muted hover:text-ink px-2 font-medium flex-shrink-0">
+                  Auj.
+                </button>
+                <button onClick={() => setDlOffset(o => o + 1)}
+                  className="w-7 h-7 rounded-lg hover:bg-white border border-border flex items-center justify-center text-muted flex-shrink-0">
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+
               {urgentTasks.length === 0 && urgentGanttDeadlines.length === 0 && stuckTasks.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center gap-2 py-6">
                   <CheckCircle size={28} className="text-emerald-400" strokeWidth={1.5} />
-                  <span className="text-xs text-muted">Aucune deadline imminente</span>
+                  <span className="text-xs text-muted">Aucune deadline {dlViewMode === 'mois' ? 'ce mois' : dlViewMode === 'annee' ? 'cette année' : 'cette semaine'}</span>
                 </div>
               ) : (
                 <div className="flex-1 space-y-2 overflow-y-auto pr-0.5" style={{ maxHeight: 190 }}>
@@ -2277,12 +2322,9 @@ export default function OverviewPage() {
         {(() => {
           const _rdvWeekStart = rdvRange.start
           const _rdvWeekEnd   = rdvRange.end
-          const visibleItems = [
-            ...filteredRdvs.filter(r => r.type !== 'deadline'),
-            ...projectDeadlines.filter(dl => !dl.validated && dl.date >= _rdvWeekStart && dl.date <= _rdvWeekEnd),
-            ...taskDeadlines.filter(t => t.deadline >= _rdvWeekStart && t.deadline <= _rdvWeekEnd)
-              .map(t => ({ ...t, date: t.deadline, _isTask: true })),
-          ].sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+          const visibleItems = filteredRdvs
+            .filter(r => r.type !== 'deadline')
+            .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
           if (visibleItems.length === 0) {
             const emptyLabel = rdvViewMode === 'mois' ? 'ce mois' : rdvViewMode === 'annee' ? 'cette année' : 'cette semaine'
             return <div className="py-6 text-center text-sm text-muted">Aucun élément {emptyLabel}</div>

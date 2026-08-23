@@ -433,6 +433,7 @@ export default function EmployeDetailPage() {
   const [congeForm, setCongeForm] = useState({ type: 'Congés annuels', debut: '', fin: '' })
   const [taskStatusDropdown, setTaskStatusDropdown] = useState(null)
   const [showAddHeureSup, setShowAddHeureSup] = useState(false)
+  const [sessionWeekOffset, setSessionWeekOffset] = useState(0)
 
   const autoOtHours = useMemo(() => {
     const allSessions = employe?.workSessions || []
@@ -971,8 +972,24 @@ export default function EmployeDetailPage() {
         const MONTH_FR = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Août','Sep','Oct','Nov','Déc']
         const fmtMonth = (ym) => { const [y, m] = ym.split('-'); return `${MONTH_FR[parseInt(m)-1]} ${y}` }
 
-        const recentSessions = [...allSessions].reverse().slice(0, 14)
         const todayOt = Math.max(0, todayMs - OT_THRESHOLD_MS)
+
+        // Week navigator for sessions
+        const getSessionWeek = (offset) => {
+          const now = new Date()
+          const day = now.getDay() === 0 ? 6 : now.getDay() - 1
+          const mon = new Date(now)
+          mon.setDate(now.getDate() - day + offset * 7)
+          mon.setHours(0, 0, 0, 0)
+          const sun = new Date(mon)
+          sun.setDate(mon.getDate() + 6)
+          return { start: mon.toISOString().slice(0, 10), end: sun.toISOString().slice(0, 10), mon, sun }
+        }
+        const sessionWeek = getSessionWeek(sessionWeekOffset)
+        const sessionWeekLabel = `${sessionWeek.mon.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })} — ${sessionWeek.sun.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })}`
+        const weekSessions = allSessions
+          .filter(s => s.date >= sessionWeek.start && s.date <= sessionWeek.end)
+          .sort((a, b) => b.date.localeCompare(a.date))
 
         return (
           <div className="card p-5 lg:p-7">
@@ -1010,24 +1027,43 @@ export default function EmployeDetailPage() {
               </div>
             </div>
 
-            {/* Daily sessions */}
+            {/* Sessions with week navigator */}
             <div className="label-text text-[10px] mb-2">Détail des sessions</div>
-            <div className="space-y-1.5">
-              {recentSessions.map(s => {
-                const ot = Math.max(0, (s.workedMs || 0) - OT_THRESHOLD_MS)
-                return (
-                  <div key={s.id} className="flex items-center gap-3 p-2.5 bg-paper-warm rounded-xl text-sm">
-                    <Clock size={13} className="text-muted flex-shrink-0" />
-                    <span className="text-muted text-xs flex-shrink-0 w-20">{s.date}</span>
-                    <span className="text-ink font-medium">{fmtMs(s.workedMs || 0)}</span>
-                    {ot > 0 && <span className="text-[10px] text-amber-600 font-semibold px-1.5 py-0.5 bg-amber-50 rounded-md">{fmtMs(ot)} HS</span>}
-                    {s.startTime && s.endTime && (
-                      <span className="text-xs text-muted ml-auto">{s.startTime} → {s.endTime}</span>
-                    )}
-                  </div>
-                )
-              })}
+            <div className="flex items-center gap-2 mb-3 bg-paper-warm rounded-xl px-3 py-2">
+              <button onClick={() => setSessionWeekOffset(o => o - 1)}
+                className="w-7 h-7 rounded-lg hover:bg-white border border-border flex items-center justify-center text-muted flex-shrink-0">
+                <ChevronLeft size={14} />
+              </button>
+              <span className="flex-1 text-xs font-medium text-ink text-center">{sessionWeekLabel}</span>
+              <button onClick={() => setSessionWeekOffset(0)}
+                className="text-[10px] text-muted hover:text-ink px-2 font-medium flex-shrink-0">
+                Auj.
+              </button>
+              <button onClick={() => setSessionWeekOffset(o => o + 1)}
+                className="w-7 h-7 rounded-lg hover:bg-white border border-border flex items-center justify-center text-muted flex-shrink-0">
+                <ChevronRight size={14} />
+              </button>
             </div>
+            {weekSessions.length === 0 ? (
+              <div className="py-4 text-center text-xs text-muted">Aucune session cette semaine</div>
+            ) : (
+              <div className="space-y-1.5">
+                {weekSessions.map(s => {
+                  const ot = Math.max(0, (s.workedMs || 0) - OT_THRESHOLD_MS)
+                  return (
+                    <div key={s.id} className="flex items-center gap-3 p-2.5 bg-paper-warm rounded-xl text-sm">
+                      <Clock size={13} className="text-muted flex-shrink-0" />
+                      <span className="text-muted text-xs flex-shrink-0 w-20">{s.date}</span>
+                      <span className="text-ink font-medium">{fmtMs(s.workedMs || 0)}</span>
+                      {ot > 0 && <span className="text-[10px] text-amber-600 font-semibold px-1.5 py-0.5 bg-amber-50 rounded-md">{fmtMs(ot)} HS</span>}
+                      {s.startTime && s.endTime && (
+                        <span className="text-xs text-muted ml-auto">{s.startTime} → {s.endTime}</span>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
         )
       })()}
