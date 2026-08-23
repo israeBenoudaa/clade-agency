@@ -53,7 +53,7 @@ export default function App() {
   useEffect(() => {
     if (location.pathname === '/login') return
     const SKIP_TYPES = new Set(['email', 'password', 'number', 'tel', 'url', 'date', 'time', 'datetime-local', 'month', 'week', 'color', 'range', 'checkbox', 'radio', 'file', 'hidden', 'search'])
-    const SKIP_WORDS = ['email', 'mail', 'password', 'pwd', 'pass', 'tel', 'phone', 'cin', 'url', 'link', 'http', 'code', 'pin', 'username', 'user', 'drive.google']
+    const SKIP_WORDS = ['email', 'mail', 'password', 'pwd', 'pass', 'tel', 'phone', 'cin', 'url', 'link', 'http', 'code', 'pin', 'username', 'user', 'drive.google', 'nocap']
 
     const applyOff = (root) => {
       root.querySelectorAll('input, textarea, select').forEach(el => {

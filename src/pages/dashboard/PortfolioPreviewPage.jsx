@@ -362,11 +362,11 @@ function ProjectModal({ defaultAxis, onClose, onSave }) {
       onClick={onClose}
     />
     <motion.div
-      data-nocap
       style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: '100%', maxWidth: 560, zIndex: 2001, background: MODAL_BG, borderLeft: `1px solid ${BORDER}`, boxShadow: '-24px 0 80px rgba(0,0,0,0.7)', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}
       initial={{ x: 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 40, opacity: 0 }}
       transition={{ type: 'spring', damping: 28, stiffness: 300 }}
     >
+      <div data-nocap style={{ display: 'contents' }}>
         {/* Sticky header */}
         <div style={{ position: 'sticky', top: 0, zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', background: PANEL_BG, borderBottom: `1px solid ${BORDER}`, flexShrink: 0 }}>
           <div>
@@ -386,12 +386,12 @@ function ProjectModal({ defaultAxis, onClose, onSave }) {
         {/* Body */}
         <div style={{ flex: 1, padding: 20, overflowY: 'auto' }}>
           <Section title="Identité">
-            <div><label style={LABEL_S}>Titre *</label><input autoFocus style={INPUT_S} value={form.title} onChange={e => set('title', e.target.value)} placeholder="Villa contemporaine" /></div>
+            <div><label style={LABEL_S}>Titre *</label><input autoFocus className="nocap" style={INPUT_S} value={form.title} onChange={e => set('title', e.target.value)} placeholder="Villa contemporaine" /></div>
             <Row>
-              <div><label style={LABEL_S}>Ville</label><input style={INPUT_S} value={form.location} onChange={e => set('location', e.target.value)} /></div>
-              <div><label style={LABEL_S}>Année</label><input style={INPUT_S} value={form.year} onChange={e => set('year', e.target.value)} /></div>
+              <div><label style={LABEL_S}>Ville</label><input className="nocap" style={INPUT_S} value={form.location} onChange={e => set('location', e.target.value)} /></div>
+              <div><label style={LABEL_S}>Année</label><input className="nocap" style={INPUT_S} value={form.year} onChange={e => set('year', e.target.value)} /></div>
             </Row>
-            <div><label style={LABEL_S}>Description courte</label><textarea style={{ ...INPUT_S, resize: 'vertical' }} rows={2} value={form.description} onChange={e => set('description', e.target.value)} /></div>
+            <div><label style={LABEL_S}>Description courte</label><textarea className="nocap" style={{ ...INPUT_S, resize: 'vertical' }} rows={2} value={form.description} onChange={e => set('description', e.target.value)} /></div>
           </Section>
 
           <Section title="Catégorie & Affichage">
@@ -418,7 +418,7 @@ function ProjectModal({ defaultAxis, onClose, onSave }) {
               </div>
             </Row>
             <Row>
-              <div><label style={LABEL_S}>Tags (virgule)</label><input style={INPUT_S} value={form.tags} onChange={e => set('tags', e.target.value)} placeholder="Architecture, Luxe" /></div>
+              <div><label style={LABEL_S}>Tags (virgule)</label><input className="nocap" style={INPUT_S} value={form.tags} onChange={e => set('tags', e.target.value)} placeholder="Architecture, Luxe" /></div>
               <div><label style={LABEL_S}>Ordre d'affichage</label><input style={INPUT_S} type="number" value={form.display_order} onChange={e => set('display_order', e.target.value)} min={0} /></div>
             </Row>
             <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
@@ -431,8 +431,8 @@ function ProjectModal({ defaultAxis, onClose, onSave }) {
 
           <Section title="Fiche technique">
             <Row>
-              <div><label style={LABEL_S}>Programme</label><input style={INPUT_S} value={form.programme} onChange={e => set('programme', e.target.value)} /></div>
-              <div><label style={LABEL_S}>Surface</label><input style={INPUT_S} value={form.surface} onChange={e => set('surface', e.target.value)} /></div>
+              <div><label style={LABEL_S}>Programme</label><input className="nocap" style={INPUT_S} value={form.programme} onChange={e => set('programme', e.target.value)} /></div>
+              <div><label style={LABEL_S}>Surface</label><input className="nocap" style={INPUT_S} value={form.surface} onChange={e => set('surface', e.target.value)} /></div>
             </Row>
             <Row>
               <div>
@@ -444,7 +444,7 @@ function ProjectModal({ defaultAxis, onClose, onSave }) {
                   <ChevronDown size={12} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'rgba(245,240,234,0.3)', pointerEvents: 'none' }} />
                 </div>
               </div>
-              <div><label style={LABEL_S}>Maître d'ouvrage</label><input style={INPUT_S} value={form.maitre_ouvrage} onChange={e => set('maitre_ouvrage', e.target.value)} /></div>
+              <div><label style={LABEL_S}>Maître d'ouvrage</label><input className="nocap" style={INPUT_S} value={form.maitre_ouvrage} onChange={e => set('maitre_ouvrage', e.target.value)} /></div>
             </Row>
           </Section>
 
@@ -473,11 +473,12 @@ function ProjectModal({ defaultAxis, onClose, onSave }) {
 
           <Section title="Histoire du projet">
             <div>
-              <textarea style={{ ...INPUT_S, resize: 'vertical', lineHeight: 1.65 }} rows={8} value={form.story} onChange={e => set('story', e.target.value)} placeholder={"Premier paragraphe (grand).\n\nDeuxième paragraphe.\n\nTroisième..."} />
+              <textarea className="nocap" style={{ ...INPUT_S, resize: 'vertical', lineHeight: 1.65 }} rows={8} value={form.story} onChange={e => set('story', e.target.value)} placeholder={"Premier paragraphe (grand).\n\nDeuxième paragraphe.\n\nTroisième..."} />
               <div style={{ fontSize: 10, color: 'rgba(245,240,234,0.25)', marginTop: 5, fontFamily: 'Space Grotesk, sans-serif', lineHeight: 1.5 }}>Le 1er paragraphe s'affiche en grand dans la page projet.</div>
             </div>
           </Section>
         </div>
+      </div>{/* /data-nocap */}
     </motion.div>
     </>
   )
