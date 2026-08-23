@@ -1843,7 +1843,7 @@ export default function OverviewPage() {
               </div>
 
               {/* View mode tabs */}
-              <div className="flex items-center gap-1 mb-2 flex-shrink-0">
+              <div className="flex items-center justify-center gap-1 mb-2 flex-shrink-0">
                 {[['semaine', 'Semaine'], ['mois', 'Mois'], ['annee', 'Année']].map(([mode, label]) => (
                   <button key={mode} onClick={() => { setDlViewMode(mode); setDlOffset(0) }}
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${dlViewMode === mode ? 'bg-ink text-white' : 'text-muted hover:text-ink hover:bg-paper-warm'}`}>
@@ -2293,7 +2293,7 @@ export default function OverviewPage() {
         </div>
 
         {/* View mode tabs */}
-        <div className="flex items-center gap-1 mb-2">
+        <div className="flex items-center justify-center gap-1 mb-2">
           {[['semaine', 'Semaine'], ['mois', 'Mois'], ['annee', 'Année']].map(([mode, label]) => (
             <button key={mode} onClick={() => { setRdvViewMode(mode); setRdvOffset(0) }}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${rdvViewMode === mode ? 'bg-ink text-white' : 'text-muted hover:text-ink hover:bg-paper-warm'}`}>
