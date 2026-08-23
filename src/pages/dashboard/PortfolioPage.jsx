@@ -72,23 +72,29 @@ function ProjectModal({ project, onClose, onSave }) {
       visible:        form.visible,
     }
 
-    let error, data
+    let saveError = null
+    let savedRow = null
+
     if (project?.id) {
-      ;({ error, data } = await supabase.from(TABLE).update(payload).eq('id', project.id).select())
+      const { error, data } = await supabase.from(TABLE).update(payload).eq('id', project.id).select()
+      saveError = error
+      if (!error) savedRow = data?.[0] ?? { ...project, ...payload }
     } else {
-      ;({ error, data } = await supabase.from(TABLE).insert([payload]).select())
+      const { error, data } = await supabase.from(TABLE).insert([payload]).select()
+      saveError = error
+      if (!error) savedRow = data?.[0] ?? { id: `tmp-${Date.now()}`, ...payload, created_at: new Date().toISOString() }
     }
 
     setSaving(false)
-    if (error) {
-      const msg = error.message?.includes('row-level security')
+    if (saveError) {
+      const msg = saveError.message?.includes('row-level security')
         ? 'Permission RLS bloquée. Dans Supabase SQL Editor :\nCREATE POLICY "admin_all" ON portfolio_projects FOR ALL TO authenticated USING (true) WITH CHECK (true);'
-        : 'Erreur : ' + error.message
+        : 'Erreur : ' + saveError.message
       toast.error(msg, { duration: 10000 })
       return
     }
     toast.success(project?.id ? 'Projet mis à jour' : 'Projet ajouté')
-    onSave(data?.[0] || null)
+    onSave(savedRow)
   }
 
   const label  = 'block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5'
@@ -96,17 +102,17 @@ function ProjectModal({ project, onClose, onSave }) {
   const select = 'dp-select'
 
   return (
+    <>
     <motion.div
-      className="fixed inset-0 z-50 flex items-start justify-end bg-ink/60 backdrop-blur-sm"
+      className="fixed inset-0 z-40 bg-ink/60 backdrop-blur-sm"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       onClick={onClose}
+    />
+    <motion.div
+      className="fixed inset-y-0 right-0 z-50 w-full max-w-xl bg-slate-900 border-l border-slate-700/50 shadow-2xl overflow-y-auto"
+      initial={{ x: 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 40, opacity: 0 }}
+      transition={{ type: 'spring', damping: 28, stiffness: 300 }}
     >
-      <motion.div
-        className="relative h-full w-full max-w-xl bg-slate-900 border-l border-slate-700/50 shadow-2xl overflow-y-auto"
-        initial={{ x: 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 40, opacity: 0 }}
-        transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-        onClick={e => e.stopPropagation()}
-      >
         {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 bg-slate-900 border-b border-slate-700/50">
           <div>
@@ -304,8 +310,8 @@ function ProjectModal({ project, onClose, onSave }) {
             </div>
           </section>
         </div>
-      </motion.div>
     </motion.div>
+    </>
   )
 }
 
@@ -369,8 +375,8 @@ export default function PortfolioPage() {
     const { error } = await supabase.from(TABLE).delete().eq('id', toDelete.id)
     if (error) { toast.error('Erreur : ' + error.message); return }
     toast.success('Projet supprimé')
+    setProjects(ps => ps.filter(p => p.id !== toDelete.id))
     setToDelete(null)
-    load()
   }
 
   const toggleVisible = async (project) => {
@@ -556,12 +562,10 @@ export default function PortfolioPage() {
         {modal?.type === 'add'  && <ProjectModal onClose={() => setModal(null)} onSave={(saved) => {
           setModal(null)
           if (saved) setProjects(ps => [...ps, saved])
-          load()
         }} />}
         {modal?.type === 'edit' && <ProjectModal project={modal.project} onClose={() => setModal(null)} onSave={(saved) => {
           setModal(null)
           if (saved) setProjects(ps => ps.map(p => p.id === saved.id ? saved : p))
-          load()
         }} />}
         {toDelete && <DeleteModal project={toDelete} onConfirm={handleDelete} onClose={() => setToDelete(null)} />}
       </AnimatePresence>
