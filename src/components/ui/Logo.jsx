@@ -30,10 +30,8 @@ export function CladeBrand({ light = false, scale = 1 }) {
         <span style={{ fontFamily: "'Averia Libre', serif", fontSize: 22, fontWeight: 400, letterSpacing: '0.05em', color: nameColor, lineHeight: 1 }}>
           Clade
         </span>
-        <span style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'Space Grotesk, sans-serif', fontSize: 7.5, fontWeight: 500, color: subColor, letterSpacing: '0.01em', lineHeight: 1 }}>
-          <span>architects</span>
-          <span>&amp;</span>
-          <span>co</span>
+        <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 7.5, fontWeight: 500, color: subColor, letterSpacing: '0.16em', lineHeight: 1, textAlign: 'center' }}>
+          architects &amp; co
         </span>
       </span>
 
