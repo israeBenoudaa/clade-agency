@@ -423,7 +423,7 @@ export default function StaffLayout() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-paper">
         <div className="animate-pulse">
-          <CladeBrand size="lg" />
+          <CladeBrand scale={1.4} />
         </div>
       </div>
     )
@@ -848,7 +848,7 @@ function Sidebar({ mobile, onClose, onSignOut, isDirector, profile, initials, na
       {/* Branding */}
       <div className="flex items-center justify-between mb-8 px-2 flex-shrink-0">
         <div className="flex items-center">
-          <CladeBrand light size="md" />
+          <CladeBrand light />
         </div>
         {mobile && (
           <button onClick={onClose} className="text-paper/60">

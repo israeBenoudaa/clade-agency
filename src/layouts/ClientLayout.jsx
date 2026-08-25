@@ -309,7 +309,7 @@ function ClientLayoutInner() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-paper">
         <div className="animate-pulse">
-          <CladeBrand size="lg" />
+          <CladeBrand scale={1.4} />
         </div>
       </div>
     )
@@ -337,7 +337,7 @@ function ClientLayoutInner() {
         <div className="max-w-7xl mx-auto px-4 lg:px-8 py-4 flex items-center justify-between gap-4">
           {/* Logo */}
           <div className="flex items-center">
-            <CladeBrand size="md" />
+            <CladeBrand />
           </div>
 
           {/* Nav desktop */}
@@ -469,7 +469,7 @@ function ClientLayoutInner() {
               className="lg:hidden fixed inset-y-0 right-0 z-50 w-72 bg-ink-deep text-paper p-6 flex flex-col"
             >
               <div className="flex justify-between items-center mb-8">
-                <CladeBrand light size="sm" />
+                <CladeBrand light scale={0.82} />
                 <button onClick={() => setMenuOpen(false)}><X size={20} /></button>
               </div>
               <nav className="flex-1 flex flex-col gap-1">

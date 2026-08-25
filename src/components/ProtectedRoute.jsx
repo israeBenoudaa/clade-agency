@@ -12,7 +12,7 @@ export function ProtectedRoute({ children, requireStaff, requireClient, requireD
     return (
       <div className="min-h-screen flex items-center justify-center bg-paper">
         <div className="animate-pulse">
-          <CladeBrand size="lg" />
+          <CladeBrand scale={1.4} />
         </div>
       </div>
     )

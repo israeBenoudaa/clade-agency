@@ -46,7 +46,7 @@ function LeftPanel({ mouse }) {
       <div className="relative z-10 flex flex-col justify-between p-14 xl:p-18 w-full">
         {/* Logo */}
         <div className="animate-fade-in">
-          <CladeBrand light size="lg" />
+          <CladeBrand light scale={1.4} />
         </div>
 
         {/* Headline */}
@@ -121,7 +121,7 @@ function MobileHero() {
       <div className="relative z-10 h-full flex flex-col px-6 pt-6 pb-8">
         <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.5 }}>
-          <CladeBrand light size="sm" />
+          <CladeBrand light scale={0.82} />
         </motion.div>
         <div className="flex-1 flex flex-col justify-end">
           <motion.h2

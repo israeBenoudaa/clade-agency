@@ -13,40 +13,31 @@ export function CladeLogo({ size = 36, light = false }) {
   )
 }
 
-export function CladeBrand({ light = false, size = 'md' }) {
-  const nameColor    = light ? '#FAFBFD' : '#0A1E3F'
+/* Base logo — valeurs fixes identiques au Navbar portfolio validé.
+   `scale` zoome tout uniformément sans déformer les proportions. */
+export function CladeBrand({ light = false, scale = 1 }) {
+  const nameColor    = light ? '#FAFBFD'                : '#0A1E3F'
   const bracketColor = light ? 'rgba(250,251,253,0.45)' : 'rgba(10,30,63,0.35)'
-  const subColor     = light ? 'rgba(250,251,253,0.62)' : 'rgba(10,30,63,0.45)'
-
-  const nameSizes    = { sm: 18, md: 22, lg: 30 }
-  const bracketSizes = { sm: 26, md: 32, lg: 43 }
-  const subSizes     = { sm: 6,  md: 7.5, lg: 10 }
-
-  const nameSize    = nameSizes[size]    ?? nameSizes.md
-  const bracketSize = bracketSizes[size] ?? bracketSizes.md
-  const subSize     = subSizes[size]     ?? subSizes.md
+  const subColor     = light ? 'rgba(250,251,253,0.62)' : 'rgba(10,30,63,0.48)'
 
   return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.18em' }}>
-      {/* Crochet gauche */}
-      <span style={{ fontFamily: "'Averia Libre', serif", fontSize: bracketSize, fontWeight: 400, color: bracketColor, lineHeight: 1, userSelect: 'none' }}>
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.18em', zoom: scale }}>
+      <span style={{ fontFamily: "'Averia Libre', serif", fontSize: 32, fontWeight: 400, color: bracketColor, lineHeight: 1, userSelect: 'none' }}>
         [
       </span>
 
-      {/* Bloc central */}
       <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'stretch', gap: 0 }}>
-        <span style={{ fontFamily: "'Averia Libre', serif", fontSize: nameSize, fontWeight: 400, letterSpacing: '0.05em', color: nameColor, lineHeight: 1 }}>
+        <span style={{ fontFamily: "'Averia Libre', serif", fontSize: 22, fontWeight: 400, letterSpacing: '0.05em', color: nameColor, lineHeight: 1 }}>
           Clade
         </span>
-        <span style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'Space Grotesk, sans-serif', fontSize: subSize, fontWeight: 500, color: subColor, letterSpacing: '0.01em', lineHeight: 1 }}>
+        <span style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'Space Grotesk, sans-serif', fontSize: 7.5, fontWeight: 500, color: subColor, letterSpacing: '0.01em', lineHeight: 1 }}>
           <span>architects</span>
           <span>&amp;</span>
           <span>co</span>
         </span>
       </span>
 
-      {/* Crochet droit */}
-      <span style={{ fontFamily: "'Averia Libre', serif", fontSize: bracketSize, fontWeight: 400, color: bracketColor, lineHeight: 1, userSelect: 'none' }}>
+      <span style={{ fontFamily: "'Averia Libre', serif", fontSize: 32, fontWeight: 400, color: bracketColor, lineHeight: 1, userSelect: 'none' }}>
         ]
       </span>
     </div>
