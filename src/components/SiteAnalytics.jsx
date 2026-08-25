@@ -286,13 +286,7 @@ function EmptyState() {
 
   const runTest = async () => {
     setTestStatus('testing')
-    const { error } = await supabase.from('site_visits').insert({
-      page: '/__admin_test__',
-      device: 'desktop',
-      referrer: null,
-      screen_width: window.innerWidth,
-      language: navigator.language?.slice(0, 5) || null,
-    })
+    const { error } = await supabase.from('site_visits').select('id').limit(1)
     if (error) setTestStatus({ code: error.code, msg: error.message })
     else setTestStatus('ok')
   }
@@ -310,7 +304,7 @@ function EmptyState() {
         <div style={{ fontSize: 9, color: DIM, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 12 }}>Diagnostic</div>
 
         <div style={{ fontSize: 11, color: 'rgba(245,240,234,0.5)', marginBottom: 12, lineHeight: 1.6 }}>
-          Testez si la table <code style={{ background: 'rgba(255,255,255,0.08)', padding: '1px 6px', borderRadius: 4, fontSize: 10 }}>site_visits</code> est accessible depuis l'admin :
+          Testez si la table <code style={{ background: 'rgba(255,255,255,0.08)', padding: '1px 6px', borderRadius: 4, fontSize: 10 }}>site_visits</code> est lisible depuis l'admin :
         </div>
 
         <button
@@ -333,7 +327,10 @@ function EmptyState() {
             )}
             {(testStatus.code === '42501' || testStatus.msg?.includes('permission')) && (
               <div style={{ marginTop: 8, fontSize: 10, color: DIM, lineHeight: 1.6 }}>
-                → Problème de policy RLS. Vérifiez que <code style={{ background: 'rgba(255,255,255,0.08)', padding: '1px 4px', borderRadius: 3 }}>anon_insert_visits</code> est créée.
+                → Policy manquante. Exécutez dans Supabase SQL Editor :<br />
+                <code style={{ display: 'block', marginTop: 6, background: 'rgba(255,255,255,0.06)', padding: '6px 8px', borderRadius: 4, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                  {`CREATE POLICY "admin_select_visits"\n  ON public.site_visits\n  FOR SELECT TO authenticated\n  USING (true);`}
+                </code>
               </div>
             )}
           </div>
@@ -341,7 +338,7 @@ function EmptyState() {
 
         {testStatus === 'ok' && (
           <div style={{ marginTop: 8, fontSize: 10, color: DIM, lineHeight: 1.6 }}>
-            L'insert fonctionne. Si les visites du portfolio ne s'affichent pas, vérifiez que le site est déployé (pas uniquement localhost) et visitez-le depuis un autre navigateur/appareil.
+            ✓ L'admin peut lire la table. Visitez maintenant le portfolio dans un nouvel onglet (pas via l'iframe), puis revenez ici et cliquez <strong>Actualiser</strong>.
           </div>
         )}
       </div>
