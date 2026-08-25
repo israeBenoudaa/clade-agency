@@ -282,14 +282,68 @@ function Panel({ children, style }) {
 }
 
 function EmptyState() {
+  const [testStatus, setTestStatus] = useState(null) // null | 'testing' | 'ok' | {error}
+
+  const runTest = async () => {
+    setTestStatus('testing')
+    const { error } = await supabase.from('site_visits').insert({
+      page: '/__admin_test__',
+      device: 'desktop',
+      referrer: null,
+      screen_width: window.innerWidth,
+      language: navigator.language?.slice(0, 5) || null,
+    })
+    if (error) setTestStatus({ code: error.code, msg: error.message })
+    else setTestStatus('ok')
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 300, gap: 16, color: DIM, textAlign: 'center', padding: '0 32px' }}>
       <BarChart2 size={40} style={{ opacity: 0.2 }} />
       <div style={{ fontSize: 16, fontFamily: SERIF, color: TEXT, opacity: 0.5 }}>Aucune visite enregistrée</div>
-      <div style={{ fontSize: 12, fontFamily: FONT, lineHeight: 1.7, maxWidth: 380 }}>
-        Le tracking est actif sur le portfolio live. Les données apparaissent ici dès que des visiteurs accèdent au site.
-        <br /><br />
-        <span style={{ opacity: 0.6 }}>Vérifiez que la table <code style={{ background: 'rgba(255,255,255,0.08)', padding: '1px 6px', borderRadius: 4 }}>site_visits</code> existe dans Supabase, et que le portfolio est accessible depuis un appareil extérieur (pas uniquement en iframe).</span>
+      <div style={{ fontSize: 12, fontFamily: FONT, lineHeight: 1.7, maxWidth: 420 }}>
+        Le tracking est actif sur le portfolio live. Les données apparaissent ici dès que des visiteurs accèdent au site depuis un navigateur externe (pas en iframe).
+      </div>
+
+      {/* Diagnostic */}
+      <div style={{ marginTop: 8, background: 'rgba(255,255,255,0.04)', border: `1px solid ${BORDER}`, borderRadius: 12, padding: '16px 20px', maxWidth: 420, width: '100%', textAlign: 'left' }}>
+        <div style={{ fontSize: 9, color: DIM, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 12 }}>Diagnostic</div>
+
+        <div style={{ fontSize: 11, color: 'rgba(245,240,234,0.5)', marginBottom: 12, lineHeight: 1.6 }}>
+          Testez si la table <code style={{ background: 'rgba(255,255,255,0.08)', padding: '1px 6px', borderRadius: 4, fontSize: 10 }}>site_visits</code> est accessible depuis l'admin :
+        </div>
+
+        <button
+          onClick={runTest}
+          disabled={testStatus === 'testing'}
+          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 8, background: testStatus === 'ok' ? 'rgba(74,222,128,0.12)' : testStatus?.code ? 'rgba(248,113,113,0.12)' : 'rgba(200,184,154,0.12)', border: `1px solid ${testStatus === 'ok' ? 'rgba(74,222,128,0.3)' : testStatus?.code ? 'rgba(248,113,113,0.3)' : 'rgba(200,184,154,0.25)'}`, color: testStatus === 'ok' ? GREEN : testStatus?.code ? RED : ACCENT, fontSize: 11, fontFamily: FONT, fontWeight: 600, cursor: testStatus === 'testing' ? 'default' : 'pointer' }}
+        >
+          <Zap size={12} />
+          {testStatus === 'testing' ? 'Test en cours…' : testStatus === 'ok' ? '✓ Table OK — rafraîchissez dans 5s' : testStatus?.code ? `✗ Erreur ${testStatus.code}` : 'Tester la table site_visits'}
+        </button>
+
+        {testStatus?.code && (
+          <div style={{ marginTop: 10, padding: '10px 12px', background: 'rgba(248,113,113,0.07)', borderRadius: 8, border: '1px solid rgba(248,113,113,0.2)' }}>
+            <div style={{ fontSize: 10, color: RED, fontWeight: 700, marginBottom: 4 }}>{testStatus.code}</div>
+            <div style={{ fontSize: 10, color: 'rgba(245,240,234,0.5)', lineHeight: 1.5 }}>{testStatus.msg}</div>
+            {(testStatus.code === '42P01' || testStatus.msg?.includes('does not exist')) && (
+              <div style={{ marginTop: 8, fontSize: 10, color: DIM, lineHeight: 1.6 }}>
+                → La table n'existe pas. Exécutez le SQL de création dans Supabase.
+              </div>
+            )}
+            {(testStatus.code === '42501' || testStatus.msg?.includes('permission')) && (
+              <div style={{ marginTop: 8, fontSize: 10, color: DIM, lineHeight: 1.6 }}>
+                → Problème de policy RLS. Vérifiez que <code style={{ background: 'rgba(255,255,255,0.08)', padding: '1px 4px', borderRadius: 3 }}>anon_insert_visits</code> est créée.
+              </div>
+            )}
+          </div>
+        )}
+
+        {testStatus === 'ok' && (
+          <div style={{ marginTop: 8, fontSize: 10, color: DIM, lineHeight: 1.6 }}>
+            L'insert fonctionne. Si les visites du portfolio ne s'affichent pas, vérifiez que le site est déployé (pas uniquement localhost) et visitez-le depuis un autre navigateur/appareil.
+          </div>
+        )}
       </div>
     </div>
   )
