@@ -13,37 +13,41 @@ export function CladeLogo({ size = 36, light = false }) {
   )
 }
 
-// Inline brand mark used in login page hero and sidebar
 export function CladeBrand({ light = false, size = 'md' }) {
-  const nameColor  = light ? '#FAFBFD' : '#0A1E3F'
-  const subColor   = light ? 'rgba(250,251,253,0.45)' : 'rgba(10,30,63,0.4)'
-  const nameSizes  = { sm: 20, md: 26, lg: 36 }
-  const subSizes   = { sm: 7,  md: 8,  lg: 10 }
-  const nameSize   = nameSizes[size] ?? nameSizes.md
-  const subSize    = subSizes[size]  ?? subSizes.md
+  const nameColor    = light ? '#FAFBFD' : '#0A1E3F'
+  const bracketColor = light ? 'rgba(250,251,253,0.45)' : 'rgba(10,30,63,0.35)'
+  const subColor     = light ? 'rgba(250,251,253,0.62)' : 'rgba(10,30,63,0.45)'
+
+  const nameSizes    = { sm: 18, md: 22, lg: 30 }
+  const bracketSizes = { sm: 26, md: 32, lg: 43 }
+  const subSizes     = { sm: 6,  md: 7.5, lg: 10 }
+
+  const nameSize    = nameSizes[size]    ?? nameSizes.md
+  const bracketSize = bracketSizes[size] ?? bracketSizes.md
+  const subSize     = subSizes[size]     ?? subSizes.md
 
   return (
-    <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
-      <span style={{
-        fontFamily: "'Averia Libre', serif",
-        fontSize: nameSize,
-        fontWeight: 400,
-        lineHeight: 1,
-        letterSpacing: '0.02em',
-        color: nameColor,
-      }}>
-        Clade
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.18em' }}>
+      {/* Crochet gauche */}
+      <span style={{ fontFamily: "'Averia Libre', serif", fontSize: bracketSize, fontWeight: 400, color: bracketColor, lineHeight: 1, userSelect: 'none' }}>
+        [
       </span>
-      <span style={{
-        fontFamily: "'Inter Tight', -apple-system, sans-serif",
-        fontSize: subSize,
-        fontWeight: 500,
-        letterSpacing: '0.22em',
-        textTransform: 'uppercase',
-        color: subColor,
-        lineHeight: 1,
-      }}>
-        architects &amp; co
+
+      {/* Bloc central */}
+      <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'stretch', gap: 0 }}>
+        <span style={{ fontFamily: "'Averia Libre', serif", fontSize: nameSize, fontWeight: 400, letterSpacing: '0.05em', color: nameColor, lineHeight: 1 }}>
+          Clade
+        </span>
+        <span style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'Space Grotesk, sans-serif', fontSize: subSize, fontWeight: 500, color: subColor, letterSpacing: '0.01em', lineHeight: 1 }}>
+          <span>architects</span>
+          <span>&amp;</span>
+          <span>co</span>
+        </span>
+      </span>
+
+      {/* Crochet droit */}
+      <span style={{ fontFamily: "'Averia Libre', serif", fontSize: bracketSize, fontWeight: 400, color: bracketColor, lineHeight: 1, userSelect: 'none' }}>
+        ]
       </span>
     </div>
   )
