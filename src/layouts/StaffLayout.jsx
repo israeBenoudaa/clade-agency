@@ -848,7 +848,7 @@ function Sidebar({ mobile, onClose, onSignOut, isDirector, profile, initials, na
       {/* Branding */}
       <div className="flex items-center justify-between mb-8 px-2 flex-shrink-0">
         <div className="flex items-center">
-          <CladeBrand light />
+          <CladeBrand light scale={1.25} />
         </div>
         {mobile && (
           <button onClick={onClose} className="text-paper/60">
