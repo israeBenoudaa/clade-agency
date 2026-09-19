@@ -293,12 +293,15 @@ function EventModal({ event, date, onClose, onSave, onDelete }) {
               </div>
             </div>
             {!isEdit && (
-              <div>
-                <label className="label-text mb-1.5 flex items-center gap-1.5 block"><Repeat size={11} /> Récurrence</label>
-                <div className="flex flex-wrap gap-1.5">
+              <div className="rounded-xl border border-border bg-paper-warm p-3 space-y-2.5">
+                <div className="flex items-center gap-1.5 text-muted">
+                  <Repeat size={11} />
+                  <span className="label-text">Récurrence</span>
+                </div>
+                <div className="flex flex-wrap justify-center gap-1.5">
                   {RECURRENCE_OPTIONS.map(opt => (
                     <button key={opt.val} type="button" onClick={() => setRecurrence(opt.val)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors ${
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
                         recurrence === opt.val ? 'bg-ink text-paper border-ink' : 'bg-white text-muted border-border hover:border-ink/30'
                       }`}>
                       {opt.label}
@@ -306,14 +309,12 @@ function EventModal({ event, date, onClose, onSave, onDelete }) {
                   ))}
                 </div>
                 {recurrence !== 'none' && (
-                  <div className="mt-2 flex items-center gap-2">
+                  <div className="flex items-center justify-center gap-2 pt-0.5">
                     <label className="label-text">Occurrences</label>
                     <input type="number" min={2} max={MAX_OCCURRENCES[recurrence]} value={occurrences}
                       onChange={e => setOccurrences(Math.max(2, Math.min(MAX_OCCURRENCES[recurrence], Number(e.target.value))))}
-                      className="input-field w-20 text-center text-sm" />
-                    <span className="text-xs text-muted">
-                      fin le {shiftDate(displayDate, recurrence, occurrences - 1)}
-                    </span>
+                      className="input-field w-16 text-center text-sm py-1" />
+                    <span className="text-xs text-muted">fin le {shiftDate(displayDate, recurrence, occurrences - 1)}</span>
                   </div>
                 )}
               </div>
@@ -698,12 +699,15 @@ function RdvPlanningModal({ employes, prospects, collaborateurs, myId, onClose, 
               )}
             </div>
             {!isEdit && (
-              <div>
-                <label className="label-text mb-1.5 flex items-center gap-1.5 block"><Repeat size={11} /> Récurrence</label>
-                <div className="flex flex-wrap gap-1.5">
+              <div className="rounded-xl border border-border bg-paper-warm p-3 space-y-2.5">
+                <div className="flex items-center gap-1.5 text-muted">
+                  <Repeat size={11} />
+                  <span className="label-text">Récurrence</span>
+                </div>
+                <div className="flex flex-wrap justify-center gap-1.5">
                   {RECURRENCE_OPTIONS.map(opt => (
                     <button key={opt.val} type="button" onClick={() => setRecurrence(opt.val)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors ${
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
                         recurrence === opt.val ? 'bg-ink text-paper border-ink' : 'bg-white text-muted border-border hover:border-ink/30'
                       }`}>
                       {opt.label}
@@ -711,14 +715,12 @@ function RdvPlanningModal({ employes, prospects, collaborateurs, myId, onClose, 
                   ))}
                 </div>
                 {recurrence !== 'none' && (
-                  <div className="mt-2 flex items-center gap-2">
+                  <div className="flex items-center justify-center gap-2 pt-0.5">
                     <label className="label-text">Occurrences</label>
                     <input type="number" min={2} max={MAX_OCCURRENCES[recurrence]} value={occurrences}
                       onChange={e => setOccurrences(Math.max(2, Math.min(MAX_OCCURRENCES[recurrence], Number(e.target.value))))}
-                      className="input-field w-20 text-center text-sm" />
-                    <span className="text-xs text-muted">
-                      fin le {shiftDate(form.date, recurrence, occurrences - 1)}
-                    </span>
+                      className="input-field w-16 text-center text-sm py-1" />
+                    <span className="text-xs text-muted">fin le {shiftDate(form.date, recurrence, occurrences - 1)}</span>
                   </div>
                 )}
               </div>
