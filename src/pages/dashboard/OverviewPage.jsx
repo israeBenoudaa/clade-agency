@@ -6,7 +6,7 @@ import {
   TrendingDown, Users, FolderKanban, Wallet, CalendarDays, BookOpen,
   Clock, Pencil, ClipboardList, Video, Send, Paperclip, ExternalLink,
   Phone, MapPin, Search, CalendarPlus, GripHorizontal, Link as LinkIcon, ChevronDown, Download,
-  Star, ThumbsDown, AlertCircle,
+  Star, ThumbsDown, AlertCircle, Repeat,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useData } from '../../context/DataContext'
@@ -14,6 +14,31 @@ import { ProgressBar } from '../../components/ui'
 import EmployeeRequestModal from '../../components/EmployeeRequestModal'
 import SelectField from '../../components/SelectField'
 import toast from 'react-hot-toast'
+
+// ─── Recurrence helpers ───────────────────────────────────────────────────────
+const RECURRENCE_OPTIONS = [
+  { val: 'none',      label: 'Aucune' },
+  { val: 'weekly',    label: 'Hebdo' },
+  { val: 'biweekly',  label: '2 sem.' },
+  { val: 'monthly',   label: 'Mensuel' },
+  { val: 'quarterly', label: 'Trim.' },
+  { val: 'semester',  label: 'Semestr.' },
+  { val: 'annual',    label: 'Annuel' },
+]
+const MAX_OCCURRENCES = { weekly: 52, biweekly: 26, monthly: 24, quarterly: 8, semester: 6, annual: 5 }
+function shiftDate(dateStr, recurrence, n) {
+  const d = new Date(dateStr + 'T00:00:00')
+  switch (recurrence) {
+    case 'weekly':    d.setDate(d.getDate() + 7 * n); break
+    case 'biweekly':  d.setDate(d.getDate() + 14 * n); break
+    case 'monthly':   d.setMonth(d.getMonth() + n); break
+    case 'quarterly': d.setMonth(d.getMonth() + 3 * n); break
+    case 'semester':  d.setMonth(d.getMonth() + 6 * n); break
+    case 'annual':    d.setFullYear(d.getFullYear() + n); break
+    default: break
+  }
+  return d.toISOString().slice(0, 10)
+}
 
 // ─── Timer helpers ────────────────────────────────────────────────────────────
 const getTodayISO = () => new Date().toISOString().slice(0, 10)
@@ -222,13 +247,15 @@ function EventModal({ event, date, onClose, onSave, onDelete }) {
     heureFin: event?.heureFin || '10:00',
     couleur: event?.couleur || EV_COLORS[0],
   })
+  const [recurrence, setRecurrence] = useState('none')
+  const [occurrences, setOccurrences] = useState(4)
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target?.value ?? e }))
   const displayDate = isEdit ? event.date : date
 
   const submit = (e) => {
     e.preventDefault()
     if (!form.titre.trim()) { toast.error('Titre requis'); return }
-    onSave({ ...form, titre: form.titre.trim() })
+    onSave({ ...form, titre: form.titre.trim(), recurrence, occurrences })
   }
 
   return (
@@ -265,6 +292,32 @@ function EventModal({ event, date, onClose, onSave, onDelete }) {
                 ))}
               </div>
             </div>
+            {!isEdit && (
+              <div>
+                <label className="label-text mb-1.5 flex items-center gap-1.5 block"><Repeat size={11} /> Récurrence</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {RECURRENCE_OPTIONS.map(opt => (
+                    <button key={opt.val} type="button" onClick={() => setRecurrence(opt.val)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors ${
+                        recurrence === opt.val ? 'bg-ink text-paper border-ink' : 'bg-white text-muted border-border hover:border-ink/30'
+                      }`}>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                {recurrence !== 'none' && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <label className="label-text">Occurrences</label>
+                    <input type="number" min={2} max={MAX_OCCURRENCES[recurrence]} value={occurrences}
+                      onChange={e => setOccurrences(Math.max(2, Math.min(MAX_OCCURRENCES[recurrence], Number(e.target.value))))}
+                      className="input-field w-20 text-center text-sm" />
+                    <span className="text-xs text-muted">
+                      fin le {shiftDate(displayDate, recurrence, occurrences - 1)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
             <div className="flex gap-2 pt-1">
               {isEdit && (
                 <button type="button" onClick={onDelete}
@@ -274,7 +327,12 @@ function EventModal({ event, date, onClose, onSave, onDelete }) {
               )}
               <button type="button" onClick={onClose} className="btn-ghost flex-1 justify-center text-sm">Annuler</button>
               <button type="submit" className="btn-primary flex-1 justify-center text-sm">
-                {isEdit ? <><Pencil size={13} /> Enregistrer</> : <><Plus size={13} /> Ajouter</>}
+                {isEdit
+                  ? <><Pencil size={13} /> Enregistrer</>
+                  : recurrence !== 'none'
+                    ? <><Plus size={13} /> Ajouter (×{occurrences})</>
+                    : <><Plus size={13} /> Ajouter</>
+                }
               </button>
             </div>
           </form>
@@ -446,6 +504,8 @@ function RdvPlanningModal({ employes, prospects, collaborateurs, myId, onClose, 
     format: existingEvent?.format || 'presentiel',
     adresse: existingEvent?.adresse || '',
   })
+  const [recurrence, setRecurrence] = useState('none')
+  const [occurrences, setOccurrences] = useState(4)
   const [teamSel, setTeamSel] = useState(() => new Set(
     existingEvent?.participants ? existingEvent.participants.map(String) : [String(myId)]
   ))
@@ -493,6 +553,8 @@ function RdvPlanningModal({ employes, prospects, collaborateurs, myId, onClose, 
       participants: [...teamSel],
       clientParticipants: extraParts.filter(ep => ep.type === 'client'),
       collabParticipants: extraParts.filter(ep => ep.type === 'collab'),
+      recurrence,
+      occurrences,
     })
   }
 
@@ -635,6 +697,32 @@ function RdvPlanningModal({ employes, prospects, collaborateurs, myId, onClose, 
                 </div>
               )}
             </div>
+            {!isEdit && (
+              <div>
+                <label className="label-text mb-1.5 flex items-center gap-1.5 block"><Repeat size={11} /> Récurrence</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {RECURRENCE_OPTIONS.map(opt => (
+                    <button key={opt.val} type="button" onClick={() => setRecurrence(opt.val)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors ${
+                        recurrence === opt.val ? 'bg-ink text-paper border-ink' : 'bg-white text-muted border-border hover:border-ink/30'
+                      }`}>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                {recurrence !== 'none' && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <label className="label-text">Occurrences</label>
+                    <input type="number" min={2} max={MAX_OCCURRENCES[recurrence]} value={occurrences}
+                      onChange={e => setOccurrences(Math.max(2, Math.min(MAX_OCCURRENCES[recurrence], Number(e.target.value))))}
+                      className="input-field w-20 text-center text-sm" />
+                    <span className="text-xs text-muted">
+                      fin le {shiftDate(form.date, recurrence, occurrences - 1)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
             <div className="flex gap-2 pt-1">
               {isEdit && (
                 <>
@@ -652,7 +740,7 @@ function RdvPlanningModal({ employes, prospects, collaborateurs, myId, onClose, 
               )}
               <button type="button" onClick={onClose} className="btn-ghost flex-1 justify-center text-sm">Annuler</button>
               <button type="submit" className="btn-primary flex-1 justify-center text-sm">
-                <CheckCircle size={14} /> {isEdit ? 'Enregistrer' : 'Créer'}
+                <CheckCircle size={14} /> {isEdit ? 'Enregistrer' : recurrence !== 'none' ? `Créer (×${occurrences})` : 'Créer'}
               </button>
             </div>
           </form>
@@ -1281,7 +1369,21 @@ export default function OverviewPage() {
 
   const handleAddEvent = (ev) => {
     if (!employe) return
-    addPlanningEvent(employe.id, { id: `ev${Date.now()}`, ...ev })
+    const { recurrence = 'none', occurrences = 1, date: baseDate, ...rest } = ev
+    if (recurrence === 'none') {
+      addPlanningEvent(employe.id, { id: `ev${Date.now()}`, date: baseDate, ...rest })
+    } else {
+      const recurenceId = `evrec_${Date.now()}`
+      for (let i = 0; i < occurrences; i++) {
+        addPlanningEvent(employe.id, {
+          ...rest,
+          date: shiftDate(baseDate, recurrence, i),
+          id: `${recurenceId}_${i}`,
+          recurenceId,
+          recurrenceIndex: i,
+        })
+      }
+    }
   }
 
   const handleUpdateEvent = (updates) => {
@@ -1377,29 +1479,35 @@ export default function OverviewPage() {
   // ── RDV handlers ──────────────────────────────────────────────────────────
   const myStrId = String(employe?.id || '')
 
-  const handleCreateRdv = ({ titre, date, heureDebut, heureFin, format, participants, clientParticipants, collabParticipants }) => {
-    const groupId = `rdv_grp_${Date.now()}`
-    const baseEvent = { titre, date, heureDebut, heureFin, couleur: '#F97316', type: 'rdv', format, groupId, participants, clientParticipants, collabParticipants }
-    participants.forEach(strId => {
-      const emp = employes.find(e => String(e.id) === strId)
-      const isCreator = strId === myStrId
-      if (emp) addPlanningEvent(emp.id, {
-        ...baseEvent,
-        id: `${groupId}_${emp.id}`,
-        statut: isCreator ? 'confirmed' : 'pending',
-        invitedBy: isCreator ? null : myStrId,
+  const handleCreateRdv = ({ titre, date, heureDebut, heureFin, format, participants, clientParticipants, collabParticipants, recurrence = 'none', occurrences = 1 }) => {
+    const count = recurrence === 'none' ? 1 : occurrences
+    for (let i = 0; i < count; i++) {
+      const shiftedDate = shiftDate(date, recurrence, i)
+      const groupId = `rdv_grp_${Date.now()}_${i}`
+      const baseEvent = { titre, date: shiftedDate, heureDebut, heureFin, couleur: '#F97316', type: 'rdv', format, groupId, participants, clientParticipants, collabParticipants }
+      participants.forEach(strId => {
+        const emp = employes.find(e => String(e.id) === strId)
+        const isCreator = strId === myStrId
+        if (emp) addPlanningEvent(emp.id, {
+          ...baseEvent,
+          id: `${groupId}_${emp.id}`,
+          statut: isCreator ? 'confirmed' : 'pending',
+          invitedBy: isCreator ? null : myStrId,
+        })
       })
-    })
-    clientParticipants.forEach(cp => {
-      addProspectRdv(cp.id, { ...baseEvent, id: `${groupId}_cl_${cp.id}`, nom: titre })
-    })
-    participants.filter(id => id !== myStrId).forEach(id => {
-      addNotification({ read: false, type: 'new_rdv', message: `Nouveau RDV : "${titre}" le ${date} à ${heureDebut}`, targetUserId: id, link: '/app' })
-    })
-    clientParticipants.forEach(cp => {
-      addNotification({ read: false, type: 'new_rdv', message: `Nouveau RDV : "${titre}" le ${date} à ${heureDebut}`, targetUserId: `client:${cp.id}`, link: '/client' })
-    })
-    toast.success('RDV créé')
+      clientParticipants.forEach(cp => {
+        addProspectRdv(cp.id, { ...baseEvent, id: `${groupId}_cl_${cp.id}`, nom: titre })
+      })
+      if (i === 0) {
+        participants.filter(id => id !== myStrId).forEach(id => {
+          addNotification({ read: false, type: 'new_rdv', message: `Nouveau RDV : "${titre}" le ${shiftedDate} à ${heureDebut}`, targetUserId: id, link: '/app' })
+        })
+        clientParticipants.forEach(cp => {
+          addNotification({ read: false, type: 'new_rdv', message: `Nouveau RDV : "${titre}" le ${shiftedDate} à ${heureDebut}`, targetUserId: `client:${cp.id}`, link: '/client' })
+        })
+      }
+    }
+    toast.success(count > 1 ? `${count} RDV créés` : 'RDV créé')
     setShowRdvModal(false)
   }
 

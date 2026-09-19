@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   Plus, Mail, Phone, FolderKanban, UserPlus,
   ChevronRight, TrendingUp, Users, CheckCircle2, Pencil, Trash2, Sparkles,
-  Star, Crown, Video, ExternalLink, CalendarPlus, Check, X, Calendar, MapPin, Repeat,
+  Star, Crown, Video, ExternalLink, CalendarPlus, Check, X, Calendar, MapPin,
 } from 'lucide-react'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -73,38 +73,12 @@ function getInitials(name = '') {
   return name.trim().split(' ').map(n => n[0] || '').join('').slice(0, 2).toUpperCase()
 }
 
-const RDV_RECURRENCE = [
-  { val: 'none',      label: 'Aucune' },
-  { val: 'weekly',    label: 'Hebdo' },
-  { val: 'biweekly',  label: '2 sem.' },
-  { val: 'monthly',   label: 'Mensuel' },
-  { val: 'quarterly', label: 'Trim.' },
-  { val: 'semester',  label: '6 mois' },
-  { val: 'annual',    label: 'Annuel' },
-]
-const RDV_REC_MAX = { weekly: 52, biweekly: 26, monthly: 24, quarterly: 8, semester: 6, annual: 5 }
-
-function shiftRdvDate(dateStr, rec, n) {
-  const d = new Date(dateStr + 'T00:00:00')
-  for (let i = 0; i < n; i++) {
-    if (rec === 'weekly')    d.setDate(d.getDate() + 7)
-    if (rec === 'biweekly')  d.setDate(d.getDate() + 14)
-    if (rec === 'monthly')   d.setMonth(d.getMonth() + 1)
-    if (rec === 'quarterly') d.setMonth(d.getMonth() + 3)
-    if (rec === 'semester')  d.setMonth(d.getMonth() + 6)
-    if (rec === 'annual')    d.setFullYear(d.getFullYear() + 1)
-  }
-  return d.toISOString().slice(0, 10)
-}
-
 function RdvModal({ prospect, employes, myId, onClose, onConfirm }) {
   const today = new Date().toISOString().split('T')[0]
   const [date, setDate] = useState(today)
   const [heure, setHeure] = useState('10:00')
   const [format, setFormat] = useState('telephonique')
   const [adresse, setAdresse] = useState('')
-  const [recurrence, setRecurrence] = useState('none')
-  const [occurrences, setOccurrences] = useState(4)
   const [participants, setParticipants] = useState(
     employes.some(e => String(e.id) === String(myId)) ? [String(myId)] : []
   )
@@ -118,8 +92,7 @@ function RdvModal({ prospect, employes, myId, onClose, onConfirm }) {
     const [h, m] = heure.split(':').map(Number)
     const endH = String((h + 1) % 24).padStart(2, '0')
     const heureFin = `${endH}:${String(m).padStart(2, '0')}`
-    const count = recurrence !== 'none' ? Math.max(2, Math.min(occurrences, RDV_REC_MAX[recurrence] ?? 52)) : 1
-    onConfirm({ date, heure, heureFin, format, adresse: format === 'presentiel' ? adresse : '', participants, recurrence, occurrences: count })
+    onConfirm({ date, heure, heureFin, format, adresse: format === 'presentiel' ? adresse : '', participants })
   }
 
   return (
@@ -241,40 +214,6 @@ function RdvModal({ prospect, employes, myId, onClose, onConfirm }) {
             </div>
           </div>
 
-          {/* Récurrence */}
-          <div className="rounded-xl border border-border bg-paper-warm p-4 space-y-3">
-            <div className="flex items-center gap-2">
-              <Repeat size={13} className="text-muted" />
-              <span className="text-xs font-semibold text-ink uppercase tracking-wide">Récurrence</span>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {RDV_RECURRENCE.map(opt => (
-                <button key={opt.val} type="button"
-                  onClick={() => setRecurrence(opt.val)}
-                  className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${
-                    recurrence === opt.val
-                      ? 'border-electric bg-electric text-white'
-                      : 'border-border text-muted hover:text-ink hover:border-ink/30 bg-white'
-                  }`}>
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-            {recurrence !== 'none' && (
-              <div className="flex items-center gap-3 pt-1">
-                <span className="text-xs text-muted flex-shrink-0">Répétitions</span>
-                <input
-                  type="number" min={2} max={RDV_REC_MAX[recurrence] ?? 52}
-                  value={occurrences}
-                  onChange={e => setOccurrences(Math.max(2, parseInt(e.target.value) || 2))}
-                  className="input-field w-16 text-center text-sm py-1.5"
-                />
-                <span className="text-xs text-muted">
-                  → {date ? `jusqu'au ${shiftRdvDate(date, recurrence, occurrences - 1)}` : '—'}
-                </span>
-              </div>
-            )}
-          </div>
         </div>
 
         <div className="px-6 pb-6 pt-3 flex gap-3 border-t border-border">
@@ -282,7 +221,7 @@ function RdvModal({ prospect, employes, myId, onClose, onConfirm }) {
           <button onClick={handleConfirm} disabled={!date || participants.length === 0}
             className="btn-primary flex-1 justify-center text-sm disabled:opacity-40">
             <CalendarPlus size={15} />
-            {recurrence !== 'none' ? `Programmer (×${Math.max(2, occurrences)})` : 'Programmer'}
+            Programmer
           </button>
         </div>
       </motion.div>
@@ -431,42 +370,31 @@ export default function CRMPage() {
     }
   }
 
-  const handleRdvConfirm = ({ date, heure, heureFin, format, adresse, participants, recurrence = 'none', occurrences = 1 }) => {
+  const handleRdvConfirm = ({ date, heure, heureFin, format, adresse, participants }) => {
     if (!rdvModal) return
     const prospect = rdvModal
     const baseTs = Date.now()
     const couleur = format === 'meet' ? '#10B981' : format === 'presentiel' ? '#F97316' : '#0EA5E9'
-    const recurenceId = recurrence !== 'none' ? `rec_${baseTs}` : undefined
-    const count = recurrence !== 'none' ? Math.max(2, occurrences) : 1
-
-    for (let idx = 0; idx < count; idx++) {
-      const eventDate = recurrence !== 'none' ? shiftRdvDate(date, recurrence, idx) : date
-      const event = {
-        titre: count > 1 && idx > 0
-          ? `RDV — ${prospect.prenom} ${prospect.nom} (${idx + 1}/${count})`
-          : `RDV — ${prospect.prenom} ${prospect.nom}`,
-        date: eventDate,
-        heureDebut: heure,
-        heureFin,
-        couleur,
-        type: 'rdv_prospect',
-        format,
-        adresse: format === 'presentiel' ? adresse : '',
-        prospectNom: `${prospect.prenom} ${prospect.nom}`,
-        prospectId: prospect.id,
-        ...(recurenceId && { recurrence, recurenceId, recurrenceIndex: idx }),
-      }
-      participants.forEach((strId, i) => {
-        const emp = employes.find(e => String(e.id) === strId)
-        if (emp) addPlanningEvent(emp.id, { ...event, id: `rdvp_${baseTs}_${idx}_${i}` })
-      })
+    const event = {
+      titre: `RDV — ${prospect.prenom} ${prospect.nom}`,
+      date,
+      heureDebut: heure,
+      heureFin,
+      couleur,
+      type: 'rdv_prospect',
+      format,
+      adresse: format === 'presentiel' ? adresse : '',
+      prospectNom: `${prospect.prenom} ${prospect.nom}`,
+      prospectId: prospect.id,
     }
+    participants.forEach((strId, i) => {
+      const emp = employes.find(e => String(e.id) === strId)
+      if (emp) addPlanningEvent(emp.id, { ...event, id: `rdvp_${baseTs}_${i}` })
+    })
 
     updateProspect(prospect.id, { statut: 'premier_appel' })
     setRdvModal(null)
-    toast.success(count > 1
-      ? `${count} rendez-vous récurrents programmés ✓`
-      : 'Rendez-vous programmé et ajouté aux plannings ✓'
+    toast.success('Rendez-vous programmé et ajouté aux plannings ✓'
     )
   }
 

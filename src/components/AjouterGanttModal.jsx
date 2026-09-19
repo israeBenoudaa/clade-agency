@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Flag, Calendar, Users, CheckCircle, Pencil, Upload, Link2, Trash2, FileText, Search, ChevronDown, Check, MapPin, Phone, Video, ExternalLink, Repeat } from 'lucide-react'
+import { X, Flag, Calendar, Users, CheckCircle, Pencil, Upload, Link2, Trash2, FileText, Search, ChevronDown, Check, MapPin, Phone, Video, ExternalLink } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const COULEURS = [
@@ -24,31 +24,6 @@ const readFileAsDataUrl = (file) => new Promise((resolve) => {
   r.onload = (e) => resolve(e.target.result)
   r.readAsDataURL(file)
 })
-
-const RECURRENCE_OPTIONS = [
-  { val: 'none',      label: 'Aucune',          desc: '' },
-  { val: 'weekly',    label: 'Hebdomadaire',     desc: 'Chaque semaine' },
-  { val: 'biweekly',  label: '2 semaines',       desc: 'Toutes les 2 semaines' },
-  { val: 'monthly',   label: 'Mensuelle',        desc: 'Chaque mois' },
-  { val: 'quarterly', label: 'Trimestrielle',    desc: 'Tous les 3 mois' },
-  { val: 'semester',  label: 'Semestrielle',     desc: 'Tous les 6 mois' },
-  { val: 'annual',    label: 'Annuelle',         desc: 'Chaque année' },
-]
-
-const MAX_OCCURRENCES = { weekly: 52, biweekly: 26, monthly: 24, quarterly: 8, semester: 6, annual: 5 }
-
-function shiftDate(dateStr, recurrence, n) {
-  const d = new Date(dateStr + 'T00:00:00')
-  for (let i = 0; i < n; i++) {
-    if (recurrence === 'weekly')    d.setDate(d.getDate() + 7)
-    if (recurrence === 'biweekly')  d.setDate(d.getDate() + 14)
-    if (recurrence === 'monthly')   d.setMonth(d.getMonth() + 1)
-    if (recurrence === 'quarterly') d.setMonth(d.getMonth() + 3)
-    if (recurrence === 'semester')  d.setMonth(d.getMonth() + 6)
-    if (recurrence === 'annual')    d.setFullYear(d.getFullYear() + 1)
-  }
-  return d.toISOString().slice(0, 10)
-}
 
 const FORMAT_RDV = [
   { val: 'presentiel',   label: 'Présentiel',   Icon: MapPin },
@@ -76,8 +51,6 @@ const toForm = (item) => item ? {
   livrablesFromProject: item.livrables?.fromProject || [],
   livrablesLinkInput: '',
   lieu:               item?.lieu || '',
-  recurrence:         item.recurrence || 'none',
-  occurrences:        item.occurrences || 4,
 } : {
   nom: '', debut: '', fin: '', date: '',
   heureDebut: '09:00', heureFin: '10:00',
@@ -88,8 +61,6 @@ const toForm = (item) => item ? {
   livrablesFiles: [], livrablesLinks: [], livrablesFromProject: [],
   livrablesLinkInput: '',
   lieu: '',
-  recurrence: 'none',
-  occurrences: 4,
 }
 
 export default function AjouterGanttModal({ onClose, onAdd, onEdit, item, projectLivrables = [], employes = [], clients = [], collaborateurs = [] }) {
@@ -196,29 +167,8 @@ export default function AjouterGanttModal({ onClose, onAdd, onEdit, item, projec
       return
     }
 
-    const rec = type !== 'mission' ? form.recurrence : 'none'
-    const count = rec !== 'none' ? Math.max(1, Math.min(form.occurrences, MAX_OCCURRENCES[rec] ?? 52)) : 1
-    const recurenceId = rec !== 'none' ? `rec_${Date.now()}` : undefined
-
-    const baseDate = type !== 'mission' ? form.date : null
-
-    for (let i = 0; i < count; i++) {
-      const payload = { ...basePayload }
-      if (rec !== 'none' && baseDate) {
-        payload.date = shiftDate(baseDate, rec, i)
-        payload.recurrence = rec
-        payload.recurenceId = recurenceId
-        payload.recurrenceIndex = i
-        if (i > 0) payload.nom = `${basePayload.nom} (${i + 1}/${count})`
-      }
-      onAdd(payload)
-    }
-
-    if (rec !== 'none' && count > 1) {
-      toast.success(`${count} ${({ deadline: 'deadlines', rdv: 'RDV' })[type] ?? 'éléments'} récurrents créés`)
-    } else {
-      toast.success(`${({ mission: 'Mission', deadline: 'Deadline', rdv: 'RDV' })[type]} "${basePayload.nom}" ajouté`)
-    }
+    onAdd(basePayload)
+    toast.success(`${({ mission: 'Mission', deadline: 'Deadline', rdv: 'RDV' })[type]} "${basePayload.nom}" ajouté`)
     onClose()
   }
 
@@ -474,45 +424,6 @@ export default function AjouterGanttModal({ onClose, onAdd, onEdit, item, projec
                 <label className="label-text mb-1.5 flex items-center gap-1 block"><Calendar size={11} /> Date *</label>
                 <input type="date" className={`input-field ${errors.date ? 'border-rose-400' : ''}`} value={form.date} onChange={set('date')} />
                 {errors.date && <p className="text-xs text-rose-500 mt-1">{errors.date}</p>}
-              </div>
-            )}
-
-            {/* ── Récurrence (RDV + deadline uniquement, pas en mode édition) ── */}
-            {type !== 'mission' && !isEdit && (
-              <div className="rounded-xl border border-border bg-paper-warm p-4 space-y-3">
-                <div className="flex items-center gap-2">
-                  <Repeat size={13} className="text-muted" />
-                  <span className="label-text">Récurrence</span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {RECURRENCE_OPTIONS.map(opt => (
-                    <button key={opt.val} type="button"
-                      onClick={() => setForm(f => ({ ...f, recurrence: opt.val }))}
-                      className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${
-                        form.recurrence === opt.val
-                          ? 'border-electric bg-electric text-white'
-                          : 'border-border text-muted hover:text-ink hover:border-ink/30 bg-white'
-                      }`}>
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-                {form.recurrence !== 'none' && (
-                  <div className="flex items-center gap-3 pt-1">
-                    <span className="text-xs text-muted flex-shrink-0">Nombre de répétitions</span>
-                    <input
-                      type="number"
-                      min={2}
-                      max={MAX_OCCURRENCES[form.recurrence] ?? 52}
-                      value={form.occurrences}
-                      onChange={e => setForm(f => ({ ...f, occurrences: Math.max(2, parseInt(e.target.value) || 2) }))}
-                      className="input-field w-20 text-center text-sm py-1.5"
-                    />
-                    <span className="text-xs text-muted">
-                      → {form.date ? `jusqu'au ${shiftDate(form.date, form.recurrence, form.occurrences - 1)}` : 'choisir une date'}
-                    </span>
-                  </div>
-                )}
               </div>
             )}
 
