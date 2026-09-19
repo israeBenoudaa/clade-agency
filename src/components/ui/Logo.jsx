@@ -21,11 +21,7 @@ export function CladeBrand({ light = false, scale = 1 }) {
   const subColor     = light ? 'rgba(250,251,253,0.62)' : 'rgba(10,30,63,0.48)'
 
   return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.18em', zoom: scale }}>
-      <span style={{ fontFamily: "'Averia Libre', serif", fontSize: 32, fontWeight: 400, color: bracketColor, lineHeight: 1, userSelect: 'none' }}>
-        [
-      </span>
-
+    <div style={{ display: 'inline-flex', alignItems: 'center', zoom: scale }}>
       <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'stretch', gap: 0 }}>
         <span style={{ fontFamily: "'Averia Libre', serif", fontSize: 22, fontWeight: 400, letterSpacing: '0.05em', color: nameColor, lineHeight: 1 }}>
           Clade
@@ -33,10 +29,6 @@ export function CladeBrand({ light = false, scale = 1 }) {
         <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 7.3, fontWeight: 500, color: subColor, letterSpacing: '0.07em', lineHeight: 1, textAlign: 'center' }}>
           architects &amp; co
         </span>
-      </span>
-
-      <span style={{ fontFamily: "'Averia Libre', serif", fontSize: 32, fontWeight: 400, color: bracketColor, lineHeight: 1, userSelect: 'none' }}>
-        ]
       </span>
     </div>
   )
