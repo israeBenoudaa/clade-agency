@@ -23,6 +23,7 @@ export default function NouveauCollaborateurModal({ onClose, existing = null }) 
     categorieId: existing?.categorieId ?? (categoriesCollab[0]?.id ?? ''),
     email:       existing?.email       ?? '',
     telephone:   existing?.telephone   ?? '',
+    siteWeb:     existing?.siteWeb     ?? '',
     ville:       existing?.ville       ?? '',
     adresse:     existing?.adresse     ?? '',
     prestations: existing?.prestations ?? '',
@@ -140,6 +141,13 @@ export default function NouveauCollaborateurModal({ onClose, existing = null }) 
               <textarea className="input-field resize-none" rows={3}
                 placeholder="Description des services proposés, spécialités, domaines d'intervention…"
                 value={form.prestations} onChange={set('prestations')} />
+            </div>
+
+            {/* Site web */}
+            <div>
+              <label className="label-text mb-1.5 block">Site web</label>
+              <input type="url" className="input-field" placeholder="https://www.société.ma"
+                value={form.siteWeb} onChange={set('siteWeb')} />
             </div>
 
             {/* Notes */}

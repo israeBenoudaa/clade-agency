@@ -140,8 +140,8 @@ const fromDbFormation = (r) => {
   return { id: r.id, nom: r.nom, date: r.date, duree: r.duree, formateur: r.formateur, formateurs: r.formateur, personnes, participants: personnes, confirmedBy: parseJsonArray(r.confirmed_by), heureDebut: r.heure_debut || null, heureFin: r.heure_fin || null, budget: r.budget, statut: r.statut, description: r.description }
 }
 
-const toDbCollaborateur = (c) => ({ id: c.id, nom: c.nomSociete || c.nom || null, specialite: c.specialite || null, categorie_id: c.categorieId || null, email: c.email || null, telephone: c.telephone || null, tarif: Number(c.tarif) || null, notes: c.notes || null, ville: c.ville || null, adresse: c.adresse || null, prestations: c.prestations || null })
-const fromDbCollaborateur = (r) => ({ id: r.id, nom: r.nom, nomSociete: r.nom, specialite: r.specialite, categorieId: r.categorie_id, email: r.email, telephone: r.telephone, tarif: r.tarif, notes: r.notes, ville: r.ville, adresse: r.adresse, prestations: r.prestations })
+const toDbCollaborateur = (c) => ({ id: c.id, nom: c.nomSociete || c.nom || null, specialite: c.specialite || null, categorie_id: c.categorieId || null, email: c.email || null, telephone: c.telephone || null, tarif: Number(c.tarif) || null, notes: c.notes || null, ville: c.ville || null, adresse: c.adresse || null, prestations: c.prestations || null, site_web: c.siteWeb || null })
+const fromDbCollaborateur = (r) => ({ id: r.id, nom: r.nom, nomSociete: r.nom, specialite: r.specialite, categorieId: r.categorie_id, email: r.email, telephone: r.telephone, tarif: r.tarif, notes: r.notes, ville: r.ville, adresse: r.adresse, prestations: r.prestations, siteWeb: r.site_web })
 
 const toDbJourFerie = (j) => ({ id: j.id, date: j.date, nom: j.nom, date_fin: j.dateFin || null })
 const fromDbJourFerie = (r) => ({ id: r.id, date: r.date, nom: r.nom, dateFin: r.date_fin || null })

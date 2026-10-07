@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus, Building2, Mail, Phone, MapPin, Pencil, Trash2,
-  Network, X, Check, ChevronDown,
+  Network, X, Check, ChevronDown, Globe,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useData } from '../../context/DataContext'
@@ -321,13 +321,18 @@ export default function CollaborateursPage() {
 
                   {/* Contact info */}
                   <div className="space-y-1.5 mb-3">
-                    {c.ville && (
-                      <div className="flex items-center gap-2 text-xs text-muted">
-                        <MapPin size={12} className="flex-shrink-0 text-electric" />
-                        <span className="font-medium text-ink">{c.ville}</span>
-                        {c.adresse && <span className="truncate">— {c.adresse}</span>}
-                      </div>
-                    )}
+                    {(c.ville || c.adresse) && (() => {
+                      const query = [c.adresse, c.ville, 'Maroc'].filter(Boolean).join(', ')
+                      const href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`
+                      return (
+                        <a href={href} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-xs text-muted hover:text-ink transition-colors">
+                          <MapPin size={12} className="flex-shrink-0 text-electric" />
+                          <span className="font-medium text-ink">{c.ville}</span>
+                          {c.adresse && <span className="truncate">— {c.adresse}</span>}
+                        </a>
+                      )
+                    })()}
                     {c.telephone && (
                       <a href={`tel:${c.telephone}`}
                         className="flex items-center gap-2 text-xs text-muted hover:text-ink transition-colors">
@@ -340,6 +345,14 @@ export default function CollaborateursPage() {
                         className="flex items-center gap-2 text-xs text-muted hover:text-ink transition-colors">
                         <Mail size={12} className="flex-shrink-0 text-electric" />
                         <span className="truncate">{c.email}</span>
+                      </a>
+                    )}
+                    {c.siteWeb && (
+                      <a href={c.siteWeb.startsWith('http') ? c.siteWeb : `https://${c.siteWeb}`}
+                        target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-xs text-muted hover:text-ink transition-colors">
+                        <Globe size={12} className="flex-shrink-0 text-electric" />
+                        <span className="truncate">{c.siteWeb.replace(/^https?:\/\//, '')}</span>
                       </a>
                     )}
                   </div>
