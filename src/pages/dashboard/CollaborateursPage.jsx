@@ -321,22 +321,24 @@ export default function CollaborateursPage() {
 
                   {/* Contact info */}
                   <div className="space-y-1.5 mb-3">
-                    {(c.ville || c.adresse) && (() => {
-                      const query = [c.adresse, c.ville, 'Maroc'].filter(Boolean).join(', ')
-                      const href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`
-                      return (
-                        <div className="flex items-center gap-2 text-xs text-muted">
-                          <a href={href} target="_blank" rel="noopener noreferrer"
-                            title="Ouvrir dans Maps"
-                            className="flex-shrink-0 text-electric hover:text-blue-600 transition-colors">
-                            <MapPin size={12} />
-                          </a>
-                          <span className="text-ink">
-                            {c.ville}{c.adresse && ` — ${c.adresse}`}
-                          </span>
+                    {(c.ville || c.adresse) && (
+                      <div className="flex items-start gap-2 text-xs text-muted">
+                        <MapPin size={12} className="flex-shrink-0 text-electric mt-0.5" />
+                        <div className="min-w-0">
+                          {c.ville && <span className="font-medium text-ink">{c.ville}</span>}
+                          {c.adresse && (() => {
+                            const query = [c.adresse, c.ville, 'Maroc'].filter(Boolean).join(', ')
+                            const href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`
+                            return (
+                              <a href={href} target="_blank" rel="noopener noreferrer"
+                                className="block truncate text-muted hover:text-electric transition-colors mt-0.5">
+                                {c.adresse}
+                              </a>
+                            )
+                          })()}
                         </div>
-                      )
-                    })()}
+                      </div>
+                    )}
                     {c.telephone && (
                       <a href={`tel:${c.telephone}`}
                         className="flex items-center gap-2 text-xs text-muted hover:text-ink transition-colors">
