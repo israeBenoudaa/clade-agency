@@ -40,10 +40,10 @@ function CatDropdown({ categories, collaborateurs, value, onChange }) {
   const selectedColor = selectedIdx >= 0 ? catColor(selectedIdx) : null
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative w-full">
       <button
         onClick={() => setOpen(o => !o)}
-        className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl border text-sm font-medium transition-all min-w-[200px] bg-white ${
+        className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl border text-sm font-medium transition-all w-full bg-white ${
           open
             ? 'border-electric/50 shadow-[0_0_0_3px_rgba(59,130,246,0.08)]'
             : 'border-border hover:border-ink/25'
@@ -69,7 +69,7 @@ function CatDropdown({ categories, collaborateurs, value, onChange }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ duration: 0.12 }}
-            className="absolute top-full left-0 mt-1.5 w-72 bg-white border border-border rounded-2xl shadow-xl z-50 overflow-hidden"
+            className="absolute top-full left-0 mt-1.5 w-[min(18rem,calc(100vw-2rem))] bg-white border border-border rounded-2xl shadow-xl z-50 overflow-hidden"
           >
             {/* All */}
             <button
@@ -221,11 +221,11 @@ export default function CollaborateursPage() {
       <div className="card p-5 lg:p-7">
 
         {/* ── Toolbar ── */}
-        <div className="flex flex-col gap-3 mb-5">
-          <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex flex-col gap-2 mb-5">
 
-            {/* Search */}
-            <div className="relative flex-1 min-w-[220px]">
+          {/* Row 1 : search + button */}
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1 min-w-0">
               <Search size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
               <input
                 type="text"
@@ -241,27 +241,6 @@ export default function CollaborateursPage() {
                 </button>
               )}
             </div>
-
-            {/* Category dropdown */}
-            <CatDropdown
-              categories={categoriesCollab}
-              collaborateurs={collaborateurs}
-              value={selectedCatId}
-              onChange={(id) => { setSelectedCatId(id); setFilterVille('') }}
-            />
-
-            {/* City */}
-            <SelectField
-              value={filterVille}
-              onChange={v => setFilterVille(v)}
-              options={[
-                { value: '', label: 'Toutes les villes' },
-                ...villesPresentes.map(v => ({ value: v, label: v })),
-              ]}
-              className="min-w-[150px]"
-            />
-
-            {/* New button */}
             <button
               onClick={() => { setEditingCollab(null); setShowModal(true) }}
               className="btn-primary flex-shrink-0">
@@ -269,6 +248,30 @@ export default function CollaborateursPage() {
               <span className="hidden sm:inline">Nouveau</span>
             </button>
           </div>
+
+          {/* Row 2 : category dropdown + city */}
+          <div className="flex items-center gap-2">
+            <div className="flex-1 min-w-0">
+              <CatDropdown
+                categories={categoriesCollab}
+                collaborateurs={collaborateurs}
+                value={selectedCatId}
+                onChange={(id) => { setSelectedCatId(id); setFilterVille('') }}
+              />
+            </div>
+            <div className="flex-1 min-w-0 sm:flex-none sm:min-w-[150px]">
+              <SelectField
+                value={filterVille}
+                onChange={v => setFilterVille(v)}
+                options={[
+                  { value: '', label: 'Toutes les villes' },
+                  ...villesPresentes.map(v => ({ value: v, label: v })),
+                ]}
+                className="w-full"
+              />
+            </div>
+          </div>
+
         </div>
 
         {/* ── Count + active filters ── */}
