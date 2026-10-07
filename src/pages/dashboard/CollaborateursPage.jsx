@@ -2,27 +2,119 @@ import { useState, useMemo, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus, Building2, Mail, Phone, MapPin, Pencil, Trash2,
-  Network, X, Check, ChevronDown, Globe,
+  Network, X, Check, ChevronDown, Globe, Search, SlidersHorizontal,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useData } from '../../context/DataContext'
-import NouveauCollaborateurModal, { VILLES_MAROC } from '../../components/NouveauCollaborateurModal'
+import NouveauCollaborateurModal from '../../components/NouveauCollaborateurModal'
 import SelectField from '../../components/SelectField'
 
-// Palette tournante pour les badges de catégorie
-const CAT_PALETTE = [
-  { bg: 'bg-blue-100',    text: 'text-blue-700',    ring: 'ring-blue-300',    active: 'bg-blue-600 text-white' },
-  { bg: 'bg-emerald-100', text: 'text-emerald-700', ring: 'ring-emerald-300', active: 'bg-emerald-600 text-white' },
-  { bg: 'bg-violet-100',  text: 'text-violet-700',  ring: 'ring-violet-300',  active: 'bg-violet-600 text-white' },
-  { bg: 'bg-amber-100',   text: 'text-amber-700',   ring: 'ring-amber-300',   active: 'bg-amber-600 text-white' },
-  { bg: 'bg-rose-100',    text: 'text-rose-700',    ring: 'ring-rose-300',    active: 'bg-rose-600 text-white' },
-  { bg: 'bg-cyan-100',    text: 'text-cyan-700',    ring: 'ring-cyan-300',    active: 'bg-cyan-600 text-white' },
+const CAT_COLORS = [
+  { dot: '#3B82F6', pill: 'bg-blue-100',    text: 'text-blue-700' },
+  { dot: '#10B981', pill: 'bg-emerald-100', text: 'text-emerald-700' },
+  { dot: '#8B5CF6', pill: 'bg-violet-100',  text: 'text-violet-700' },
+  { dot: '#F59E0B', pill: 'bg-amber-100',   text: 'text-amber-700' },
+  { dot: '#EF4444', pill: 'bg-rose-100',    text: 'text-rose-700' },
+  { dot: '#06B6D4', pill: 'bg-cyan-100',    text: 'text-cyan-700' },
 ]
+function catColor(idx) { return CAT_COLORS[idx % CAT_COLORS.length] }
 
-function catColor(idx) {
-  return CAT_PALETTE[idx % CAT_PALETTE.length]
+function norm(s) {
+  return (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 }
 
+// ── Category dropdown ──────────────────────────────────────────────────────────
+function CatDropdown({ categories, collaborateurs, value, onChange }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e) => { if (!ref.current?.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  const selectedIdx = value ? categories.findIndex(c => c.id === value) : -1
+  const selected = selectedIdx >= 0 ? categories[selectedIdx] : null
+  const selectedColor = selectedIdx >= 0 ? catColor(selectedIdx) : null
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl border text-sm font-medium transition-all min-w-[200px] bg-white ${
+          open
+            ? 'border-electric/50 shadow-[0_0_0_3px_rgba(59,130,246,0.08)]'
+            : 'border-border hover:border-ink/25'
+        }`}>
+        {selected ? (
+          <>
+            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: selectedColor.dot }} />
+            <span className="flex-1 text-left text-ink truncate text-xs">{selected.nom}</span>
+          </>
+        ) : (
+          <>
+            <Network size={12} className="text-muted flex-shrink-0" />
+            <span className="flex-1 text-left text-muted text-xs">Toutes les catégories</span>
+          </>
+        )}
+        <ChevronDown size={12} className={`text-muted transition-transform flex-shrink-0 ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -6, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.97 }}
+            transition={{ duration: 0.12 }}
+            className="absolute top-full left-0 mt-1.5 w-72 bg-white border border-border rounded-2xl shadow-xl z-50 overflow-hidden"
+          >
+            {/* All */}
+            <button
+              onClick={() => { onChange(null); setOpen(false) }}
+              className={`w-full flex items-center justify-between px-4 py-2.5 text-xs hover:bg-paper-warm transition-colors ${
+                !value ? 'bg-paper-warm font-semibold text-ink' : 'text-ink/70'
+              }`}>
+              <div className="flex items-center gap-2.5">
+                <span className="w-2 h-2 rounded-full bg-ink/20" />
+                <span>Toutes les catégories</span>
+              </div>
+              <span className="text-[11px] bg-ink/10 text-muted px-2 py-0.5 rounded-full">{collaborateurs.length}</span>
+            </button>
+
+            <div className="border-t border-border/50 max-h-72 overflow-y-auto">
+              {categories.map((cat, idx) => {
+                const count = collaborateurs.filter(c => c.categorieId === cat.id).length
+                const col = catColor(idx)
+                const isActive = value === cat.id
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => { onChange(cat.id); setOpen(false) }}
+                    className={`w-full flex items-center justify-between px-4 py-2.5 text-xs hover:bg-paper-warm transition-colors ${
+                      isActive ? 'bg-paper-warm' : ''
+                    }`}>
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: col.dot }} />
+                      <span className={`truncate ${isActive ? 'font-semibold text-ink' : 'text-ink/80'}`}>{cat.nom}</span>
+                    </div>
+                    <span className={`text-[11px] px-2 py-0.5 rounded-full flex-shrink-0 ml-2 ${
+                      isActive ? `${col.pill} ${col.text}` : 'bg-ink/10 text-muted'
+                    }`}>{count}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+// ── Main page ──────────────────────────────────────────────────────────────────
 export default function CollaborateursPage() {
   const {
     categoriesCollab, collaborateurs, supaLoaded,
@@ -30,30 +122,38 @@ export default function CollaborateursPage() {
     deleteCollaborateur,
   } = useData()
 
-  const [selectedCatId, setSelectedCatId] = useState(null) // null = toutes
+  const [selectedCatId, setSelectedCatId] = useState(null)
   const [filterVille, setFilterVille] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [editingCollab, setEditingCollab] = useState(null)
+  const [showManageCats, setShowManageCats] = useState(false)
 
-  // Inline add category
   const [addingCat, setAddingCat] = useState(false)
   const [newCatName, setNewCatName] = useState('')
   const catInputRef = useRef(null)
+  useEffect(() => { if (addingCat) catInputRef.current?.focus() }, [addingCat])
 
-  useEffect(() => {
-    if (addingCat) catInputRef.current?.focus()
-  }, [addingCat])
-
-  // ── Filtered & sorted list ────────────────────────────────────────────────
+  // ── Filtered list ──────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
     let list = selectedCatId
       ? collaborateurs.filter(c => c.categorieId === selectedCatId)
       : collaborateurs
     if (filterVille) list = list.filter(c => c.ville === filterVille)
+    if (searchQuery.trim()) {
+      const q = norm(searchQuery.trim())
+      list = list.filter(c =>
+        norm(c.nomSociete).includes(q) ||
+        norm(c.specialite).includes(q) ||
+        norm(c.prestations).includes(q) ||
+        norm(c.notes).includes(q) ||
+        norm(c.ville).includes(q) ||
+        norm(c.adresse).includes(q)
+      )
+    }
     return [...list].sort((a, b) => (a.ville || '').localeCompare(b.ville || '', 'fr'))
-  }, [collaborateurs, selectedCatId, filterVille])
+  }, [collaborateurs, selectedCatId, filterVille, searchQuery])
 
-  // Cities present in the current category filter
   const villesPresentes = useMemo(() => {
     const base = selectedCatId
       ? collaborateurs.filter(c => c.categorieId === selectedCatId)
@@ -63,17 +163,15 @@ export default function CollaborateursPage() {
 
   const selectedCat = categoriesCollab.find(c => c.id === selectedCatId)
 
-  // ── Handlers ──────────────────────────────────────────────────────────────
+  // ── Handlers ───────────────────────────────────────────────────────────────
   const handleAddCat = () => {
     const name = newCatName.trim()
     if (!name) { setAddingCat(false); return }
     if (categoriesCollab.some(c => c.nom.toLowerCase() === name.toLowerCase())) {
-      toast.error('Cette catégorie existe déjà')
-      return
+      toast.error('Cette catégorie existe déjà'); return
     }
     addCategorieCollab(name)
-    setNewCatName('')
-    setAddingCat(false)
+    setNewCatName(''); setAddingCat(false)
     toast.success(`Catégorie "${name}" ajoutée`)
   }
 
@@ -81,23 +179,19 @@ export default function CollaborateursPage() {
     const count = collaborateurs.filter(c => c.categorieId === cat.id).length
     const msg = count > 0
       ? `Supprimer "${cat.nom}" et ses ${count} collaborateur${count > 1 ? 's' : ''} ?`
-      : `Supprimer la catégorie "${cat.nom}" ?`
+      : `Supprimer "${cat.nom}" ?`
     toast((t) => (
       <div className="flex items-center gap-3">
         <span className="text-sm">{msg}</span>
-        <button
-          onClick={() => {
-            if (selectedCatId === cat.id) setSelectedCatId(null)
-            deleteCategorieCollab(cat.id)
-            toast.dismiss(t.id)
-            toast.success('Catégorie supprimée')
-          }}
-          className="text-xs bg-rose-500 text-white px-3 py-1.5 rounded-lg font-semibold flex-shrink-0">
+        <button onClick={() => {
+          if (selectedCatId === cat.id) setSelectedCatId(null)
+          deleteCategorieCollab(cat.id)
+          toast.dismiss(t.id)
+          toast.success('Catégorie supprimée')
+        }} className="text-xs bg-rose-500 text-white px-3 py-1.5 rounded-lg font-semibold flex-shrink-0">
           Supprimer
         </button>
-        <button onClick={() => toast.dismiss(t.id)} className="text-xs text-muted flex-shrink-0">
-          Annuler
-        </button>
+        <button onClick={() => toast.dismiss(t.id)} className="text-xs text-muted flex-shrink-0">Annuler</button>
       </div>
     ), { duration: 6000 })
   }
@@ -107,9 +201,9 @@ export default function CollaborateursPage() {
       <div className="flex flex-col gap-2.5 min-w-0">
         <span className="text-sm">Supprimer <strong>{c.nomSociete}</strong> ?</span>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => { deleteCollaborateur(c.id); toast.dismiss(t.id); toast.success('Collaborateur supprimé') }}
-            className="text-xs bg-rose-500 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-rose-600">
+          <button onClick={() => {
+            deleteCollaborateur(c.id); toast.dismiss(t.id); toast.success('Collaborateur supprimé')
+          }} className="text-xs bg-rose-500 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-rose-600">
             Supprimer
           </button>
           <button onClick={() => toast.dismiss(t.id)} className="text-xs text-muted">Annuler</button>
@@ -121,120 +215,42 @@ export default function CollaborateursPage() {
   const openEdit = (c) => { setEditingCollab(c); setShowModal(true) }
   const closeModal = () => { setShowModal(false); setEditingCollab(null) }
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="p-4 lg:p-10 space-y-6">
-
-      {/* ── Catégories ── */}
-      <div className="card p-5">
-        <div className="flex items-center justify-between mb-4">
-          <div className="font-semibold text-sm text-ink flex items-center gap-2">
-            <Network size={15} className="text-muted" />
-            Catégories de prestataires
-          </div>
-
-          {addingCat ? (
-            <div className="flex items-center gap-2">
-              <input
-                ref={catInputRef}
-                type="text"
-                value={newCatName}
-                onChange={e => setNewCatName(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') { e.preventDefault(); handleAddCat() }
-                  if (e.key === 'Escape') { setAddingCat(false); setNewCatName('') }
-                }}
-                placeholder="Nom de la catégorie…"
-                className="input-field py-1.5 text-xs w-44"
-              />
-              <button onClick={handleAddCat}
-                className="w-7 h-7 flex items-center justify-center rounded-lg bg-electric/10 text-electric hover:bg-electric/20 transition-colors">
-                <Check size={13} />
-              </button>
-              <button onClick={() => { setAddingCat(false); setNewCatName('') }}
-                className="w-7 h-7 flex items-center justify-center rounded-lg text-muted hover:bg-paper-warm transition-colors">
-                <X size={13} />
-              </button>
-            </div>
-          ) : (
-            <button onClick={() => setAddingCat(true)}
-              className="flex items-center gap-1.5 text-xs font-semibold text-electric hover:text-electric/70 transition-colors">
-              <Plus size={13} /> Nouvelle catégorie
-            </button>
-          )}
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          {/* "Toutes" chip */}
-          <button
-            onClick={() => { setSelectedCatId(null); setFilterVille('') }}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors ${
-              selectedCatId === null
-                ? 'bg-ink text-paper shadow-sm'
-                : 'bg-paper-warm text-muted hover:text-ink hover:bg-white border border-border'
-            }`}>
-            Toutes
-            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
-              selectedCatId === null ? 'bg-white/20' : 'bg-ink/10'
-            }`}>
-              {collaborateurs.length}
-            </span>
-          </button>
-
-          {categoriesCollab.map((cat, idx) => {
-            const count = collaborateurs.filter(c => c.categorieId === cat.id).length
-            const isActive = selectedCatId === cat.id
-            const pal = catColor(idx)
-            return (
-              <div key={cat.id} className="relative group/cat">
-                <button
-                  onClick={() => { setSelectedCatId(isActive ? null : cat.id); setFilterVille('') }}
-                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all pr-8 ${
-                    isActive
-                      ? `${pal.active} shadow-sm`
-                      : `${pal.bg} ${pal.text} hover:ring-2 ${pal.ring}`
-                  }`}>
-                  {cat.nom}
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
-                    isActive ? 'bg-white/25' : 'bg-white/60'
-                  }`}>
-                    {count}
-                  </span>
-                </button>
-                {/* Delete category button */}
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleDeleteCat(cat) }}
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-md opacity-0 group-hover/cat:opacity-100 transition-opacity text-current hover:bg-black/10">
-                  <X size={10} />
-                </button>
-              </div>
-            )
-          })}
-
-          {categoriesCollab.length === 0 && !addingCat && (
-            <span className="text-xs text-muted italic">
-              Aucune catégorie. Cliquez sur "Nouvelle catégorie" pour commencer.
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* ── Liste des collaborateurs ── */}
       <div className="card p-5 lg:p-7">
-        {/* Toolbar */}
-        <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
-          <div>
-            <div className="label-text mb-0.5">
-              {selectedCat ? selectedCat.nom : 'Tous les prestataires'}
-            </div>
-            <div className="font-display text-xl text-ink">
-              {filtered.length} collaborateur{filtered.length !== 1 ? 's' : ''}
-              {filterVille && <span className="text-base text-muted"> · {filterVille}</span>}
-            </div>
-          </div>
 
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {/* City filter */}
+        {/* ── Toolbar ── */}
+        <div className="flex flex-col gap-3 mb-5">
+          <div className="flex items-center gap-2.5 flex-wrap">
+
+            {/* Search */}
+            <div className="relative flex-1 min-w-[220px]">
+              <Search size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Rechercher par nom, prestation, ville…"
+                className="input-field pl-9 pr-8 py-2.5 text-xs w-full"
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full text-muted hover:text-ink hover:bg-paper-warm transition-colors">
+                  <X size={11} />
+                </button>
+              )}
+            </div>
+
+            {/* Category dropdown */}
+            <CatDropdown
+              categories={categoriesCollab}
+              collaborateurs={collaborateurs}
+              value={selectedCatId}
+              onChange={(id) => { setSelectedCatId(id); setFilterVille('') }}
+            />
+
+            {/* City */}
             <SelectField
               value={filterVille}
               onChange={v => setFilterVille(v)}
@@ -242,18 +258,135 @@ export default function CollaborateursPage() {
                 { value: '', label: 'Toutes les villes' },
                 ...villesPresentes.map(v => ({ value: v, label: v })),
               ]}
-              className="min-w-[160px]"
+              className="min-w-[150px]"
             />
-            <button onClick={() => { setEditingCollab(null); setShowModal(true) }} className="btn-primary">
-              <Plus size={14} /> <span className="hidden sm:inline">Nouveau</span>
+
+            {/* New button */}
+            <button
+              onClick={() => { setEditingCollab(null); setShowModal(true) }}
+              className="btn-primary flex-shrink-0">
+              <Plus size={14} />
+              <span className="hidden sm:inline">Nouveau</span>
             </button>
           </div>
         </div>
 
-        {/* Grid */}
+        {/* ── Count + active filters ── */}
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <div className="font-display text-xl text-ink">
+              {filtered.length} collaborateur{filtered.length !== 1 ? 's' : ''}
+              {filterVille && <span className="text-base text-muted font-sans font-normal"> · {filterVille}</span>}
+            </div>
+            {(selectedCatId || searchQuery) && (
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                {selectedCatId && (
+                  <button onClick={() => setSelectedCatId(null)}
+                    className="flex items-center gap-1 text-xs bg-electric/10 text-electric px-2 py-0.5 rounded-full hover:bg-electric/20 transition-colors">
+                    {selectedCat?.nom}
+                    <X size={9} />
+                  </button>
+                )}
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery('')}
+                    className="flex items-center gap-1 text-xs bg-ink/8 text-muted px-2 py-0.5 rounded-full hover:bg-ink/15 transition-colors">
+                    «{searchQuery}»
+                    <X size={9} />
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Manage categories toggle */}
+          <button
+            onClick={() => setShowManageCats(o => !o)}
+            className={`flex items-center gap-1.5 text-xs font-medium transition-colors px-2.5 py-1.5 rounded-lg ${
+              showManageCats
+                ? 'bg-electric/10 text-electric'
+                : 'text-muted hover:text-ink hover:bg-paper-warm'
+            }`}>
+            <SlidersHorizontal size={12} />
+            Catégories
+          </button>
+        </div>
+
+        {/* ── Manage categories panel ── */}
+        <AnimatePresence>
+          {showManageCats && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.18 }}
+              className="overflow-hidden"
+            >
+              <div className="mb-5 p-4 bg-paper-warm rounded-2xl border border-border/60">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[11px] font-semibold text-muted uppercase tracking-wide">Gérer les catégories</span>
+                  {addingCat ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        ref={catInputRef}
+                        type="text"
+                        value={newCatName}
+                        onChange={e => setNewCatName(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') { e.preventDefault(); handleAddCat() }
+                          if (e.key === 'Escape') { setAddingCat(false); setNewCatName('') }
+                        }}
+                        placeholder="Nom de la catégorie…"
+                        className="input-field py-1.5 text-xs w-44"
+                      />
+                      <button onClick={handleAddCat}
+                        className="w-7 h-7 flex items-center justify-center rounded-lg bg-electric/10 text-electric hover:bg-electric/20 transition-colors">
+                        <Check size={13} />
+                      </button>
+                      <button onClick={() => { setAddingCat(false); setNewCatName('') }}
+                        className="w-7 h-7 flex items-center justify-center rounded-lg text-muted hover:bg-white transition-colors">
+                        <X size={13} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setAddingCat(true)}
+                      className="flex items-center gap-1.5 text-xs font-semibold text-electric hover:text-electric/70 transition-colors">
+                      <Plus size={12} /> Nouvelle catégorie
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {categoriesCollab.map((cat, idx) => {
+                    const count = collaborateurs.filter(c => c.categorieId === cat.id).length
+                    const col = catColor(idx)
+                    return (
+                      <div key={cat.id} className="relative group/cat">
+                        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold pr-7 ${col.pill} ${col.text}`}>
+                          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: col.dot }} />
+                          {cat.nom}
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-white/60">{count}</span>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteCat(cat)}
+                          className="absolute right-1.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center rounded opacity-0 group-hover/cat:opacity-100 transition-opacity hover:bg-black/10">
+                          <X size={9} />
+                        </button>
+                      </div>
+                    )
+                  })}
+                  {categoriesCollab.length === 0 && !addingCat && (
+                    <span className="text-xs text-muted italic">Aucune catégorie.</span>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ── Grid ── */}
         {!supaLoaded && collaborateurs.length === 0 ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-            {[1,2,3].map(i => (
+            {[1, 2, 3].map(i => (
               <div key={i} className="bg-paper-warm border border-border rounded-2xl p-4 animate-pulse">
                 <div className="flex items-start gap-3 mb-3">
                   <div className="w-11 h-11 rounded-xl bg-border flex-shrink-0" />
@@ -271,9 +404,11 @@ export default function CollaborateursPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-14 text-muted text-sm border border-dashed border-border rounded-2xl">
-            {collaborateurs.length === 0
-              ? 'Aucun collaborateur. Cliquez sur "Nouveau collaborateur" pour commencer.'
-              : 'Aucun prestataire dans cette sélection.'}
+            {searchQuery
+              ? `Aucun résultat pour « ${searchQuery} »`
+              : collaborateurs.length === 0
+                ? 'Aucun collaborateur. Cliquez sur "Nouveau" pour commencer.'
+                : 'Aucun prestataire dans cette sélection.'}
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -286,7 +421,7 @@ export default function CollaborateursPage() {
                   key={c.id}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.03, duration: 0.18 }}
+                  transition={{ delay: i * 0.02, duration: 0.15 }}
                   className="bg-paper-warm border border-border rounded-2xl p-4 hover:shadow-md hover:bg-white transition-all group relative"
                 >
                   {/* Actions */}
@@ -308,18 +443,16 @@ export default function CollaborateursPage() {
                       {c.nomSociete?.[0]?.toUpperCase() || <Building2 size={16} />}
                     </div>
                     <div className="min-w-0">
-                      <div className="text-sm font-semibold text-ink leading-tight truncate">
-                        {c.nomSociete}
-                      </div>
+                      <div className="text-sm font-semibold text-ink leading-tight truncate">{c.nomSociete}</div>
                       {catObj && (
-                        <span className={`inline-block mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-md ${pal.bg} ${pal.text}`}>
+                        <span className={`inline-block mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-md ${pal.pill} ${pal.text}`}>
                           {catObj.nom}
                         </span>
                       )}
                     </div>
                   </div>
 
-                  {/* Contact info */}
+                  {/* Contact */}
                   <div className="space-y-1.5 mb-3">
                     {(c.ville || c.adresse) && (
                       <div className="flex items-start gap-2 text-xs text-muted">
@@ -366,13 +499,11 @@ export default function CollaborateursPage() {
                   {/* Prestations */}
                   {c.prestations && (
                     <div className="border-t border-border/60 pt-3">
-                      <p className="text-xs text-muted leading-relaxed line-clamp-3">
-                        {c.prestations}
-                      </p>
+                      <p className="text-xs text-muted leading-relaxed line-clamp-3">{c.prestations}</p>
                     </div>
                   )}
 
-                  {/* Notes badge */}
+                  {/* Notes */}
                   {c.notes && (
                     <div className="mt-2 px-2.5 py-1.5 bg-amber-50 border border-amber-100 rounded-lg text-[10px] text-amber-700 leading-snug">
                       {c.notes}
