@@ -325,12 +325,16 @@ export default function CollaborateursPage() {
                       const query = [c.adresse, c.ville, 'Maroc'].filter(Boolean).join(', ')
                       const href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`
                       return (
-                        <a href={href} target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-2 text-xs text-muted hover:text-ink transition-colors">
-                          <MapPin size={12} className="flex-shrink-0 text-electric" />
-                          <span className="font-medium text-ink">{c.ville}</span>
-                          {c.adresse && <span className="truncate">— {c.adresse}</span>}
-                        </a>
+                        <div className="flex items-center gap-2 text-xs text-muted">
+                          <a href={href} target="_blank" rel="noopener noreferrer"
+                            title="Ouvrir dans Maps"
+                            className="flex-shrink-0 text-electric hover:text-blue-600 transition-colors">
+                            <MapPin size={12} />
+                          </a>
+                          <span className="text-ink">
+                            {c.ville}{c.adresse && ` — ${c.adresse}`}
+                          </span>
+                        </div>
                       )
                     })()}
                     {c.telephone && (
