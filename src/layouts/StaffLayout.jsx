@@ -6,7 +6,7 @@ import {
   Search, LogOut, Menu, X, UserPlus, ChevronRight, Database,
   MessageSquare, ChevronDown, Network, FolderGit2, UserCircle,
   ClipboardList, Paperclip, UsersRound, Briefcase, BookOpen, Layers,
-  Eye, RotateCcw, History, Globe, Bell,
+  Eye, RotateCcw, History, Globe, Bell, Megaphone,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
@@ -29,6 +29,7 @@ const GESTION_NAV = [
   { to: '/app/crm', label: 'Relations Clients', icon: Contact2 },
   { to: '/app/collaborateurs', label: 'Collaborateurs', icon: Network },
   { to: '/app/workflow', label: 'Processus', icon: Layers },
+  { to: '/app/marketing', label: 'Marketing', icon: Megaphone },
 ]
 
 const DEMO_ROLES = [
@@ -72,6 +73,7 @@ const TITLES = {
   '/app/crm':             { t: 'Relations Clients',    s: '◆ Gestion' },
   '/app/collaborateurs':  { t: 'Collaborateurs',       s: '◆ Gestion' },
   '/app/workflow':        { t: 'Processus',             s: '◆ Gestion' },
+  '/app/marketing':       { t: 'Marketing',             s: '◆ Gestion' },
   '/app/portfolio':         { t: 'Portfolio',             s: '◆ Gestion' },
   '/app/users':           { t: 'Utilisateurs & Accès', s: '◆ Administration' },
   '/app/donnees':         { t: 'Données',              s: '◆ Administration' },

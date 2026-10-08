@@ -149,6 +149,9 @@ const fromDbJourFerie = (r) => ({ id: r.id, date: r.date, nom: r.nom, dateFin: r
 const toDbWorkflow = (w) => ({ id: w.id, title: w.title || null, description: w.description || null, blocks: w.blocks || [], shared_with: w.sharedWith || [], versions: w.versions || [], deleted_at: w.deletedAt || null, created_at: w.createdAt || new Date().toISOString(), updated_at: w.updatedAt || new Date().toISOString(), created_by_id: w.createdById || null, created_by_nom: w.createdByNom || null, category: w.category || null })
 const fromDbWorkflow = (r) => ({ id: r.id, title: r.title, description: r.description, blocks: r.blocks || [], sharedWith: r.shared_with || [], versions: r.versions || [], deletedAt: r.deleted_at, createdAt: r.created_at, updatedAt: r.updated_at, createdById: r.created_by_id || null, createdByNom: r.created_by_nom || null, category: r.category || null })
 
+const toDbMarketingPost = (p) => ({ id: p.id, titre: p.titre || null, contenu: p.contenu || null, plateforme: p.plateforme || null, type_contenu: p.typeContenu || null, statut: p.statut || 'brouillon', date_publication: p.datePublication || null, lien_url: p.lienUrl || null, hashtags: p.hashtags || [], stats: p.stats || { vues: 0, likes: 0, commentaires: 0, partages: 0, reach: 0 }, categorie: p.categorie || null, visuels_urls: p.visuelsUrls || [], notes: p.notes || null, created_at: p.createdAt || new Date().toISOString(), updated_at: new Date().toISOString(), created_by_id: p.createdById || null, created_by_nom: p.createdByNom || null })
+const fromDbMarketingPost = (r) => ({ id: r.id, titre: r.titre, contenu: r.contenu, plateforme: r.plateforme, typeContenu: r.type_contenu, statut: r.statut || 'brouillon', datePublication: r.date_publication, lienUrl: r.lien_url, hashtags: r.hashtags || [], stats: r.stats || { vues: 0, likes: 0, commentaires: 0, partages: 0, reach: 0 }, categorie: r.categorie, visuelsUrls: r.visuels_urls || [], notes: r.notes, createdAt: r.created_at, updatedAt: r.updated_at, createdById: r.created_by_id, createdByNom: r.created_by_nom })
+
 const toDbNotification = (n) => ({ id: n.id, type: n.type || null, message: n.message, target_user_id: n.targetUserId || null, read: n.read || false, link: n.link || null, for_hr: n.forHR || false, created_at: n.createdAt || new Date().toISOString() })
 const fromDbNotification = (r) => ({ id: r.id, type: r.type, message: r.message, targetUserId: r.target_user_id, read: r.read, link: r.link, forHR: r.for_hr, createdAt: r.created_at })
 
@@ -323,6 +326,8 @@ export function DataProvider({ children }) {
     try { return JSON.parse(localStorage.getItem('clade_workflows') || '[]') } catch { return [] }
   })
 
+  const [marketingPosts, setMarketingPosts] = useState([])
+
   const [tauxImpot, setTauxImpotState] = useState(() => {
     try { const s = localStorage.getItem('clade_taux_impot'); if (s) return parseFloat(s) } catch {}
     return 20
@@ -335,7 +340,7 @@ export function DataProvider({ children }) {
   // Prevents debounced mass-upsert effects from firing right after the initial DB load
   const syncReadyRef = useRef(false)
   useEffect(() => {
-    stateRef.current = { projects, employes, clients, prospects, transactions, chargesFixe, messages, formations, recrutements, collaborateurs, categoriesCollab, demandesRH, candidaturesSpont, joursFerier, workflows, agenceSettings, tauxImpot, hiddenMessages, hiddenConvs, msgReadState, notifications }
+    stateRef.current = { projects, employes, clients, prospects, transactions, chargesFixe, messages, formations, recrutements, collaborateurs, categoriesCollab, demandesRH, candidaturesSpont, joursFerier, workflows, marketingPosts, agenceSettings, tauxImpot, hiddenMessages, hiddenConvs, msgReadState, notifications }
   }, [projects, employes, clients, prospects, transactions, chargesFixe, messages, formations, recrutements, collaborateurs, categoriesCollab, demandesRH, candidaturesSpont, joursFerier, workflows, agenceSettings, tauxImpot, hiddenMessages, hiddenConvs, msgReadState, notifications])
 
   const checkpointsRef = useRef(checkpoints)
@@ -366,6 +371,7 @@ export function DataProvider({ children }) {
           { data: dbNotifs },
           { data: dbSettings },
           { data: dbLog },
+          { data: dbMktPosts },
         ] = await Promise.all([
           supabase.from('clients').select('*'),
           supabase.from('prospects').select('*'),
@@ -385,6 +391,7 @@ export function DataProvider({ children }) {
           supabase.from('notifications').select('*').order('created_at', { ascending: false }),
           supabase.from('agence_settings').select('*').eq('id', 1).single(),
           supabase.from('activity_log').select('*').order('timestamp', { ascending: false }).limit(500),
+          supabase.from('marketing_posts').select('*').order('created_at', { ascending: false }),
         ])
 
         // Log Supabase errors so we can diagnose RLS / schema issues
@@ -507,6 +514,7 @@ export function DataProvider({ children }) {
         if (dbCatCollabs)  setCategoriesCollab(dbCatCollabs)
         if (dbJF)          setJoursFerier(dbJF.map(fromDbJourFerie))
         if (dbWF)          setWorkflows(dbWF.map(fromDbWorkflow))
+        if (dbMktPosts)    setMarketingPosts(dbMktPosts.map(fromDbMarketingPost))
         if (dbNotifs)      setNotifications(dbNotifs.map(fromDbNotification))
         if (dbSettings) {
           setAgenceSettingsState(prev => ({
@@ -712,6 +720,13 @@ export function DataProvider({ children }) {
           setWorkflows(prev => prev.filter(w => w.id !== old.id))
         } else if (row?.id) {
           setWorkflows(prev => [...prev.filter(w => w.id !== row.id), fromDbWorkflow(row)])
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'marketing_posts' }, ({ eventType, new: row, old }) => {
+        if (eventType === 'DELETE') {
+          setMarketingPosts(prev => prev.filter(p => p.id !== old.id))
+        } else if (row?.id) {
+          setMarketingPosts(prev => [...prev.filter(p => p.id !== row.id), fromDbMarketingPost(row)])
         }
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'formations' }, ({ eventType, new: row, old }) => {
@@ -2196,6 +2211,30 @@ export function DataProvider({ children }) {
     setWorkflows(prev => prev.filter(w => !w.deletedAt || w.deletedAt > cutoff))
   }, []) // eslint-disable-line
 
+  const addMarketingPost = useCallback((data) => {
+    const post = { id: `mkt_${Date.now()}`, statut: 'brouillon', hashtags: [], stats: { vues: 0, likes: 0, commentaires: 0, partages: 0, reach: 0 }, visuelsUrls: [], ...data, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+    setMarketingPosts(prev => [post, ...prev])
+    sbUpsert('marketing_posts', toDbMarketingPost(post))
+    return post.id
+  }, [])
+
+  const updateMarketingPost = useCallback((id, data) => {
+    setMarketingPosts(prev => {
+      const next = prev.map(p => {
+        if (p.id !== id) return p
+        const updated = { ...p, ...data, updatedAt: new Date().toISOString() }
+        sbUpsert('marketing_posts', toDbMarketingPost(updated))
+        return updated
+      })
+      return next
+    })
+  }, [])
+
+  const deleteMarketingPost = useCallback((id) => {
+    setMarketingPosts(prev => prev.filter(p => p.id !== id))
+    sbDelete('marketing_posts', id)
+  }, [])
+
   const addCandidatureSpont = (data) => {
     const c = { id: uid('cs'), ...data, dateReception: new Date().toISOString().slice(0, 10), statut: 'nouveau' }
     setCandidaturesSpont(prev => [c, ...prev])
@@ -2314,6 +2353,7 @@ export function DataProvider({ children }) {
       updateConceptImages, updateConceptQuestions, saveConceptResponse, clearConceptResponse,
       updateProgramme, updateEstimation,
       addWorkflow, updateWorkflow, deleteWorkflow, restoreWorkflow, permanentDeleteWorkflow, restoreWorkflowVersion,
+      marketingPosts, addMarketingPost, updateMarketingPost, deleteMarketingPost,
       demoCheckpoint, enterDemoMode, exitDemoMode, confirmDemoRestore,
     }}>
       {children}

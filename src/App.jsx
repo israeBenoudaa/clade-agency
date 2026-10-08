@@ -32,6 +32,7 @@ import MyProjectDetailPage from './pages/dashboard/MyProjectDetailPage'
 import MyWorkflowPage from './pages/dashboard/MyWorkflowPage'
 import WorkflowEditorPage from './pages/dashboard/WorkflowEditorPage'
 import GestionWorkflowPage from './pages/dashboard/GestionWorkflowPage'
+import MarketingPage from './pages/dashboard/MarketingPage'
 
 // Client pages
 import ClientProjectPage from './pages/client/ClientProjectPage'
@@ -138,6 +139,7 @@ export default function App() {
         <Route path="my-workflow/:id" element={<WorkflowEditorPage />} />
         <Route path="workflow" element={<GestionWorkflowPage />} />
         <Route path="workflow/:id" element={<WorkflowEditorPage />} />
+        <Route path="marketing" element={<MarketingPage />} />
         <Route
           path="users"
           element={
