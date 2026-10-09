@@ -54,11 +54,10 @@ const SWOT_CONFIG = [
 const MONTHS_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre']
 const DAYS_FR   = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']
 
-const TABS = [
-  { id: 'dashboard', label: 'Tableau de bord', icon: Megaphone },
-  { id: 'strategie', label: 'Stratégie',        icon: Target },
-  { id: 'contenu',   label: 'Contenu',          icon: CalendarDays },
-  { id: 'stats',     label: 'Stats & Veille',   icon: BarChart2 },
+const SUB_SECTIONS = [
+  { id: 'strategie', label: 'Stratégie',      icon: Target,      iconBg: 'bg-amber-50',   iconColor: 'text-amber-600',  desc: 'SWOT, objectifs, personas' },
+  { id: 'contenu',   label: 'Contenu',        icon: CalendarDays,iconBg: 'bg-violet-50',  iconColor: 'text-violet-600', desc: 'Planning, brainstorming, inspirations' },
+  { id: 'stats',     label: 'Stats & Veille', icon: BarChart2,   iconBg: 'bg-electric/10',iconColor: 'text-electric',   desc: 'Performances et concurrents' },
 ]
 
 // Types d'inspiration pour le filtre
@@ -765,20 +764,28 @@ export default function MarketingPage() {
   const postForModal = (postModal&&typeof postModal==='object'&&postModal?.id) ? postModal : null
   const defaultDate  = (postModal&&typeof postModal==='object'&&!postModal?.id&&postModal?.date) ? postModal.date : ''
 
+  const goBack = () => setTab('dashboard')
+  const subSection = SUB_SECTIONS.find(s=>s.id===tab)
+
   return (
     <div className="p-4 lg:p-10 space-y-5 lg:space-y-7">
 
-      {/* Tabs */}
-      <div className="flex items-center gap-1 overflow-x-auto pb-1">
-        {TABS.map(t=>(
-          <button key={t.id} onClick={()=>setTab(t.id)}
-            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl whitespace-nowrap transition-colors ${
-              tab===t.id ? 'bg-ink text-white' : 'text-muted hover:text-ink hover:bg-paper-warm'
-            }`}>
-            <t.icon size={14}/>{t.label}
+      {/* Header de section (sous-pages uniquement) */}
+      {tab !== 'dashboard' && subSection && (
+        <div className="flex items-center gap-3">
+          <button onClick={goBack}
+            className="w-8 h-8 rounded-xl border border-border flex items-center justify-center text-muted hover:text-ink hover:bg-paper-warm transition-colors flex-shrink-0">
+            <ChevronLeft size={16}/>
           </button>
-        ))}
-      </div>
+          <div className={`w-9 h-9 rounded-xl ${subSection.iconBg} flex items-center justify-center flex-shrink-0`}>
+            <subSection.icon size={16} className={subSection.iconColor}/>
+          </div>
+          <div>
+            <div className="label-text">Marketing</div>
+            <div className="font-display text-xl text-ink leading-tight">{subSection.label}</div>
+          </div>
+        </div>
+      )}
 
       {/* ══ TABLEAU DE BORD ══════════════════════════════════════════════════ */}
       {tab==='dashboard'&&(
@@ -863,6 +870,23 @@ export default function MarketingPage() {
               </div>
             ))}</div>
           })()}
+
+          {/* Navigation vers les sous-sections */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {SUB_SECTIONS.map(s=>(
+              <button key={s.id} onClick={()=>setTab(s.id)}
+                className="card p-4 flex items-center gap-3 text-left hover:shadow-md hover:border-electric/30 transition-all group">
+                <div className={`w-10 h-10 rounded-xl ${s.iconBg} flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform`}>
+                  <s.icon size={18} className={s.iconColor}/>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm text-ink">{s.label}</p>
+                  <p className="text-[11px] text-muted">{s.desc}</p>
+                </div>
+                <ChevronRight size={14} className="text-muted flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"/>
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -873,7 +897,7 @@ export default function MarketingPage() {
           {/* SWOT */}
           <div className="card p-5 lg:p-7">
             <SectionHeader category="Stratégie" title="Analyse SWOT" icon={Target} iconBg="bg-amber-50" iconColor="text-amber-600"/>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {SWOT_CONFIG.map(q=>(
                 <SwotQuadrant key={q.key} config={q} items={marketingConfig.swot?.[q.key]||[]} onChange={items=>saveSwot(q.key,items)}/>
               ))}
@@ -884,7 +908,12 @@ export default function MarketingPage() {
           <div className="card p-5 lg:p-7">
             <SectionHeader category="Marketing" title={`Objectifs (${marketingConfig.objectifs.length})`} icon={TrendingUp}
               iconBg="bg-emerald-50" iconColor="text-emerald-600"
-              action={<button onClick={()=>saveObjectifs([...marketingConfig.objectifs,{id:uid(),nom:'',dateDebut:'',echeance:'',pct:0}])} className="btn-primary"><Plus size={15}/>Ajouter</button>}/>
+              action={<>
+                <button onClick={()=>saveObjectifs([...marketingConfig.objectifs,{id:uid(),nom:'',dateDebut:'',echeance:'',pct:0}])}
+                  className="btn-primary hidden sm:flex"><Plus size={15}/>Ajouter</button>
+                <button onClick={()=>saveObjectifs([...marketingConfig.objectifs,{id:uid(),nom:'',dateDebut:'',echeance:'',pct:0}])}
+                  className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center sm:hidden hover:bg-emerald-200 transition-colors flex-shrink-0"><Plus size={16}/></button>
+              </>}/>
             {marketingConfig.objectifs.length===0 ? (
               <p className="text-sm text-muted py-6 text-center">Aucun objectif. Définissez vos cibles pour mesurer vos progrès.</p>
             ) : (
@@ -902,7 +931,10 @@ export default function MarketingPage() {
           <div className="card p-5 lg:p-7">
             <SectionHeader category="Audience" title={`Personas (${marketingConfig.personas.length})`} icon={Users}
               iconBg="bg-violet-50" iconColor="text-violet-600"
-              action={<button onClick={()=>setPersonaModal('new')} className="btn-primary"><Plus size={15}/>Nouveau persona</button>}/>
+              action={<>
+                <button onClick={()=>setPersonaModal('new')} className="btn-primary hidden sm:flex"><Plus size={15}/>Nouveau persona</button>
+                <button onClick={()=>setPersonaModal('new')} className="w-8 h-8 rounded-xl bg-violet-100 text-violet-700 flex items-center justify-center sm:hidden hover:bg-violet-200 transition-colors flex-shrink-0"><Plus size={16}/></button>
+              </>}/>
             {marketingConfig.personas.length===0 ? (
               <p className="text-sm text-muted py-6 text-center">Aucun persona défini. Créez des profils d'audience pour mieux cibler votre contenu.</p>
             ) : (
@@ -946,7 +978,10 @@ export default function MarketingPage() {
           {/* Calendrier mensuel */}
           <div className="card p-5 lg:p-7">
             <SectionHeader category="Calendrier éditorial" title="Planning mensuel" icon={CalendarDays}
-              action={<button onClick={()=>setPostModal('new')} className="btn-primary"><Plus size={15}/>Nouveau post</button>}/>
+              action={<>
+                <button onClick={()=>setPostModal('new')} className="btn-primary hidden sm:flex"><Plus size={15}/>Nouveau post</button>
+                <button onClick={()=>setPostModal('new')} className="w-8 h-8 rounded-xl bg-electric/10 text-electric flex items-center justify-center sm:hidden hover:bg-electric/20 transition-colors flex-shrink-0"><Plus size={16}/></button>
+              </>}/>
             <MonthlyCalendar
               posts={marketingPosts}
               onNewPost={date=>setPostModal({date})}
@@ -957,7 +992,10 @@ export default function MarketingPage() {
           <div className="card p-5 lg:p-7">
             <SectionHeader category="Idées & Contenu" title={`Brainstorming (${ideas.length})`} icon={Lightbulb}
               iconBg="bg-amber-50" iconColor="text-amber-500"
-              action={<button onClick={()=>setIdeaModal('new')} className="btn-primary"><Plus size={15}/>Nouvelle idée</button>}/>
+              action={<>
+                <button onClick={()=>setIdeaModal('new')} className="btn-primary hidden sm:flex"><Plus size={15}/>Nouvelle idée</button>
+                <button onClick={()=>setIdeaModal('new')} className="w-8 h-8 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center sm:hidden hover:bg-amber-200 transition-colors flex-shrink-0"><Plus size={16}/></button>
+              </>}/>
             {ideas.length===0 ? (
               <div className="py-10 text-center">
                 <Lightbulb size={36} className="text-muted mx-auto mb-3 opacity-30"/>
@@ -1008,7 +1046,7 @@ export default function MarketingPage() {
               iconBg="bg-violet-50" iconColor="text-violet-600"/>
 
             {/* Filtres types */}
-            <div className="flex items-center gap-2 flex-wrap mb-5">
+            <div className="flex items-center justify-center gap-2 flex-wrap mb-5">
               <Filter size={13} className="text-muted flex-shrink-0"/>
               {['all',...INSPI_TYPES].map(t=>(
                 <button key={t} onClick={()=>setInspiFilter(t)}
@@ -1124,7 +1162,10 @@ export default function MarketingPage() {
           <div className="card p-5 lg:p-7">
             <SectionHeader category="Veille concurrentielle" title={`Concurrents (${marketingConfig.veille.length})`} icon={Eye}
               iconBg="bg-rose-50" iconColor="text-rose-500"
-              action={<button onClick={()=>saveVeille([...marketingConfig.veille,{id:uid(),nom:'',plateforme:'instagram',abonnes:'',frequence:'',notes:''}])} className="btn-primary"><Plus size={15}/>Ajouter</button>}/>
+              action={<>
+                <button onClick={()=>saveVeille([...marketingConfig.veille,{id:uid(),nom:'',plateforme:'instagram',abonnes:'',frequence:'',notes:''}])} className="btn-primary hidden sm:flex"><Plus size={15}/>Ajouter</button>
+                <button onClick={()=>saveVeille([...marketingConfig.veille,{id:uid(),nom:'',plateforme:'instagram',abonnes:'',frequence:'',notes:''}])} className="w-8 h-8 rounded-xl bg-rose-100 text-rose-500 flex items-center justify-center sm:hidden hover:bg-rose-200 transition-colors flex-shrink-0"><Plus size={16}/></button>
+              </>}/>
             {marketingConfig.veille.length===0 ? (
               <div className="py-8 text-center">
                 <Eye size={32} className="text-muted mx-auto mb-3 opacity-30"/>
@@ -1170,12 +1211,6 @@ export default function MarketingPage() {
           </div>
         </div>
       )}
-
-      {/* FAB mobile */}
-      <button onClick={()=>setPostModal('new')}
-        className="fixed bottom-6 right-6 w-12 h-12 rounded-2xl bg-ink text-white shadow-lg hover:bg-ink-soft transition-colors flex items-center justify-center z-40 lg:hidden">
-        <Plus size={20}/>
-      </button>
 
       {/* ── Modals ── */}
       {postModal&&(
