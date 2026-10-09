@@ -802,6 +802,7 @@ export default function ProjectDetailPage({ backPath = '/app/projects' }) {
   const { projects, employes, prospects, collaborateurs, addMission, addTask, updateTask, updateMission, deleteMission, validateMission, unvalidateMission, updateProject, updateProjectEquipe, updateEmploye, agenceSettings, markClientFeedbackRead, addLivrable, updateLivrable, deleteLivrable } = useData()
   const { profile, isDirector, isDirectorMode, isEmployeeMode } = useAuth()
   const [showTacheModal, setShowTacheModal] = useState(false)
+  const [taskFilter, setTaskFilter] = useState('all') // all | en_cours | bloque | termine | deadline_proche | non_approuve
   const [showGanttModal, setShowGanttModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingMission, setEditingMission] = useState(null)
@@ -920,6 +921,28 @@ export default function ProjectDetailPage({ backPath = '/app/projects' }) {
   const stuck     = tasks.filter(t => t.statut === 'Stuck')
   const workingOn = tasks.filter(t => t.statut === 'Working on it')
   const done      = tasks.filter(t => t.statut === 'Done')
+
+  const taskMissions = [...new Set(tasks.map(t => t.missionNom).filter(Boolean))]
+  const today = new Date(); today.setHours(0,0,0,0)
+  const in7days = new Date(today); in7days.setDate(in7days.getDate() + 7)
+  const filteredTasks = tasks.filter(t => {
+    if (taskFilter === 'en_cours')       return t.statut === 'Working on it'
+    if (taskFilter === 'bloque')         return t.statut === 'Stuck'
+    if (taskFilter === 'termine')        return t.statut === 'Done'
+    if (taskFilter === 'deadline_proche') {
+      if (!t.deadline || t.statut === 'Done') return false
+      const dl = new Date(t.deadline); dl.setHours(0,0,0,0)
+      return dl <= in7days
+    }
+    if (taskFilter === 'non_approuve')   return t.statut === 'Done' && !t.approval
+    if (taskFilter === 'en_retard') {
+      if (!t.deadline || t.statut === 'Done') return false
+      const dl = new Date(t.deadline); dl.setHours(0,0,0,0)
+      return dl < today
+    }
+    if (taskFilter.startsWith('mission:')) return t.missionNom === taskFilter.slice(8)
+    return true
+  })
 
   const effectiveTaux = project.tauxHoraire || agenceSettings?.tjh || 250
   const totalHeures = tasks.reduce((s, t) => s + (t.heures || 0), 0)
@@ -1451,6 +1474,27 @@ export default function ProjectDetailPage({ backPath = '/app/projects' }) {
           </button>
         </div>
 
+        {/* ── Filtres ── */}
+        {tasks.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-5">
+            {[
+              { id: 'all',             label: `Toutes (${tasks.length})` },
+              { id: 'en_cours',        label: `En cours (${workingOn.length})`,  show: workingOn.length > 0 },
+              { id: 'bloque',          label: `Bloquées (${stuck.length})`,       show: stuck.length > 0 },
+              { id: 'termine',         label: `Terminées (${done.length})`,       show: done.length > 0 },
+              { id: 'en_retard',       label: `En retard (${tasks.filter(t => { if (!t.deadline || t.statut === 'Done') return false; const dl = new Date(t.deadline); dl.setHours(0,0,0,0); return dl < today }).length})`, show: tasks.some(t => { if (!t.deadline || t.statut === 'Done') return false; const dl = new Date(t.deadline); dl.setHours(0,0,0,0); return dl < today }) },
+              { id: 'deadline_proche', label: `Deadline < 7j (${tasks.filter(t => { if (!t.deadline || t.statut === 'Done') return false; const dl = new Date(t.deadline); dl.setHours(0,0,0,0); return dl <= in7days }).length})`, show: tasks.some(t => { if (!t.deadline || t.statut === 'Done') return false; const dl = new Date(t.deadline); dl.setHours(0,0,0,0); return dl <= in7days }) },
+              { id: 'non_approuve',    label: `À approuver (${tasks.filter(t => t.statut === 'Done' && !t.approval).length})`, show: tasks.some(t => t.statut === 'Done' && !t.approval) },
+              ...taskMissions.map(m => ({ id: `mission:${m}`, label: m, show: true })),
+            ].filter(f => f.show !== false || f.id === 'all').map(f => (
+              <button key={f.id} onClick={() => setTaskFilter(f.id)}
+                className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${taskFilter === f.id ? 'bg-ink text-white border-ink' : 'bg-paper border-border text-muted hover:text-ink hover:border-ink/30'}`}>
+                {f.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {tasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-border rounded-2xl bg-paper-warm/40">
             <div className="w-14 h-14 rounded-2xl bg-electric/10 flex items-center justify-center mb-4">
@@ -1478,7 +1522,10 @@ export default function ProjectDetailPage({ backPath = '/app/projects' }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {tasks.map(task => (
+                {filteredTasks.length === 0 && (
+                  <tr><td colSpan={8} className="py-10 text-center text-sm text-muted">Aucune tâche ne correspond à ce filtre.</td></tr>
+                )}
+                {filteredTasks.map(task => (
                   <TaskRow
                     key={task.id}
                     task={task}
