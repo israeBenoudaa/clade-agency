@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
@@ -346,8 +346,21 @@ function EmptyState() {
   )
 }
 
+/* ── Responsive hook ────────────────────────────────────────────────────────── */
+function useContainerWidth(ref) {
+  const [width, setWidth] = useState(600)
+  useEffect(() => {
+    if (!ref.current) return
+    const ro = new ResizeObserver(entries => setWidth(entries[0].contentRect.width))
+    ro.observe(ref.current)
+    return () => ro.disconnect()
+  }, [ref])
+  return width
+}
+
 /* ── Main component ─────────────────────────────────────────────────────────── */
 export default function SiteAnalytics() {
+  const containerRef = useRef(null)
   const [period, setPeriod]       = useState(1)
   const [visits, setVisits]       = useState([])
   const [prevVisits, setPrevVisits] = useState([])
@@ -355,6 +368,8 @@ export default function SiteAnalytics() {
   const [projects, setProjects]   = useState([])
   const [loading, setLoading]     = useState(true)
   const [lastRefresh, setLastRefresh] = useState(null)
+  const containerWidth = useContainerWidth(containerRef)
+  const isMobile = containerWidth < 520
 
   const days = PERIODS[period].days
 
@@ -418,7 +433,7 @@ export default function SiteAnalytics() {
 
   return (
     <div style={{ height: '100%', overflowY: 'auto', background: '#08090A', fontFamily: FONT }}>
-      <div style={{ padding: '24px 28px', maxWidth: 900, margin: '0 auto' }}>
+      <div ref={containerRef} style={{ padding: isMobile ? '16px' : '24px 28px', maxWidth: 900, margin: '0 auto' }}>
 
         {/* ── Header ── */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
@@ -466,7 +481,7 @@ export default function SiteAnalytics() {
         ) : (
           <>
             {/* ── Funnel ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr auto 1fr', gap: 8, alignItems: 'center', marginBottom: 20 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(3, 1fr)' : '1fr auto 1fr auto 1fr', gap: 8, alignItems: 'center', marginBottom: 20 }}>
               {[
                 { label: 'Visites totales', value: totalVisits.toLocaleString(), sub: `${days} derniers jours`, color: ACCENT, icon: Eye },
                 null,
@@ -474,9 +489,7 @@ export default function SiteAnalytics() {
                 null,
                 { label: 'Contacts reçus', value: leadCount, sub: convRate > 0 ? `taux : ${convRate.toFixed(1)}%` : 'formulaire portfolio', color: leadCount > 0 ? GREEN : DIM, icon: UserPlus },
               ].map((item, i) => item === null ? (
-                <div key={i} style={{ display: 'flex', justifyContent: 'center' }}>
-                  <ArrowRight size={16} color={DIM} />
-                </div>
+                isMobile ? null : <div key={i} style={{ display: 'flex', justifyContent: 'center' }}><ArrowRight size={16} color={DIM} /></div>
               ) : (
                 <div key={i} style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: '14px 16px', textAlign: 'center' }}>
                   <div style={{ fontSize: 9, color: DIM, textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
@@ -489,7 +502,7 @@ export default function SiteAnalytics() {
             </div>
 
             {/* ── KPI grid ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
               <KpiCard
                 label="Moy. visites / jour"
                 value={avgDay}
@@ -504,17 +517,19 @@ export default function SiteAnalytics() {
                 color={convRate >= 5 ? GREEN : convRate >= 2 ? ACCENT : YELLOW}
                 icon={Target}
               />
-              <KpiCard
-                label="Part mobile"
-                value={`${mobilePct}%`}
-                sub={`${mobileCount} visites mobile`}
-                color={BLUE}
-                icon={Smartphone}
-              />
+              <div style={isMobile ? { gridColumn: '1 / -1' } : {}}>
+                <KpiCard
+                  label="Part mobile"
+                  value={`${mobilePct}%`}
+                  sub={`${mobileCount} visites mobile`}
+                  color={BLUE}
+                  icon={Smartphone}
+                />
+              </div>
             </div>
 
             {/* ── Graphiques principaux ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 16 }}>
 
               {/* Visites + leads par jour */}
               <Panel>
@@ -555,7 +570,7 @@ export default function SiteAnalytics() {
             </div>
 
             {/* ── Projets phares + Sources ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 16 }}>
 
               {/* Projets par vues */}
               <Panel>
@@ -614,7 +629,7 @@ export default function SiteAnalytics() {
             </div>
 
             {/* ── Audience : Appareils + Langues ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 16 }}>
 
               {/* Appareils */}
               <Panel>
@@ -677,7 +692,7 @@ export default function SiteAnalytics() {
               {insights.length === 0 ? (
                 <div style={{ fontSize: 12, color: DIM }}>Pas assez de données pour générer des insights — revenez avec plus de visites.</div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 10 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(260px, 1fr))', gap: 10 }}>
                   {insights.map((ins, i) => {
                     const Icon = ins.icon
                     return (
