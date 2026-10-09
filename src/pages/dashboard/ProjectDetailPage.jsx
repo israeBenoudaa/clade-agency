@@ -1469,31 +1469,32 @@ export default function ProjectDetailPage({ backPath = '/app/projects' }) {
             <div className="label-text mb-1">Suivi opérationnel</div>
             <div className="font-display text-2xl text-ink">Gestion des tâches</div>
           </div>
-          <button onClick={() => setShowTacheModal(true)} className="btn-primary">
-            <Plus size={14} /> Nouvelle tâche
-          </button>
-        </div>
-
-        {/* ── Filtres ── */}
-        {tasks.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-5">
-            {[
-              { id: 'all',             label: `Toutes (${tasks.length})` },
-              { id: 'en_cours',        label: `En cours (${workingOn.length})`,  show: workingOn.length > 0 },
-              { id: 'bloque',          label: `Bloquées (${stuck.length})`,       show: stuck.length > 0 },
-              { id: 'termine',         label: `Terminées (${done.length})`,       show: done.length > 0 },
-              { id: 'en_retard',       label: `En retard (${tasks.filter(t => { if (!t.deadline || t.statut === 'Done') return false; const dl = new Date(t.deadline); dl.setHours(0,0,0,0); return dl < today }).length})`, show: tasks.some(t => { if (!t.deadline || t.statut === 'Done') return false; const dl = new Date(t.deadline); dl.setHours(0,0,0,0); return dl < today }) },
-              { id: 'deadline_proche', label: `Deadline < 7j (${tasks.filter(t => { if (!t.deadline || t.statut === 'Done') return false; const dl = new Date(t.deadline); dl.setHours(0,0,0,0); return dl <= in7days }).length})`, show: tasks.some(t => { if (!t.deadline || t.statut === 'Done') return false; const dl = new Date(t.deadline); dl.setHours(0,0,0,0); return dl <= in7days }) },
-              { id: 'non_approuve',    label: `À approuver (${tasks.filter(t => t.statut === 'Done' && !t.approval).length})`, show: tasks.some(t => t.statut === 'Done' && !t.approval) },
-              ...taskMissions.map(m => ({ id: `mission:${m}`, label: m, show: true })),
-            ].filter(f => f.show !== false || f.id === 'all').map(f => (
-              <button key={f.id} onClick={() => setTaskFilter(f.id)}
-                className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${taskFilter === f.id ? 'bg-ink text-white border-ink' : 'bg-paper border-border text-muted hover:text-ink hover:border-ink/30'}`}>
-                {f.label}
-              </button>
-            ))}
+          <div className="flex items-center gap-2">
+            {tasks.length > 0 && (
+              <select
+                value={taskFilter}
+                onChange={e => setTaskFilter(e.target.value)}
+                className="text-xs border border-border rounded-lg px-2.5 py-1.5 bg-paper text-muted focus:outline-none focus:border-ink/30 cursor-pointer"
+              >
+                <option value="all">Toutes les tâches</option>
+                <option value="par_mission">Par mission</option>
+                <optgroup label="Statut">
+                  <option value="en_cours">En cours</option>
+                  <option value="bloque">Bloquées</option>
+                  <option value="termine">Terminées</option>
+                  <option value="non_approuve">À approuver</option>
+                </optgroup>
+                <optgroup label="Deadline">
+                  <option value="en_retard">En retard</option>
+                  <option value="deadline_proche">Deadline dans 7 jours</option>
+                </optgroup>
+              </select>
+            )}
+            <button onClick={() => setShowTacheModal(true)} className="btn-primary">
+              <Plus size={14} /> Nouvelle tâche
+            </button>
           </div>
-        )}
+        </div>
 
         {tasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-border rounded-2xl bg-paper-warm/40">
@@ -1525,7 +1526,35 @@ export default function ProjectDetailPage({ backPath = '/app/projects' }) {
                 {filteredTasks.length === 0 && (
                   <tr><td colSpan={8} className="py-10 text-center text-sm text-muted">Aucune tâche ne correspond à ce filtre.</td></tr>
                 )}
-                {filteredTasks.map(task => (
+                {taskFilter === 'par_mission' ? (
+                  taskMissions.length === 0
+                    ? tasks.map(task => <TaskRow key={task.id} task={task} projectId={project.id} isManager={isManager} onEdit={() => setEditingTask(task)} onApproved={(approvedTask) => { const files = approvedTask.files || []; const links = approvedTask.links || []; const addedById = String(approvedTask.personnelId || ''); const addedByNom = approvedTask.personnelNom || ''; files.forEach(f => { if (f.url) addLivrable(project.id, { nom: f.name || approvedTask.nom, type: 'file', url: f.url, fileName: f.name, addedById, addedByNom, source: 'task', taskId: approvedTask.id, taskNom: approvedTask.nom }) }); links.forEach(url => { addLivrable(project.id, { nom: approvedTask.nom, type: 'link', url, addedById, addedByNom, source: 'task', taskId: approvedTask.id, taskNom: approvedTask.nom }) }); if (files.length > 0 || links.length > 0) toast.success(`${files.length + links.length} livrable${files.length + links.length > 1 ? 's' : ''} ajouté${files.length + links.length > 1 ? 's' : ''}`) }} />)
+                    : [
+                        ...taskMissions.map(mission => {
+                          const mTasks = tasks.filter(t => t.missionNom === mission)
+                          return [
+                            <tr key={`h-${mission}`}>
+                              <td colSpan={8} className="pt-5 pb-1.5">
+                                <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-electric bg-electric/5 border border-electric/20 px-2.5 py-1 rounded-full">
+                                  <Flag size={9} />{mission} · {mTasks.length} tâche{mTasks.length > 1 ? 's' : ''}
+                                </span>
+                              </td>
+                            </tr>,
+                            ...mTasks.map(task => <TaskRow key={task.id} task={task} projectId={project.id} isManager={isManager} onEdit={() => setEditingTask(task)} onApproved={(approvedTask) => { const files = approvedTask.files || []; const links = approvedTask.links || []; const addedById = String(approvedTask.personnelId || ''); const addedByNom = approvedTask.personnelNom || ''; files.forEach(f => { if (f.url) addLivrable(project.id, { nom: f.name || approvedTask.nom, type: 'file', url: f.url, fileName: f.name, addedById, addedByNom, source: 'task', taskId: approvedTask.id, taskNom: approvedTask.nom }) }); links.forEach(url => { addLivrable(project.id, { nom: approvedTask.nom, type: 'link', url, addedById, addedByNom, source: 'task', taskId: approvedTask.id, taskNom: approvedTask.nom }) }); if (files.length > 0 || links.length > 0) toast.success(`${files.length + links.length} livrable${files.length + links.length > 1 ? 's' : ''} ajouté${files.length + links.length > 1 ? 's' : ''}`) }} />),
+                          ]
+                        }),
+                        tasks.filter(t => !t.missionNom).length > 0 && [
+                          <tr key="h-sans-mission">
+                            <td colSpan={8} className="pt-5 pb-1.5">
+                              <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-muted bg-paper-warm border border-border px-2.5 py-1 rounded-full">
+                                Sans mission · {tasks.filter(t => !t.missionNom).length} tâche{tasks.filter(t => !t.missionNom).length > 1 ? 's' : ''}
+                              </span>
+                            </td>
+                          </tr>,
+                          ...tasks.filter(t => !t.missionNom).map(task => <TaskRow key={task.id} task={task} projectId={project.id} isManager={isManager} onEdit={() => setEditingTask(task)} onApproved={(approvedTask) => { const files = approvedTask.files || []; const links = approvedTask.links || []; const addedById = String(approvedTask.personnelId || ''); const addedByNom = approvedTask.personnelNom || ''; files.forEach(f => { if (f.url) addLivrable(project.id, { nom: f.name || approvedTask.nom, type: 'file', url: f.url, fileName: f.name, addedById, addedByNom, source: 'task', taskId: approvedTask.id, taskNom: approvedTask.nom }) }); links.forEach(url => { addLivrable(project.id, { nom: approvedTask.nom, type: 'link', url, addedById, addedByNom, source: 'task', taskId: approvedTask.id, taskNom: approvedTask.nom }) }); if (files.length > 0 || links.length > 0) toast.success(`${files.length + links.length} livrable${files.length + links.length > 1 ? 's' : ''} ajouté${files.length + links.length > 1 ? 's' : ''}`) }} />),
+                        ]
+                      ].flat().filter(Boolean)
+                ) : filteredTasks.map(task => (
                   <TaskRow
                     key={task.id}
                     task={task}
