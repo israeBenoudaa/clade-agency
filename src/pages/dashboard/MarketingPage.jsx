@@ -770,11 +770,12 @@ export default function MarketingPage() {
   return (
     <div className="p-4 lg:p-10 space-y-5 lg:space-y-7">
 
-      {/* Flèche de retour (sous-pages uniquement) */}
+      {/* Retour dashboard (sous-pages uniquement) */}
       {tab !== 'dashboard' && (
         <button onClick={goBack}
-          className="w-8 h-8 rounded-xl border border-border flex items-center justify-center text-muted hover:text-ink hover:bg-paper-warm transition-colors">
-          <ChevronLeft size={18}/>
+          className="flex items-center gap-1.5 text-sm text-muted hover:text-ink transition-colors">
+          <ChevronLeft size={16}/>
+          <span>Tableau de bord</span>
         </button>
       )}
 
