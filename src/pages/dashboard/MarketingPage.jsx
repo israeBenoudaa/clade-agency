@@ -77,7 +77,7 @@ function getWeekPosts(posts) {
   return posts.filter(p => { if(!p.datePublication) return false; const d=new Date(p.datePublication); return d>=mon&&d<=sun })
 }
 
-// Détecte la plateforme et l'URL d'embed depuis un lien
+// Détecte la plateforme, l'URL d'embed et la miniature depuis un lien
 function parseInspirationUrl(url) {
   try {
     const u = url.trim()
@@ -87,26 +87,29 @@ function parseInspirationUrl(url) {
       platform: 'instagram',
       type: igMatch[1] === 'reel' ? 'reel' : 'post',
       embedUrl: `https://www.instagram.com/${igMatch[1]}/${igMatch[2]}/embed/`,
-      embedH: igMatch[1] === 'reel' ? 560 : 500,
+      thumbUrl: null, // Instagram bloque les miniatures directes sans auth
+      embedH: igMatch[1] === 'reel' ? 480 : 430,
     }
-    // YouTube
+    // YouTube — miniature publique disponible directement
     const ytMatch = u.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]+)/)
     if (ytMatch) return {
       platform: 'youtube', type: 'video',
       embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}`,
-      embedH: 315,
+      thumbUrl: `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`,
+      embedH: 200,
     }
     // Pinterest
     const piMatch = u.match(/pinterest\.[a-z]+\/pin\/(\d+)/)
     if (piMatch) return {
       platform: 'pinterest', type: 'post',
       embedUrl: `https://www.pinterest.com/pin/${piMatch[1]}/embed/`,
-      embedH: 400,
+      thumbUrl: null,
+      embedH: 380,
     }
-    if (/linkedin\.com/.test(u)) return { platform: 'linkedin', type: 'publication', embedUrl: null, embedH: 0 }
-    if (/facebook\.com/.test(u)) return { platform: 'facebook', type: 'post', embedUrl: null, embedH: 0 }
-    return { platform: 'autre', type: 'lien', embedUrl: null, embedH: 0 }
-  } catch { return { platform: 'autre', type: 'lien', embedUrl: null, embedH: 0 } }
+    if (/linkedin\.com/.test(u)) return { platform: 'linkedin', type: 'publication', embedUrl: null, thumbUrl: null, embedH: 0 }
+    if (/facebook\.com/.test(u)) return { platform: 'facebook', type: 'post', embedUrl: null, thumbUrl: null, embedH: 0 }
+    return { platform: 'autre', type: 'lien', embedUrl: null, thumbUrl: null, embedH: 0 }
+  } catch { return { platform: 'autre', type: 'lien', embedUrl: null, thumbUrl: null, embedH: 0 } }
 }
 
 // ─── Section Header (pattern identique aux autres pages) ─────────────────────
@@ -556,41 +559,63 @@ function ObjectifRow({ obj, onChange, onDelete }) {
 // ─── Carte Inspiration ────────────────────────────────────────────────────────
 
 function InspirationCard({ inspi, onDelete }) {
-  const parsed = useMemo(()=>parseInspirationUrl(inspi.url),[inspi.url])
-  const plt = PLATEFORMES[parsed.platform]
-  const [expanded, setExpanded] = useState(false)
+  const parsed  = useMemo(()=>parseInspirationUrl(inspi.url),[inspi.url])
+  const plt     = PLATEFORMES[parsed.platform]
+  // YouTube → miniature directe ; Instagram/Pinterest → iframe auto-chargé ; reste → placeholder
+  const hasThumb = !!parsed.thumbUrl
+  const hasEmbed = !!parsed.embedUrl
+  const [iframeOpen, setIframeOpen] = useState(false)
+
+  const renderPreview = () => {
+    // 1. Miniature image directe (YouTube)
+    if (hasThumb) return (
+      <div className="relative w-full bg-black overflow-hidden" style={{height: 160}}>
+        <img src={parsed.thumbUrl} alt={inspi.titre||'aperçu'} className="w-full h-full object-cover"/>
+        {/* Bouton play overlay */}
+        <button onClick={()=>setIframeOpen(true)}
+          className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/50 transition-colors group">
+          <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+            <div className="w-0 h-0 border-t-[8px] border-b-[8px] border-l-[14px] border-transparent border-l-rose-600 ml-1"/>
+          </div>
+        </button>
+      </div>
+    )
+    // 2. Iframe auto-chargé (Instagram, Pinterest)
+    if (hasEmbed) return (
+      <div className="w-full overflow-hidden bg-paper" style={{height: parsed.embedH}}>
+        <iframe
+          src={parsed.embedUrl}
+          className="w-full h-full border-0 scale-[0.85] origin-top -mt-0"
+          allowFullScreen loading="lazy"
+          title={inspi.titre||inspi.url}
+        />
+      </div>
+    )
+    // 3. Placeholder (LinkedIn, Facebook, autre)
+    return (
+      <div className="w-full h-24 flex flex-col items-center justify-center gap-1.5 bg-paper">
+        <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold ${plt?.badge||'bg-slate-100 text-slate-600'}`}>
+          {plt?.abbr||'?'}
+        </div>
+        <p className="text-[10px] text-muted">Aperçu non disponible</p>
+      </div>
+    )
+  }
 
   return (
     <div className="border border-border rounded-xl overflow-hidden bg-white hover:shadow-md transition-shadow">
-      {/* Preview / embed */}
-      {parsed.embedUrl && expanded ? (
-        <div className="w-full overflow-hidden bg-black/5 flex items-center justify-center" style={{height: parsed.embedH}}>
-          <iframe
-            src={parsed.embedUrl}
-            className="w-full h-full border-0"
-            allowFullScreen
-            loading="lazy"
-            title={inspi.titre||inspi.url}
-          />
+      {/* Si YouTube et qu'on a cliqué play → iframe à la place */}
+      {iframeOpen && hasEmbed ? (
+        <div className="w-full overflow-hidden bg-black" style={{height: parsed.embedH}}>
+          <iframe src={parsed.embedUrl} className="w-full h-full border-0" allowFullScreen loading="lazy" title={inspi.titre||inspi.url}/>
         </div>
-      ) : (
-        <button onClick={()=>setExpanded(true)}
-          className="w-full h-28 flex flex-col items-center justify-center gap-2 bg-paper hover:bg-paper-warm transition-colors">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold ${plt?.badge||'bg-slate-100 text-slate-600'}`}>
-            {plt?.abbr||'?'}
-          </div>
-          {parsed.embedUrl
-            ? <p className="text-xs text-muted">Cliquer pour afficher</p>
-            : <p className="text-xs text-muted">Aperçu non disponible</p>
-          }
-        </button>
-      )}
+      ) : renderPreview()}
 
       {/* Footer */}
       <div className="px-3 py-2.5 border-t border-border flex items-start gap-2">
         <div className="flex-1 min-w-0">
           <p className="text-xs font-medium text-ink truncate">{inspi.titre||inspi.url}</p>
-          <div className="flex items-center gap-1.5 mt-0.5">
+          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
             {plt&&<Badge cls={plt.badge}>{plt.label}</Badge>}
             {inspi.type&&<Badge cls="bg-slate-100 text-slate-600">{inspi.type}</Badge>}
           </div>
