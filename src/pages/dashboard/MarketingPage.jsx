@@ -770,21 +770,12 @@ export default function MarketingPage() {
   return (
     <div className="p-4 lg:p-10 space-y-5 lg:space-y-7">
 
-      {/* Header de section (sous-pages uniquement) */}
-      {tab !== 'dashboard' && subSection && (
-        <div className="flex items-center gap-3">
-          <button onClick={goBack}
-            className="w-8 h-8 rounded-xl border border-border flex items-center justify-center text-muted hover:text-ink hover:bg-paper-warm transition-colors flex-shrink-0">
-            <ChevronLeft size={16}/>
-          </button>
-          <div className={`w-9 h-9 rounded-xl ${subSection.iconBg} flex items-center justify-center flex-shrink-0`}>
-            <subSection.icon size={16} className={subSection.iconColor}/>
-          </div>
-          <div>
-            <div className="label-text">Marketing</div>
-            <div className="font-display text-xl text-ink leading-tight">{subSection.label}</div>
-          </div>
-        </div>
+      {/* Flèche de retour (sous-pages uniquement) */}
+      {tab !== 'dashboard' && (
+        <button onClick={goBack}
+          className="w-8 h-8 rounded-xl border border-border flex items-center justify-center text-muted hover:text-ink hover:bg-paper-warm transition-colors">
+          <ChevronLeft size={18}/>
+        </button>
       )}
 
       {/* ══ TABLEAU DE BORD ══════════════════════════════════════════════════ */}
@@ -813,13 +804,11 @@ export default function MarketingPage() {
           <div className="flex flex-col lg:flex-row gap-5">
             {/* Objectifs */}
             <div className="flex-1 card p-5 lg:p-7">
-              <SectionHeader category="Marketing" title="Objectifs en cours" icon={Target}
-                action={<button onClick={()=>setTab('strategie')} className="btn-ghost text-xs py-1.5">Gérer</button>}/>
+              <SectionHeader category="Marketing" title="Objectifs en cours" icon={Target}/>
               {objectifsAvancement.length===0 ? (
                 <div className="py-10 text-center">
                   <Target size={32} className="text-muted mx-auto mb-3 opacity-30"/>
-                  <p className="text-sm text-muted mb-3">Aucun objectif défini</p>
-                  <button onClick={()=>setTab('strategie')} className="btn-ghost text-xs py-1.5 mx-auto">Ajouter</button>
+                  <p className="text-sm text-muted">Aucun objectif défini</p>
                 </div>
               ) : (
                 <div className="space-y-1">{objectifsAvancement.slice(0,5).map(obj=>(
@@ -831,20 +820,18 @@ export default function MarketingPage() {
             {/* Posts semaine */}
             <div className="lg:w-80 card p-5 lg:p-7">
               <SectionHeader category="Contenu" title="Cette semaine" icon={CalendarDays}
-                iconBg="bg-violet-50" iconColor="text-violet-600"
-                action={<button onClick={()=>setTab('contenu')} className="btn-ghost text-xs py-1.5">Calendrier</button>}/>
+                iconBg="bg-violet-50" iconColor="text-violet-600"/>
               {weekPosts.length===0 ? (
                 <div className="py-10 text-center">
                   <CalendarDays size={32} className="text-muted mx-auto mb-3 opacity-30"/>
-                  <p className="text-sm text-muted mb-3">Aucune publication</p>
-                  <button onClick={()=>setPostModal('new')} className="btn-primary text-xs py-1.5 mx-auto"><Plus size={13}/>Planifier</button>
+                  <p className="text-sm text-muted">Aucune publication cette semaine</p>
                 </div>
               ) : (
                 <div className="space-y-1">
                   {weekPosts.map(p=>{
                     const plt=PLATEFORMES[p.plateforme], st=STATUTS[p.statut]
                     return (
-                      <div key={p.id} onClick={()=>setPostModal(p)} className="flex items-center gap-3 px-2 py-2.5 rounded-xl hover:bg-paper-warm cursor-pointer transition-colors">
+                      <div key={p.id} className="flex items-center gap-3 px-2 py-2.5 rounded-xl">
                         <div className={`w-2 h-2 rounded-full flex-shrink-0 ${plt?.dot||'bg-muted'}`}/>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-ink truncate">{p.titre}</p>
@@ -883,7 +870,7 @@ export default function MarketingPage() {
                   <p className="font-semibold text-sm text-ink">{s.label}</p>
                   <p className="text-[11px] text-muted">{s.desc}</p>
                 </div>
-                <ChevronRight size={14} className="text-muted flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"/>
+                <ChevronRight size={14} className="text-muted flex-shrink-0"/>
               </button>
             ))}
           </div>
