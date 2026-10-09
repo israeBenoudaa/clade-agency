@@ -149,8 +149,12 @@ const fromDbJourFerie = (r) => ({ id: r.id, date: r.date, nom: r.nom, dateFin: r
 const toDbWorkflow = (w) => ({ id: w.id, title: w.title || null, description: w.description || null, blocks: w.blocks || [], shared_with: w.sharedWith || [], versions: w.versions || [], deleted_at: w.deletedAt || null, created_at: w.createdAt || new Date().toISOString(), updated_at: w.updatedAt || new Date().toISOString(), created_by_id: w.createdById || null, created_by_nom: w.createdByNom || null, category: w.category || null })
 const fromDbWorkflow = (r) => ({ id: r.id, title: r.title, description: r.description, blocks: r.blocks || [], sharedWith: r.shared_with || [], versions: r.versions || [], deletedAt: r.deleted_at, createdAt: r.created_at, updatedAt: r.updated_at, createdById: r.created_by_id || null, createdByNom: r.created_by_nom || null, category: r.category || null })
 
-const toDbMarketingPost = (p) => ({ id: p.id, titre: p.titre || null, contenu: p.contenu || null, plateforme: p.plateforme || null, type_contenu: p.typeContenu || null, statut: p.statut || 'brouillon', date_publication: p.datePublication || null, lien_url: p.lienUrl || null, hashtags: p.hashtags || [], stats: p.stats || { vues: 0, likes: 0, commentaires: 0, partages: 0, reach: 0 }, categorie: p.categorie || null, visuels_urls: p.visuelsUrls || [], notes: p.notes || null, created_at: p.createdAt || new Date().toISOString(), updated_at: new Date().toISOString(), created_by_id: p.createdById || null, created_by_nom: p.createdByNom || null })
-const fromDbMarketingPost = (r) => ({ id: r.id, titre: r.titre, contenu: r.contenu, plateforme: r.plateforme, typeContenu: r.type_contenu, statut: r.statut || 'brouillon', datePublication: r.date_publication, lienUrl: r.lien_url, hashtags: r.hashtags || [], stats: r.stats || { vues: 0, likes: 0, commentaires: 0, partages: 0, reach: 0 }, categorie: r.categorie, visuelsUrls: r.visuels_urls || [], notes: r.notes, createdAt: r.created_at, updatedAt: r.updated_at, createdById: r.created_by_id, createdByNom: r.created_by_nom })
+const toDbMarketingPost = (p) => ({ id: p.id, titre: p.titre || null, contenu: p.contenu || null, plateforme: p.plateforme || null, type_contenu: p.typeContenu || null, statut: p.statut || 'brouillon', date_publication: p.datePublication || null, lien_url: p.lienUrl || null, hashtags: p.hashtags || [], stats: p.stats || { vues: 0, likes: 0, commentaires: 0, partages: 0, reach: 0 }, categorie: p.categorie || null, pilier: p.pilier || null, visuels_urls: p.visuelsUrls || [], notes: p.notes || null, created_at: p.createdAt || new Date().toISOString(), updated_at: new Date().toISOString(), created_by_id: p.createdById || null, created_by_nom: p.createdByNom || null })
+const fromDbMarketingPost = (r) => ({ id: r.id, titre: r.titre, contenu: r.contenu, plateforme: r.plateforme, typeContenu: r.type_contenu, statut: r.statut || 'brouillon', datePublication: r.date_publication, lienUrl: r.lien_url, hashtags: r.hashtags || [], stats: r.stats || { vues: 0, likes: 0, commentaires: 0, partages: 0, reach: 0 }, categorie: r.categorie, pilier: r.pilier || null, visuelsUrls: r.visuels_urls || [], notes: r.notes, createdAt: r.created_at, updatedAt: r.updated_at, createdById: r.created_by_id, createdByNom: r.created_by_nom })
+
+const DEFAULT_CONFIG = { swot: { forces: [], faiblesses: [], opportunites: [], menaces: [] }, positionnement: '', messageCle: '', ton: [], charte: { couleurs: [{ hex: '#0A1E3F', nom: 'Encre' }, { hex: '#06B6D4', nom: 'Electric' }, { hex: '#FAFBFD', nom: 'Paper' }] }, piliers: [], personas: [], objectifs: [], veille: [], leads: [] }
+const toDbMarketingConfig = (c) => ({ id: 1, swot: c.swot, positionnement: c.positionnement || null, message_cle: c.messageCle || null, ton: c.ton || [], charte: c.charte, piliers: c.piliers || [], personas: c.personas || [], objectifs: c.objectifs || [], veille: c.veille || [], leads: c.leads || [], updated_at: new Date().toISOString() })
+const fromDbMarketingConfig = (r) => ({ swot: r.swot || DEFAULT_CONFIG.swot, positionnement: r.positionnement || '', messageCle: r.message_cle || '', ton: r.ton || [], charte: r.charte || DEFAULT_CONFIG.charte, piliers: r.piliers || [], personas: r.personas || [], objectifs: r.objectifs || [], veille: r.veille || [], leads: r.leads || [] })
 
 const toDbNotification = (n) => ({ id: n.id, type: n.type || null, message: n.message, target_user_id: n.targetUserId || null, read: n.read || false, link: n.link || null, for_hr: n.forHR || false, created_at: n.createdAt || new Date().toISOString() })
 const fromDbNotification = (r) => ({ id: r.id, type: r.type, message: r.message, targetUserId: r.target_user_id, read: r.read, link: r.link, forHR: r.for_hr, createdAt: r.created_at })
@@ -327,6 +331,7 @@ export function DataProvider({ children }) {
   })
 
   const [marketingPosts, setMarketingPosts] = useState([])
+  const [marketingConfig, setMarketingConfig] = useState(DEFAULT_CONFIG)
 
   const [tauxImpot, setTauxImpotState] = useState(() => {
     try { const s = localStorage.getItem('clade_taux_impot'); if (s) return parseFloat(s) } catch {}
@@ -340,7 +345,7 @@ export function DataProvider({ children }) {
   // Prevents debounced mass-upsert effects from firing right after the initial DB load
   const syncReadyRef = useRef(false)
   useEffect(() => {
-    stateRef.current = { projects, employes, clients, prospects, transactions, chargesFixe, messages, formations, recrutements, collaborateurs, categoriesCollab, demandesRH, candidaturesSpont, joursFerier, workflows, marketingPosts, agenceSettings, tauxImpot, hiddenMessages, hiddenConvs, msgReadState, notifications }
+    stateRef.current = { projects, employes, clients, prospects, transactions, chargesFixe, messages, formations, recrutements, collaborateurs, categoriesCollab, demandesRH, candidaturesSpont, joursFerier, workflows, marketingPosts, marketingConfig, agenceSettings, tauxImpot, hiddenMessages, hiddenConvs, msgReadState, notifications }
   }, [projects, employes, clients, prospects, transactions, chargesFixe, messages, formations, recrutements, collaborateurs, categoriesCollab, demandesRH, candidaturesSpont, joursFerier, workflows, agenceSettings, tauxImpot, hiddenMessages, hiddenConvs, msgReadState, notifications])
 
   const checkpointsRef = useRef(checkpoints)
@@ -372,6 +377,7 @@ export function DataProvider({ children }) {
           { data: dbSettings },
           { data: dbLog },
           { data: dbMktPosts },
+          { data: dbMktConfig },
         ] = await Promise.all([
           supabase.from('clients').select('*'),
           supabase.from('prospects').select('*'),
@@ -392,6 +398,7 @@ export function DataProvider({ children }) {
           supabase.from('agence_settings').select('*').eq('id', 1).single(),
           supabase.from('activity_log').select('*').order('timestamp', { ascending: false }).limit(500),
           supabase.from('marketing_posts').select('*').order('created_at', { ascending: false }),
+          supabase.from('marketing_config').select('*').eq('id', 1).single(),
         ])
 
         // Log Supabase errors so we can diagnose RLS / schema issues
@@ -515,6 +522,7 @@ export function DataProvider({ children }) {
         if (dbJF)          setJoursFerier(dbJF.map(fromDbJourFerie))
         if (dbWF)          setWorkflows(dbWF.map(fromDbWorkflow))
         if (dbMktPosts)    setMarketingPosts(dbMktPosts.map(fromDbMarketingPost))
+        if (dbMktConfig)   setMarketingConfig(fromDbMarketingConfig(dbMktConfig))
         if (dbNotifs)      setNotifications(dbNotifs.map(fromDbNotification))
         if (dbSettings) {
           setAgenceSettingsState(prev => ({
@@ -2211,6 +2219,14 @@ export function DataProvider({ children }) {
     setWorkflows(prev => prev.filter(w => !w.deletedAt || w.deletedAt > cutoff))
   }, []) // eslint-disable-line
 
+  const updateMarketingConfig = useCallback((data) => {
+    setMarketingConfig(prev => {
+      const updated = { ...prev, ...data }
+      sbUpsert('marketing_config', toDbMarketingConfig(updated))
+      return updated
+    })
+  }, [])
+
   const addMarketingPost = useCallback((data) => {
     const post = { id: `mkt_${Date.now()}`, statut: 'brouillon', hashtags: [], stats: { vues: 0, likes: 0, commentaires: 0, partages: 0, reach: 0 }, visuelsUrls: [], ...data, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
     setMarketingPosts(prev => [post, ...prev])
@@ -2354,6 +2370,7 @@ export function DataProvider({ children }) {
       updateProgramme, updateEstimation,
       addWorkflow, updateWorkflow, deleteWorkflow, restoreWorkflow, permanentDeleteWorkflow, restoreWorkflowVersion,
       marketingPosts, addMarketingPost, updateMarketingPost, deleteMarketingPost,
+      marketingConfig, updateMarketingConfig,
       demoCheckpoint, enterDemoMode, exitDemoMode, confirmDemoRestore,
     }}>
       {children}
