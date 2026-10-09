@@ -519,7 +519,7 @@ export default function PortfolioPage() {
   /* ── UI ── */
   const [isMobile, setIsMobile]       = useState(false)
   const [currentPath, setCurrentPath] = useState('/')
-  const [liveUrl, setLiveUrl]         = useState(() => localStorage.getItem(STORAGE_URL_KEY) || DEFAULT_URL)
+  const [liveUrl, setLiveUrl]         = useState(() => (localStorage.getItem(STORAGE_URL_KEY) || DEFAULT_URL).replace(/^([a-zA-Z]+):\/\//, (_, p) => p.toLowerCase() + '://'))
   const [urlDraft, setUrlDraft]       = useState(liveUrl)
   const [showUrl, setShowUrl]         = useState(false)
   const [showAnalytics, setShowAnalytics] = useState(false)
@@ -714,10 +714,12 @@ export default function PortfolioPage() {
   }
 
   const applyUrl = () => {
-    setLiveUrl(urlDraft)
-    localStorage.setItem(STORAGE_URL_KEY, urlDraft)
+    const normalized = urlDraft.trim().replace(/^([a-zA-Z]+):\/\//, (_, p) => p.toLowerCase() + '://').replace(/\/$/, '')
+    setUrlDraft(normalized)
+    setLiveUrl(normalized)
+    localStorage.setItem(STORAGE_URL_KEY, normalized)
     setShowUrl(false)
-    if (iframeRef.current) iframeRef.current.src = `${urlDraft}${currentPath}`
+    if (iframeRef.current) iframeRef.current.src = `${normalized}${currentPath}`
   }
 
   const hasRightPanel = !!projectForm || !!editPanel
