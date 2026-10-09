@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
-import { ROLE_LABELS } from '../lib/supabase'
+import { ROLE_LABELS, supabase } from '../lib/supabase'
 import { PATH_MODULE_MAP, ALL_MODULES } from '../lib/modules'
 import { Avatar } from '../components/ui'
 import { CladeBrand } from '../components/ui/Logo'
@@ -341,22 +341,18 @@ export default function StaffLayout() {
 
   const unreadCount = visibleNotifications.filter(n => !n.read).length
 
-  // ── localStorage usage ────────────────────────────────────────────────────
-  const storageUsage = useMemo(() => {
-    try {
-      let total = 0
-      for (const key in localStorage) {
-        if (!localStorage.hasOwnProperty(key)) continue
-        total += (localStorage.getItem(key) || '').length * 2 // UTF-16: 2 bytes/char
-      }
-      const mb = total / (1024 * 1024)
-      const pct = Math.min(100, Math.round((mb / 10) * 100)) // ~10MB limit
-      return { mb: mb.toFixed(1), pct }
-    } catch { return { mb: '?', pct: 0 } }
-  }, [projects]) // recompute when data changes
+  // ── Supabase DB storage ───────────────────────────────────────────────────
+  const [dbStorage, setDbStorage] = useState(null) // { total, total_bytes, tables }
+  useEffect(() => {
+    if (!isDirector && !isDirectorMode) return
+    supabase.rpc('get_db_size').then(({ data }) => { if (data) setDbStorage(data) })
+  }, [isDirector, isDirectorMode])
 
-  const storageColor = storageUsage.pct >= 80 ? 'text-rose-500' : storageUsage.pct >= 50 ? 'text-amber-500' : 'text-emerald-500'
-  const storageBg   = storageUsage.pct >= 80 ? 'bg-rose-50 border-rose-200' : storageUsage.pct >= 50 ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-200'
+  const SUPABASE_LIMIT_BYTES = 500 * 1024 * 1024 // 500 MB free tier
+  const dbMb  = dbStorage ? (dbStorage.total_bytes / (1024 * 1024)).toFixed(0) : null
+  const dbPct = dbStorage ? Math.min(100, Math.round((dbStorage.total_bytes / SUPABASE_LIMIT_BYTES) * 100)) : 0
+  const storageColor = dbPct >= 80 ? 'text-rose-500' : dbPct >= 50 ? 'text-amber-500' : 'text-orange-500'
+  const storageBg   = dbPct >= 80 ? 'bg-rose-50 border-rose-200' : dbPct >= 50 ? 'bg-amber-50 border-amber-200' : 'bg-orange-50 border-orange-200'
 
   // ── Global notification bubble ────────────────────────────────────────────
   const seenNotifIds = useRef(null)
@@ -660,15 +656,15 @@ export default function StaffLayout() {
                 </AnimatePresence>
               </div>
 
-              {/* Storage indicator — director only, shows when > 30% */}
-              {(isDirector || isDirectorMode) && storageUsage.pct >= 30 && (
+              {/* Supabase DB storage — director only */}
+              {(isDirector || isDirectorMode) && dbMb !== null && (
                 <div className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-semibold ${storageBg} ${storageColor}`}
-                  title={`Stockage local : ${storageUsage.mb} MB utilisés (~10 MB max)`}>
+                  title={`Base de données Supabase : ${dbMb} MB / 500 MB (plan gratuit)`}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                     <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/>
                   </svg>
-                  {storageUsage.mb} MB
-                  {storageUsage.pct >= 80 && <span className="ml-0.5">⚠️</span>}
+                  {dbMb} MB
+                  {dbPct >= 80 && <span className="ml-0.5">⚠️</span>}
                 </div>
               )}
 
