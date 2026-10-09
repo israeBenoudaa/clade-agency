@@ -382,7 +382,7 @@ export default function SiteAnalytics() {
     const [currRes, prevRes, leadsRes, projRes] = await Promise.all([
       supabase.from('site_visits').select('*').gte('created_at', fromCurr.toISOString()).order('created_at', { ascending: false }),
       supabase.from('site_visits').select('*').gte('created_at', fromPrev.toISOString()).lt('created_at', fromCurr.toISOString()),
-      supabase.from('prospects').select('id, nom, prenom, type_projet, budget, source, created_at').eq('source', 'portfolio').gte('created_at', fromCurr.toISOString()).order('created_at', { ascending: false }),
+      supabase.from('prospects').select('id, nom, prenom, type_projet, budget, source, created_at').gte('created_at', fromCurr.toISOString()).order('created_at', { ascending: false }),
       supabase.from('portfolio_projects').select('id, title, axis, visible'),
     ])
 
@@ -481,17 +481,17 @@ export default function SiteAnalytics() {
         ) : (
           <>
             {/* ── Funnel ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(3, 1fr)' : '1fr auto 1fr auto 1fr', gap: 8, alignItems: 'center', marginBottom: 20 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(3, 1fr)' : '1fr auto 1fr auto 1fr', gap: 8, alignItems: 'stretch', marginBottom: 20 }}>
               {[
                 { label: 'Visites totales', value: totalVisits.toLocaleString(), sub: `${days} derniers jours`, color: ACCENT, icon: Eye },
                 null,
                 { label: 'Pages consultées', value: new Set(visits.map(v => v.page)).size, sub: `${pageRank.length} pages uniques`, color: BLUE, icon: FileText },
                 null,
-                { label: 'Contacts reçus', value: leadCount, sub: convRate > 0 ? `taux : ${convRate.toFixed(1)}%` : 'formulaire portfolio', color: leadCount > 0 ? GREEN : DIM, icon: UserPlus },
+                { label: 'Contacts reçus', value: leadCount, sub: convRate > 0 ? `taux : ${convRate.toFixed(1)}%` : 'tous prospects', color: leadCount > 0 ? GREEN : DIM, icon: UserPlus },
               ].map((item, i) => item === null ? (
-                isMobile ? null : <div key={i} style={{ display: 'flex', justifyContent: 'center' }}><ArrowRight size={16} color={DIM} /></div>
+                isMobile ? null : <div key={i} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}><ArrowRight size={16} color={DIM} /></div>
               ) : (
-                <div key={i} style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: '14px 16px', textAlign: 'center' }}>
+                <div key={i} style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: '14px 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                   <div style={{ fontSize: 9, color: DIM, textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
                     <item.icon size={10} color={item.color} />{item.label}
                   </div>
