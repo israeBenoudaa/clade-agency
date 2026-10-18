@@ -93,7 +93,7 @@ export function sectionHead(num, label) {
         <span style="font-size:11px;color:#9B8157;font-weight:500;font-variant-numeric:tabular-nums;">${String(num).padStart(2,'0')}</span>
       </div>
       <span style="font-size:7px;font-weight:700;letter-spacing:0.28em;text-transform:uppercase;color:#C4BFB8;">${label}</span>
-      <div style="flex:1;height:0.5px;background:linear-gradient(to right,#E0DBD3,transparent);"></div>
+      <div style="flex:1;height:1px;background:linear-gradient(to right,#E0DBD3,transparent);"></div>
     </div>`
 }
 
@@ -132,7 +132,7 @@ export function buildDocHeader({ type, title, ref = '', meta = [], statusSlot = 
         </div>
 
       </div>
-      <div style="margin-top:20px;height:0.5px;background:linear-gradient(to right,rgba(196,173,138,0.35),transparent);"></div>
+      <div style="margin-top:20px;height:1px;background:linear-gradient(to right,rgba(196,173,138,0.35),transparent);"></div>
     </div>
     ${metaHTML}`
 }
