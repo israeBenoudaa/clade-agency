@@ -236,6 +236,9 @@ export async function renderToPdf({ headerHTML, contentHTML, filename }) {
     pdf.save(filename)
   } catch (e) {
     console.error(`[PDF] renderToPdf failed at stage "${_stage}":`, e)
-    throw e
+    const err = new Error(`[${_stage}] ${e?.message || String(e)}`)
+    err.stage = _stage
+    err.original = e
+    throw err
   }
 }
