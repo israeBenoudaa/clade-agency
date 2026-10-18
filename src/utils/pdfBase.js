@@ -59,6 +59,31 @@ async function waitReady(el) {
   await new Promise(r => setTimeout(r, 80))
 }
 
+// html2canvas ne supporte pas les data:image/svg+xml — on convertit en PNG d'abord
+async function convertSvgImgsToPng(el) {
+  const imgs = Array.from(el.querySelectorAll('img')).filter(img =>
+    (img.getAttribute('src') || '').startsWith('data:image/svg')
+  )
+  if (!imgs.length) return
+  await Promise.all(imgs.map(img => new Promise(resolve => {
+    const w = parseInt(img.getAttribute('width')) || 20
+    const h = parseInt(img.getAttribute('height')) || 20
+    const tmp = new Image()
+    tmp.onload = () => {
+      try {
+        const canvas = document.createElement('canvas')
+        canvas.width = w * 2
+        canvas.height = h * 2
+        canvas.getContext('2d').drawImage(tmp, 0, 0, canvas.width, canvas.height)
+        img.src = canvas.toDataURL('image/png')
+      } catch (_) { /* si ça échoue, on laisse tel quel */ }
+      resolve()
+    }
+    tmp.onerror = () => resolve()
+    tmp.src = img.getAttribute('src')
+  })))
+}
+
 // Shared section header inside a content area
 export function sectionHead(num, label) {
   return `
@@ -151,17 +176,23 @@ export async function renderToPdf({ headerHTML, contentHTML, filename }) {
     _stage = 'header-canvas'
     const hEl = createHidden(headerHTML)
     await waitReady(hEl)
+    await convertSvgImgsToPng(hEl)
+    await waitReady(hEl)
     const hCanvas = await html2canvas(hEl, CANVAS_OPTS)
     hEl.remove()
 
     _stage = 'footer-canvas'
     const fEl = createHidden(footerHTML)
     await waitReady(fEl)
+    await convertSvgImgsToPng(fEl)
+    await waitReady(fEl)
     const fCanvas = await html2canvas(fEl, CANVAS_OPTS)
     fEl.remove()
 
     _stage = 'content-canvas'
     const cEl = createHidden(contentHTML)
+    await waitReady(cEl)
+    await convertSvgImgsToPng(cEl)
     await waitReady(cEl)
     const cCanvas = await html2canvas(cEl, CANVAS_OPTS)
     cEl.remove()
