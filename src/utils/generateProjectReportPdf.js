@@ -61,7 +61,7 @@ export async function generateProjectReportPdf({ project, tasks, missions, agenc
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:6px;">
       ${kpis.map(k => `
         <div style="background:#F8F5F0;border-radius:6px;padding:13px 14px;">
-          <div style="${AV}font-size:20px;font-weight:400;color:#0C0C0B;line-height:1;margin-bottom:5px;">${k.value}</div>
+          <div style="font-family:'Inter Tight',-apple-system,sans-serif;font-size:20px;font-weight:700;color:#0C0C0B;line-height:1;margin-bottom:5px;font-variant-numeric:tabular-nums;">${k.value}</div>
           <div style="font-size:9.5px;font-weight:600;color:#3A3830;margin-bottom:2px;">${k.label}</div>
           <div style="font-size:8.5px;color:#9B968F;">${k.sub}</div>
         </div>`).join('')}

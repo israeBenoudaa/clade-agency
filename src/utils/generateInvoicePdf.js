@@ -13,7 +13,6 @@ const STATUS = {
 }
 
 const SB = "font-family:'Inter Tight',-apple-system,BlinkMacSystemFont,sans-serif;"
-const AV = "font-family:'Averia Libre',Georgia,serif;"
 
 export async function generateInvoicePdf({ invoiceNum, projectNom, client, missionNom, honoraire, paiement, date }) {
   const st  = STATUS[paiement] || STATUS.non_paye
@@ -30,10 +29,6 @@ export async function generateInvoicePdf({ invoiceNum, projectNom, client, missi
       { label: 'Client', value: client || '—' },
       { label: 'Statut', value: st.label, accent: paiement !== 'paye' },
     ],
-    statusSlot: `
-      <div style="background:#ffffff;padding:10px 16px;text-align:center;width:100%;box-sizing:border-box;">
-        <span style="${AV}font-size:13px;color:${st.fg}99;line-height:1;">[ </span><span style="${SB}font-size:7.5px;font-weight:700;letter-spacing:0.34em;text-transform:uppercase;color:${st.fg};">${st.label}</span><span style="${AV}font-size:13px;color:${st.fg}99;line-height:1;"> ]</span>
-      </div>`,
   })
 
   const contentHTML = `
@@ -53,7 +48,7 @@ export async function generateInvoicePdf({ invoiceNum, projectNom, client, missi
           </tr>
           <tr>
             <td style="padding:13px 0 2px;border-top:0.5px solid #0C0C0B;">
-              <span style="${AV}font-size:13px;font-style:italic;color:#9B8157;">Total à régler</span>
+              <span style="${SB}font-size:11px;font-weight:500;letter-spacing:0.14em;text-transform:uppercase;color:#9B8157;">Total à régler</span>
             </td>
             <td style="padding:13px 0 2px;border-top:0.5px solid #0C0C0B;text-align:right;font-variant-numeric:tabular-nums;">
               <span style="font-size:14px;font-weight:700;color:#0C0C0B;">${fmtMAD(ttc)}</span>

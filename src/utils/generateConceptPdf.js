@@ -50,7 +50,7 @@ export async function generateConceptPdf({ project, concept, response, download 
       ].map((s, i) => `
         <div style="flex:1;${i > 0 ? 'border-left:0.5px solid #E0DBD3;padding-left:18px;' : ''}padding-right:18px;">
           <div style="font-size:7px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:#BAB5AE;margin-bottom:3px;">${s.label}</div>
-          <div style="${AV}font-size:22px;font-weight:400;color:${s.color};line-height:1.1;">${s.value}</div>
+          <div style="font-family:'Inter Tight',-apple-system,sans-serif;font-size:22px;font-weight:700;color:${s.color};line-height:1.1;font-variant-numeric:tabular-nums;">${s.value}</div>
         </div>`).join('')}
     </div>`
 

@@ -35,7 +35,7 @@ export async function generateDevisPdf({ prospect, missions }) {
           <tr style="border-bottom:0.5px solid #F0ECE6;">
             <td style="padding:12px 0;vertical-align:top;">
               <div style="display:flex;align-items:flex-start;gap:12px;">
-                <span style="${AV}font-size:12px;color:#C4AD8A;flex-shrink:0;line-height:1.6;">${String(i+1).padStart(2,'0')}</span>
+                <span style="${SB}font-size:11px;font-weight:500;color:#9B8157;flex-shrink:0;line-height:1.6;font-variant-numeric:tabular-nums;">${String(i+1).padStart(2,'0')}</span>
                 <div>
                   <div style="font-size:12.5px;font-weight:600;color:#0C0C0B;margin-bottom:2px;">${m.nom}</div>
                   ${m.description ? `<div style="font-size:10.5px;color:#6B6760;margin-bottom:6px;line-height:1.5;">${m.description}</div>` : ''}
@@ -79,7 +79,7 @@ export async function generateDevisPdf({ prospect, missions }) {
               <div style="font-size:10px;color:#9B968F;margin-top:2px;">${fmtMAD(totalHT)} + ${fmtMAD(tva)}</div>
             </td>
             <td style="padding:13px 0 2px;border-top:0.5px solid #0C0C0B;text-align:right;vertical-align:top;">
-              <span style="${AV}font-size:13px;font-style:italic;color:#9B8157;display:block;">Total TTC</span>
+              <span style="${SB}font-size:11px;font-weight:500;letter-spacing:0.14em;text-transform:uppercase;color:#9B8157;display:block;">Total TTC</span>
               <span style="font-size:15px;font-weight:700;color:#0C0C0B;font-variant-numeric:tabular-nums;">${fmtMAD(totalTTC)}</span>
             </td>
           </tr>
