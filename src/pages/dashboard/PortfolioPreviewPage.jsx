@@ -653,6 +653,7 @@ export default function PortfolioPage() {
   const [iframeReady, setIframeReady] = useState(false)
   const [iframeTimeout, setIframeTimeout] = useState(false)
   const iframeTimerRef = useRef(null)
+  const iframeEverReady = useRef(false)
 
   /* ── Site-content single-field ── */
   const [editPanel, setEditPanel] = useState(null)
@@ -716,6 +717,7 @@ export default function PortfolioPage() {
       if (e.data.type === 'cms-ready') {
         // iframe React app is fully mounted — enable edit mode immediately (no timeout needed)
         iframeRef.current?.contentWindow?.postMessage({ type: 'cms-enable' }, '*')
+        iframeEverReady.current = true
         setIframeReady(true)
         setIframeTimeout(false)
         if (iframeTimerRef.current) clearTimeout(iframeTimerRef.current)
@@ -761,11 +763,12 @@ export default function PortfolioPage() {
     // Fallback: cms-ready from the iframe is the primary signal (handled above in the message listener).
     // This fires on onLoad as a safety net in case cms-ready was already sent before we were listening.
     setTimeout(() => iframeRef.current?.contentWindow?.postMessage({ type: 'cms-enable' }, '*'), 80)
-    // Start a 10s timeout — if cms-ready never arrives, flag the URL as unreachable
+    // If the site already loaded once, don't show error during reload (just wait silently)
     if (iframeTimerRef.current) clearTimeout(iframeTimerRef.current)
     setIframeReady(false)
     setIframeTimeout(false)
-    iframeTimerRef.current = setTimeout(() => setIframeTimeout(true), 10000)
+    const delay = iframeEverReady.current ? 60000 : 10000
+    iframeTimerRef.current = setTimeout(() => setIframeTimeout(true), delay)
   }, [])
 
   /* ── Save site_content field ── */
@@ -972,9 +975,14 @@ export default function PortfolioPage() {
                       Vérifiez que le portfolio est bien déployé et que l'URL est correcte.
                     </div>
                   </div>
-                  <button onClick={() => setShowUrl(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', borderRadius: 9, background: 'rgba(200,184,154,0.15)', border: '1px solid rgba(200,184,154,0.25)', color: '#C8B89A', fontSize: 12, fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, cursor: 'pointer' }}>
-                    <ExternalLink size={12} /> Changer l'URL
-                  </button>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={() => setShowUrl(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', borderRadius: 9, background: 'rgba(200,184,154,0.15)', border: '1px solid rgba(200,184,154,0.25)', color: '#C8B89A', fontSize: 12, fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, cursor: 'pointer' }}>
+                      <ExternalLink size={12} /> Changer l'URL
+                    </button>
+                    <button onClick={() => { const u = DEFAULT_URL; setLiveUrl(u); setUrlDraft(u); localStorage.setItem(STORAGE_URL_KEY, u); if (iframeRef.current) iframeRef.current.src = u + '/'; }} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', borderRadius: 9, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(245,240,234,0.45)', fontSize: 12, fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, cursor: 'pointer' }}>
+                      Réinitialiser (localhost)
+                    </button>
+                  </div>
                 </div>
               )}
             </>
