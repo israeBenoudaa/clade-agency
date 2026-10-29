@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus, X, Edit2, Trash2, Eye, EyeOff, ImageIcon,
   Globe, Filter, Search, GripVertical, Save, ChevronDown, Layers,
+  Upload, Loader2,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
@@ -48,6 +49,74 @@ function ProjectModal({ project, onClose, onSave }) {
   const [saving, setSaving] = useState(false)
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  const [uploading, setUploading] = useState(null)
+  const [dragIdx, setDragIdx]     = useState(null)
+  const mainImgRef = useRef(null)
+  const gallerySingleRef = useRef(null)
+  const galleryMultiRef = useRef(null)
+  const galleryTargetRef = useRef(null)
+
+  function moveGallery(from, to) {
+    const g = [...form.gallery]
+    const [moved] = g.splice(from, 1)
+    g.splice(to, 0, moved)
+    set('gallery', g)
+  }
+
+  async function uploadImg(file, target) {
+    const ext = file.name.split('.').pop().toLowerCase()
+    const slug = (form.title || 'projet').replace(/[^a-z0-9]/gi, '-').toLowerCase().slice(0, 30)
+    const path = `${slug}/${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`
+    const key = target === 'main' ? 'main' : `g${target}`
+    setUploading(key)
+    const { error } = await supabase.storage.from('portfolio').upload(path, file, { cacheControl: '3600', upsert: false })
+    setUploading(null)
+    if (error) {
+      toast.error('Upload échoué — vérifiez que le bucket "portfolio" existe et est public dans Supabase Storage')
+      return null
+    }
+    const { data } = supabase.storage.from('portfolio').getPublicUrl(path)
+    return data.publicUrl
+  }
+
+  async function handleMainUpload(e) {
+    const file = e.target.files?.[0]; e.target.value = ''
+    if (!file) return
+    const url = await uploadImg(file, 'main')
+    if (url) { set('image_url', url); toast.success('Image principale ajoutée') }
+  }
+
+  async function handleGallerySingle(e) {
+    const file = e.target.files?.[0]; e.target.value = ''
+    if (!file) return
+    const i = galleryTargetRef.current
+    const url = await uploadImg(file, i)
+    if (url) {
+      const g = [...form.gallery]; g[i] = url; set('gallery', g)
+      toast.success('Image ajoutée')
+    }
+  }
+
+  async function handleGalleryMulti(e) {
+    const files = Array.from(e.target.files || []); e.target.value = ''
+    if (!files.length) return
+    setUploading('multi')
+    const slug = (form.title || 'projet').replace(/[^a-z0-9]/gi, '-').toLowerCase().slice(0, 30)
+    const urls = []
+    for (const file of files) {
+      const ext = file.name.split('.').pop().toLowerCase()
+      const path = `${slug}/${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`
+      const { error } = await supabase.storage.from('portfolio').upload(path, file, { cacheControl: '3600', upsert: false })
+      if (!error) {
+        const { data } = supabase.storage.from('portfolio').getPublicUrl(path)
+        urls.push(data.publicUrl)
+      }
+    }
+    set('gallery', [...form.gallery.filter(Boolean), ...urls])
+    setUploading(null)
+    if (urls.length) toast.success(`${urls.length} image${urls.length > 1 ? 's' : ''} ajoutée${urls.length > 1 ? 's' : ''}`)
+  }
 
   const handleSave = async () => {
     if (!form.title.trim()) { toast.error('Le titre est obligatoire'); return }
@@ -242,8 +311,20 @@ function ProjectModal({ project, onClose, onSave }) {
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Images</h3>
             <div className="space-y-3">
               <div>
-                <label className={label}>Image principale (URL)</label>
-                <input className={input} value={form.image_url} onChange={e => set('image_url', e.target.value)} placeholder="https://images.unsplash.com/..." />
+                <label className={label}>Image principale</label>
+                <div className="flex gap-2">
+                  <input className={input} value={form.image_url} onChange={e => set('image_url', e.target.value)} placeholder="https://... ou uploader depuis un fichier local" />
+                  <button
+                    type="button"
+                    onClick={() => mainImgRef.current?.click()}
+                    disabled={uploading === 'main'}
+                    className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg text-xs text-slate-300 transition disabled:opacity-50"
+                  >
+                    {uploading === 'main' ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+                    Upload
+                  </button>
+                </div>
+                <input ref={mainImgRef} type="file" accept="image/*" className="hidden" onChange={handleMainUpload} />
                 {form.image_url && (
                   <div className="mt-2 h-28 rounded-lg overflow-hidden border border-slate-700">
                     <img src={form.image_url} alt="" className="w-full h-full object-cover" onError={e => e.target.style.display='none'} />
@@ -253,17 +334,38 @@ function ProjectModal({ project, onClose, onSave }) {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className={label + ' mb-0'}>Galerie ({form.gallery.length} image{form.gallery.length !== 1 ? 's' : ''})</label>
-                  <button
-                    type="button"
-                    onClick={() => set('gallery', [...form.gallery, ''])}
-                    className="flex items-center gap-1 text-xs text-electric hover:text-white transition px-2 py-1 rounded border border-electric/30 hover:border-electric/70"
-                  >
-                    <Plus size={11} /> Ajouter
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => galleryMultiRef.current?.click()}
+                      disabled={uploading === 'multi'}
+                      className="flex items-center gap-1 text-xs text-slate-400 hover:text-white transition px-2 py-1 rounded border border-slate-600 hover:border-slate-400 disabled:opacity-50"
+                    >
+                      {uploading === 'multi' ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
+                      Uploader
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => set('gallery', [...form.gallery, ''])}
+                      className="flex items-center gap-1 text-xs text-electric hover:text-white transition px-2 py-1 rounded border border-electric/30 hover:border-electric/70"
+                    >
+                      <Plus size={11} /> URL
+                    </button>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   {form.gallery.map((url, i) => (
-                    <div key={i} className="flex gap-2 items-center">
+                    <div
+                      key={i}
+                      draggable
+                      onDragStart={() => setDragIdx(i)}
+                      onDragOver={e => e.preventDefault()}
+                      onDrop={e => { e.preventDefault(); if (dragIdx !== null && dragIdx !== i) { moveGallery(dragIdx, i); setDragIdx(null) } }}
+                      onDragEnd={() => setDragIdx(null)}
+                      className="flex gap-2 items-center transition-opacity"
+                      style={{ opacity: dragIdx === i ? 0.4 : 1, cursor: 'grab' }}
+                    >
+                      <GripVertical size={13} className="flex-shrink-0 text-slate-600 cursor-grab" />
                       <input
                         className={input}
                         value={url}
@@ -272,8 +374,17 @@ function ProjectModal({ project, onClose, onSave }) {
                           g[i] = e.target.value
                           set('gallery', g)
                         }}
-                        placeholder={`Image galerie ${i + 1} — URL`}
+                        placeholder={`Image galerie ${i + 1} — URL ou uploader →`}
                       />
+                      <button
+                        type="button"
+                        onClick={() => { galleryTargetRef.current = i; gallerySingleRef.current?.click() }}
+                        disabled={uploading === `g${i}`}
+                        className="flex-shrink-0 w-7 h-7 rounded flex items-center justify-center bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-400 transition disabled:opacity-50"
+                        title="Uploader un fichier"
+                      >
+                        {uploading === `g${i}` ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
+                      </button>
                       {url && (
                         <div className="w-10 h-10 rounded flex-shrink-0 overflow-hidden border border-slate-700">
                           <img src={url} alt="" className="w-full h-full object-cover" onError={e => e.target.style.display='none'} />
@@ -289,6 +400,8 @@ function ProjectModal({ project, onClose, onSave }) {
                     </div>
                   ))}
                 </div>
+                <input ref={gallerySingleRef} type="file" accept="image/*" className="hidden" onChange={handleGallerySingle} />
+                <input ref={galleryMultiRef} type="file" accept="image/*" multiple className="hidden" onChange={handleGalleryMulti} />
               </div>
             </div>
           </section>
