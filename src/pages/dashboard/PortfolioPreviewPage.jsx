@@ -66,26 +66,19 @@ function ProjectInlinePanel({ form, onChange, onSave, onDelete, saving }) {
 
   const [uploading, setUploading] = useState(null)
   const [dragIdx, setDragIdx]     = useState(null)
-  const mainRef    = useRef(null)
   const singleRef  = useRef(null)
   const multiRef   = useRef(null)
   const targetRef  = useRef(null)
 
-  function moveGallery(from, to) {
-    const g = [...(form.gallery || [])]
-    const [moved] = g.splice(from, 1)
-    g.splice(to, 0, moved)
-    set('gallery', g)
+  // Unified list helpers — 1ère image = image_url, reste = gallery
+  const allImgs = () => [...(form.image_url ? [form.image_url] : []), ...(form.gallery || [])]
+  function setAllImgs(list) {
+    onChange({ ...form, image_url: list[0] || '', gallery: list.slice(1) })
+  }
+  function reorderAll(from, to) {
+    const a = allImgs(); const [m] = a.splice(from, 1); a.splice(to, 0, m); setAllImgs(a)
   }
 
-  async function handleMain(e) {
-    const file = e.target.files?.[0]; e.target.value = ''
-    if (!file) return
-    setUploading('main')
-    try { set('image_url', await uploadToPortfolio(file, form.title)); toast.success('Image principale ajoutée') }
-    catch { toast.error('Upload échoué — vérifiez le bucket "portfolio" dans Supabase Storage') }
-    setUploading(null)
-  }
   async function handleSingle(e) {
     const file = e.target.files?.[0]; e.target.value = ''
     if (!file) return
@@ -93,7 +86,7 @@ function ProjectInlinePanel({ form, onChange, onSave, onDelete, saving }) {
     setUploading(`g${i}`)
     try {
       const url = await uploadToPortfolio(file, form.title)
-      const g = [...(form.gallery || [])]; g[i] = url; set('gallery', g)
+      const a = allImgs(); if (i < a.length) a[i] = url; else a.push(url); setAllImgs(a)
       toast.success('Image ajoutée')
     } catch { toast.error('Upload échoué') }
     setUploading(null)
@@ -106,7 +99,7 @@ function ProjectInlinePanel({ form, onChange, onSave, onDelete, saving }) {
     for (const file of files) {
       try { urls.push(await uploadToPortfolio(file, form.title)) } catch { /* skip */ }
     }
-    set('gallery', [...(form.gallery || []).filter(Boolean), ...urls])
+    setAllImgs([...allImgs(), ...urls])
     setUploading(null)
     if (urls.length) toast.success(`${urls.length} image${urls.length > 1 ? 's' : ''} ajoutée${urls.length > 1 ? 's' : ''}`)
   }
@@ -200,70 +193,59 @@ function ProjectInlinePanel({ form, onChange, onSave, onDelete, saving }) {
           </div>
         </div>
 
-        {/* Images */}
+        {/* Images — liste unifiée, 1ère = principale */}
         <div style={{ marginBottom: 18 }}>
-          <span style={DARK_SEC}>Images</span>
-          <div style={{ marginBottom: 8 }}>
-            <label style={DARK_LBL}>Principale</label>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <input style={{ ...DARK_INP, flex: 1 }} value={form.image_url || ''} onChange={e => set('image_url', e.target.value)} placeholder="https://... ou uploader →" />
-              <button onClick={() => mainRef.current?.click()} disabled={uploading === 'main'}
-                style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4, padding: '0 10px', borderRadius: 7, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', color: 'rgba(245,240,234,0.6)', cursor: 'pointer', fontSize: 11, fontFamily: 'Space Grotesk, sans-serif', whiteSpace: 'nowrap', opacity: uploading === 'main' ? 0.5 : 1 }}>
-                {uploading === 'main' ? <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <Upload size={11} />}
-              </button>
-            </div>
-            <input ref={mainRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleMain} />
-            {form.image_url && (
-              <div style={{ marginTop: 6, height: 90, borderRadius: 6, overflow: 'hidden', background: '#0D0E10' }}>
-                <img src={form.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.currentTarget.style.display = 'none' }} />
-              </div>
-            )}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <span style={DARK_SEC}>Images</span>
+            <span style={{ fontSize: 9, color: 'rgba(245,240,234,0.25)', fontFamily: 'Space Grotesk, sans-serif', letterSpacing: 0.3 }}>
+              ★ 1ʳᵉ = principale · glisser pour réordonner
+            </span>
           </div>
-          {(form.gallery || []).map((url, i) => (
+          {allImgs().map((url, i) => (
             <div
               key={i}
               draggable
               onDragStart={() => setDragIdx(i)}
               onDragOver={e => e.preventDefault()}
-              onDrop={e => { e.preventDefault(); if (dragIdx !== null && dragIdx !== i) { moveGallery(dragIdx, i); setDragIdx(null) } }}
+              onDrop={e => { e.preventDefault(); if (dragIdx !== null && dragIdx !== i) { reorderAll(dragIdx, i); setDragIdx(null) } }}
               onDragEnd={() => setDragIdx(null)}
               style={{ marginBottom: 8, display: 'flex', gap: 6, alignItems: 'center', opacity: dragIdx === i ? 0.4 : 1, transition: 'opacity 0.15s', cursor: 'grab' }}
             >
               <div style={{ flexShrink: 0, color: 'rgba(245,240,234,0.2)', display: 'flex', alignItems: 'center', cursor: 'grab' }}>
                 <GripVertical size={13} />
               </div>
+              {i === 0 && (
+                <span style={{ flexShrink: 0, fontSize: 8, letterSpacing: 1, textTransform: 'uppercase', color: '#C8B89A', background: 'rgba(200,184,154,0.15)', padding: '2px 5px', borderRadius: 3, fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700 }}>★</span>
+              )}
+              <div style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 5, overflow: 'hidden', background: '#0D0E10', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.currentTarget.style.display = 'none' }} />
+              </div>
               <input
                 style={{ ...DARK_INP, flex: 1 }}
                 value={url}
-                onChange={e => { const g = [...(form.gallery || [])]; g[i] = e.target.value; set('gallery', g) }}
-                placeholder={`Image ${i + 1} — URL ou ↑`}
+                onChange={e => { const a = allImgs(); a[i] = e.target.value; setAllImgs(a) }}
+                placeholder={`Image ${i + 1}`}
               />
               <button onClick={() => { targetRef.current = i; singleRef.current?.click() }} disabled={uploading === `g${i}`}
                 style={{ flexShrink: 0, width: 28, height: 28, borderRadius: 6, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(245,240,234,0.4)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: uploading === `g${i}` ? 0.5 : 1 }}>
                 {uploading === `g${i}` ? <Loader2 size={10} style={{ animation: 'spin 1s linear infinite' }} /> : <Upload size={10} />}
               </button>
-              <button
-                onClick={() => { const g = (form.gallery || []).filter((_, idx) => idx !== i); set('gallery', g) }}
-                style={{ flexShrink: 0, width: 28, height: 28, borderRadius: 6, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: 'rgba(239,68,68,0.6)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              >
+              <button onClick={() => setAllImgs(allImgs().filter((_, idx) => idx !== i))}
+                style={{ flexShrink: 0, width: 28, height: 28, borderRadius: 6, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: 'rgba(239,68,68,0.6)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Trash2 size={11} />
               </button>
             </div>
           ))}
           <input ref={singleRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleSingle} />
           <input ref={multiRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handleMulti} />
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button
-              onClick={() => multiRef.current?.click()} disabled={uploading === 'multi'}
-              style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px', borderRadius: 6, background: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.15)', color: 'rgba(245,240,234,0.35)', cursor: 'pointer', fontSize: 11, fontFamily: 'Space Grotesk, sans-serif', justifyContent: 'center', opacity: uploading === 'multi' ? 0.5 : 1 }}
-            >
-              {uploading === 'multi' ? <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <Upload size={11} />} Uploader fichiers
+          <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+            <button onClick={() => multiRef.current?.click()} disabled={uploading === 'multi'}
+              style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px', borderRadius: 6, background: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.15)', color: 'rgba(245,240,234,0.35)', cursor: 'pointer', fontSize: 11, fontFamily: 'Space Grotesk, sans-serif', justifyContent: 'center', opacity: uploading === 'multi' ? 0.5 : 1 }}>
+              {uploading === 'multi' ? <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <Upload size={11} />} Uploader
             </button>
-            <button
-              onClick={() => set('gallery', [...(form.gallery || []), ''])}
-              style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px', borderRadius: 6, background: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.15)', color: 'rgba(245,240,234,0.35)', cursor: 'pointer', fontSize: 11, fontFamily: 'Space Grotesk, sans-serif', justifyContent: 'center' }}
-            >
-              <Plus size={11} /> Ajouter URL
+            <button onClick={() => setAllImgs([...allImgs(), ''])}
+              style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px', borderRadius: 6, background: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.15)', color: 'rgba(245,240,234,0.35)', cursor: 'pointer', fontSize: 11, fontFamily: 'Space Grotesk, sans-serif', justifyContent: 'center' }}>
+              <Plus size={11} /> URL
             </button>
           </div>
         </div>
@@ -409,26 +391,16 @@ function ProjectModal({ defaultAxis, onClose, onSave }) {
 
   const [uploading, setUploading] = useState(null)
   const [dragIdx2, setDragIdx2]   = useState(null)
-  const mainRef2   = useRef(null)
   const singleRef2 = useRef(null)
   const multiRef2  = useRef(null)
   const targetRef2 = useRef(null)
 
-  function moveGallery2(from, to) {
-    const g = [...(form.gallery || [])]
-    const [moved] = g.splice(from, 1)
-    g.splice(to, 0, moved)
-    set('gallery', g)
+  const allImgs2 = () => [...(form.image_url ? [form.image_url] : []), ...(form.gallery || [])]
+  function setAllImgs2(list) { setForm(f => ({ ...f, image_url: list[0] || '', gallery: list.slice(1) })) }
+  function reorderAll2(from, to) {
+    const a = allImgs2(); const [m] = a.splice(from, 1); a.splice(to, 0, m); setAllImgs2(a)
   }
 
-  async function handleMain2(e) {
-    const file = e.target.files?.[0]; e.target.value = ''
-    if (!file) return
-    setUploading('main')
-    try { set('image_url', await uploadToPortfolio(file, form.title)); toast.success('Image principale ajoutée') }
-    catch { toast.error('Upload échoué — vérifiez le bucket "portfolio" dans Supabase Storage') }
-    setUploading(null)
-  }
   async function handleSingle2(e) {
     const file = e.target.files?.[0]; e.target.value = ''
     if (!file) return
@@ -436,7 +408,7 @@ function ProjectModal({ defaultAxis, onClose, onSave }) {
     setUploading(`g${i}`)
     try {
       const url = await uploadToPortfolio(file, form.title)
-      const g = [...(form.gallery || [])]; g[i] = url; set('gallery', g)
+      const a = allImgs2(); if (i < a.length) a[i] = url; else a.push(url); setAllImgs2(a)
       toast.success('Image ajoutée')
     } catch { toast.error('Upload échoué') }
     setUploading(null)
@@ -449,7 +421,7 @@ function ProjectModal({ defaultAxis, onClose, onSave }) {
     for (const file of files) {
       try { urls.push(await uploadToPortfolio(file, form.title)) } catch { /* skip */ }
     }
-    set('gallery', [...(form.gallery || []).filter(Boolean), ...urls])
+    setAllImgs2([...allImgs2(), ...urls])
     setUploading(null)
     if (urls.length) toast.success(`${urls.length} image${urls.length > 1 ? 's' : ''} ajoutée${urls.length > 1 ? 's' : ''}`)
   }
@@ -585,42 +557,29 @@ function ProjectModal({ defaultAxis, onClose, onSave }) {
             </Row>
           </Section>
 
-          <Section title="Images">
-            <div>
-              <label style={LABEL_S}>Image principale</label>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <input style={{ ...INPUT_S, flex: 1 }} value={form.image_url} onChange={e => set('image_url', e.target.value)} placeholder="https://... ou uploader →" />
-                <button onClick={() => mainRef2.current?.click()} disabled={uploading === 'main'}
-                  style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4, padding: '0 12px', borderRadius: 7, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', color: 'rgba(245,240,234,0.6)', cursor: 'pointer', fontSize: 12, fontFamily: 'Space Grotesk, sans-serif', whiteSpace: 'nowrap', opacity: uploading === 'main' ? 0.5 : 1 }}>
-                  {uploading === 'main' ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> : <Upload size={12} />}
-                </button>
-              </div>
-              <input ref={mainRef2} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleMain2} />
-              {form.image_url && (
-                <div style={{ marginTop: 8, height: 110, borderRadius: 8, overflow: 'hidden', background: '#0D0E10' }}>
-                  <img src={form.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.currentTarget.style.display = 'none' }} />
-                </div>
-              )}
-            </div>
-            {(form.gallery || []).map((url, i) => (
-              <div
-                key={i}
-                draggable
+          <Section title="Images · ★ 1ʳᵉ = principale · glisser pour réordonner">
+            {allImgs2().map((url, i) => (
+              <div key={i} draggable
                 onDragStart={() => setDragIdx2(i)}
                 onDragOver={e => e.preventDefault()}
-                onDrop={e => { e.preventDefault(); if (dragIdx2 !== null && dragIdx2 !== i) { moveGallery2(dragIdx2, i); setDragIdx2(null) } }}
+                onDrop={e => { e.preventDefault(); if (dragIdx2 !== null && dragIdx2 !== i) { reorderAll2(dragIdx2, i); setDragIdx2(null) } }}
                 onDragEnd={() => setDragIdx2(null)}
                 style={{ display: 'flex', gap: 6, alignItems: 'center', opacity: dragIdx2 === i ? 0.4 : 1, transition: 'opacity 0.15s', cursor: 'grab' }}
               >
-                <div style={{ flexShrink: 0, color: 'rgba(245,240,234,0.2)', display: 'flex', alignItems: 'center', cursor: 'grab' }}>
-                  <GripVertical size={13} />
+                <GripVertical size={13} style={{ flexShrink: 0, color: 'rgba(245,240,234,0.2)' }} />
+                {i === 0 && <span style={{ flexShrink: 0, fontSize: 8, letterSpacing: 1, textTransform: 'uppercase', color: '#C8B89A', background: 'rgba(200,184,154,0.15)', padding: '2px 5px', borderRadius: 3, fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700 }}>★</span>}
+                <div style={{ flexShrink: 0, width: 36, height: 36, borderRadius: 5, overflow: 'hidden', background: '#0D0E10', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.currentTarget.style.display = 'none' }} />
                 </div>
-                <input style={{ ...INPUT_S, flex: 1 }} value={url} onChange={e => { const g = [...(form.gallery || [])]; g[i] = e.target.value; set('gallery', g) }} placeholder={`Image ${i + 1} — URL ou ↑`} />
+                <input style={{ ...INPUT_S, flex: 1 }} value={url}
+                  onChange={e => { const a = allImgs2(); a[i] = e.target.value; setAllImgs2(a) }}
+                  placeholder={`Image ${i + 1}`} />
                 <button onClick={() => { targetRef2.current = i; singleRef2.current?.click() }} disabled={uploading === `g${i}`}
                   style={{ flexShrink: 0, width: 30, height: 30, borderRadius: 6, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(245,240,234,0.4)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: uploading === `g${i}` ? 0.5 : 1 }}>
                   {uploading === `g${i}` ? <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <Upload size={11} />}
                 </button>
-                <button onClick={() => set('gallery', (form.gallery || []).filter((_, idx) => idx !== i))} style={{ flexShrink: 0, width: 30, height: 30, borderRadius: 6, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: 'rgba(239,68,68,0.6)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <button onClick={() => setAllImgs2(allImgs2().filter((_, idx) => idx !== i))}
+                  style={{ flexShrink: 0, width: 30, height: 30, borderRadius: 6, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: 'rgba(239,68,68,0.6)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Trash2 size={11} />
                 </button>
               </div>
@@ -630,11 +589,11 @@ function ProjectModal({ defaultAxis, onClose, onSave }) {
             <div style={{ display: 'flex', gap: 6 }}>
               <button onClick={() => multiRef2.current?.click()} disabled={uploading === 'multi'}
                 style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px 0', borderRadius: 7, background: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.15)', color: 'rgba(245,240,234,0.35)', cursor: 'pointer', fontSize: 11, fontFamily: 'Space Grotesk, sans-serif', opacity: uploading === 'multi' ? 0.5 : 1 }}>
-                {uploading === 'multi' ? <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <Upload size={11} />} Uploader fichiers
+                {uploading === 'multi' ? <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <Upload size={11} />} Uploader
               </button>
-              <button onClick={() => set('gallery', [...(form.gallery || []), ''])}
+              <button onClick={() => setAllImgs2([...allImgs2(), ''])}
                 style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px 0', borderRadius: 7, background: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.15)', color: 'rgba(245,240,234,0.35)', cursor: 'pointer', fontSize: 11, fontFamily: 'Space Grotesk, sans-serif' }}>
-                <Plus size={11} /> Ajouter URL
+                <Plus size={11} /> URL
               </button>
             </div>
           </Section>
