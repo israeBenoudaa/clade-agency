@@ -3,6 +3,14 @@
 @tailwind utilities;
 
 @font-face {
+  font-family: 'Amerika Sans';
+  src: url('/fonts/AmeriKaSans.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
   font-family: 'Averia Libre';
   src: url('/fonts/AveriaLibre-Regular.ttf') format('truetype');
   font-weight: 400;

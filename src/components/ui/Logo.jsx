@@ -35,7 +35,7 @@ export function CladeBrand({ light = false, scale = 1 }) {
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, zoom: scale }}>
       <CladeSign size={30} color="#C19A6B" />
       <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', gap: 0 }}>
-        <span style={{ fontFamily: "'Averia Libre', serif", fontSize: 22, fontWeight: 400, letterSpacing: '0.05em', color: nameColor, lineHeight: 1 }}>
+        <span style={{ fontFamily: "'Amerika Sans', sans-serif", fontSize: 22, fontWeight: 400, letterSpacing: '0.06em', color: nameColor, lineHeight: 1 }}>
           Clade
         </span>
         <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 7.3, fontWeight: 500, color: subColor, letterSpacing: '0.07em', lineHeight: 1 }}>
