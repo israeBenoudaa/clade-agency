@@ -97,11 +97,12 @@ function ProjectInlinePanel({ form, onChange, onSave, onDelete, saving }) {
     setUploading('multi')
     const urls = []
     for (const file of files) {
-      try { urls.push(await uploadToPortfolio(file, form.title)) } catch { /* skip */ }
+      try { urls.push(await uploadToPortfolio(file, form.title)) } catch (err) { console.error('[upload]', err) }
     }
     setAllImgs([...allImgs(), ...urls])
     setUploading(null)
     if (urls.length) toast.success(`${urls.length} image${urls.length > 1 ? 's' : ''} ajoutée${urls.length > 1 ? 's' : ''}`)
+    else toast.error('Upload échoué — vérifiez les permissions du bucket Supabase')
   }
 
   return (
@@ -419,11 +420,12 @@ function ProjectModal({ defaultAxis, onClose, onSave }) {
     setUploading('multi')
     const urls = []
     for (const file of files) {
-      try { urls.push(await uploadToPortfolio(file, form.title)) } catch { /* skip */ }
+      try { urls.push(await uploadToPortfolio(file, form.title)) } catch (err) { console.error('[upload]', err) }
     }
     setAllImgs2([...allImgs2(), ...urls])
     setUploading(null)
     if (urls.length) toast.success(`${urls.length} image${urls.length > 1 ? 's' : ''} ajoutée${urls.length > 1 ? 's' : ''}`)
+    else toast.error('Upload échoué — vérifiez les permissions du bucket Supabase')
   }
 
   const handleSave = async () => {
@@ -653,7 +655,7 @@ export default function PortfolioPage() {
   const [iframeReady, setIframeReady] = useState(false)
   const [iframeTimeout, setIframeTimeout] = useState(false)
   const iframeTimerRef = useRef(null)
-  const iframeEverReady = useRef(false)
+  const iframeEverReady = useRef(localStorage.getItem('clade_portfolio_ever_ready') === '1')
 
   /* ── Site-content single-field ── */
   const [editPanel, setEditPanel] = useState(null)
@@ -718,6 +720,7 @@ export default function PortfolioPage() {
         // iframe React app is fully mounted — enable edit mode immediately (no timeout needed)
         iframeRef.current?.contentWindow?.postMessage({ type: 'cms-enable' }, '*')
         iframeEverReady.current = true
+        localStorage.setItem('clade_portfolio_ever_ready', '1')
         setIframeReady(true)
         setIframeTimeout(false)
         if (iframeTimerRef.current) clearTimeout(iframeTimerRef.current)
@@ -767,7 +770,7 @@ export default function PortfolioPage() {
     if (iframeTimerRef.current) clearTimeout(iframeTimerRef.current)
     setIframeReady(false)
     setIframeTimeout(false)
-    const delay = iframeEverReady.current ? 60000 : 10000
+    const delay = iframeEverReady.current ? 60000 : 30000
     iframeTimerRef.current = setTimeout(() => setIframeTimeout(true), delay)
   }, [])
 
