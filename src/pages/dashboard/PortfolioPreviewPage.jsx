@@ -287,12 +287,55 @@ function ProjectInlinePanel({ form, onChange, onSave, onDelete, saving }) {
           </div>
         </div>
 
+        {/* Traductions */}
+        <TranslationsSection form={form} onChange={onChange} />
+
         {/* Danger zone */}
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 14 }}>
           <button onClick={onDelete} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.18)', borderRadius: 7, color: 'rgba(239,68,68,0.65)', cursor: 'pointer', fontSize: 11, fontFamily: 'Space Grotesk, sans-serif' }}>
             <Trash2 size={11} /> Supprimer ce projet
           </button>
         </div>
+      </div>
+    </div>
+  )
+}
+
+/* ─── Traductions EN / ES ─── */
+function TranslationsSection({ form, onChange }) {
+  const [lang, setLang] = useState('en')
+  const tr  = (form.translations || {})[lang] || {}
+  const set = (field, val) => onChange({
+    ...form,
+    translations: {
+      ...(form.translations || {}),
+      [lang]: { ...tr, [field]: val },
+    },
+  })
+  const TAB = (l, label) => (
+    <button onClick={() => setLang(l)} style={{
+      padding: '4px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 11,
+      fontFamily: 'Space Grotesk, sans-serif', fontWeight: lang === l ? 700 : 400,
+      background: lang === l ? 'rgba(200,184,154,0.18)' : 'rgba(255,255,255,0.05)',
+      color: lang === l ? '#C8B89A' : 'rgba(245,240,234,0.35)',
+      outline: lang === l ? '1px solid rgba(200,184,154,0.3)' : '1px solid transparent',
+    }}>{label}</button>
+  )
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+        <span style={DARK_SEC}>Traductions</span>
+        <div style={{ display: 'flex', gap: 4 }}>{TAB('en', 'EN')}{TAB('es', 'ES')}</div>
+      </div>
+      <div style={{ marginBottom: 8 }}>
+        <label style={DARK_LBL}>Titre ({lang.toUpperCase()})</label>
+        <input style={DARK_INP} value={tr.title || ''} onChange={e => set('title', e.target.value)} placeholder={form.title || 'Titre traduit…'} />
+      </div>
+      <div>
+        <label style={DARK_LBL}>Histoire ({lang.toUpperCase()})</label>
+        <textarea style={{ ...DARK_INP, resize: 'vertical', lineHeight: 1.65 }} rows={6}
+          value={tr.story || ''} onChange={e => set('story', e.target.value)}
+          placeholder={"Paragraphes séparés par une ligne vide…"} />
       </div>
     </div>
   )
@@ -460,6 +503,7 @@ function ProjectModal({ defaultAxis, onClose, onSave }) {
       gallery: form.gallery.filter(Boolean),
       tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
       span: form.span, display_order: Number(form.display_order) || 0, visible: form.visible,
+      translations: form.translations || {},
     }
     const { error, data } = await supabase.from(TABLE).insert([payload]).select()
     setSaving(false)
@@ -842,6 +886,7 @@ export default function PortfolioPage() {
       span:           projectForm.span,
       display_order:  Number(projectForm.display_order) || 0,
       visible:        projectForm.visible,
+      translations:   projectForm.translations || {},
       updated_at:     new Date().toISOString(),
     }
     const { error } = await supabase.from(TABLE).update(payload).eq('id', projectForm.id)
