@@ -365,6 +365,23 @@ export default function SiteEditorPage() {
                   </div>
                   <Field label="Texte descriptif" value={get('contact.description')} onChange={v => set('contact.description', v)} multiline />
                 </Section>
+
+                <Section title="Informations de contact" color="#8DBE8A">
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <Field label="Téléphone" value={get('contact.phone', '+212 6 00 00 00 00')} onChange={v => set('contact.phone', v)} />
+                    <Field label="Adresse" value={get('contact.address', 'Casablanca, Maroc')} onChange={v => set('contact.address', v)} />
+                    <Field label="Horaires" value={get('contact.hours', 'Lun – Ven, 9h – 18h')} onChange={v => set('contact.hours', v)} />
+                  </div>
+                </Section>
+
+                <Section title="Réseaux sociaux" color="#B89AC8">
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <Field label="Instagram (URL)" value={get('contact.social.instagram', '#')} onChange={v => set('contact.social.instagram', v)} />
+                    <Field label="TikTok (URL)" value={get('contact.social.tiktok', '#')} onChange={v => set('contact.social.tiktok', v)} />
+                    <Field label="LinkedIn (URL)" value={get('contact.social.linkedin', '#')} onChange={v => set('contact.social.linkedin', v)} />
+                    <Field label="Facebook (URL)" value={get('contact.social.facebook', '#')} onChange={v => set('contact.social.facebook', v)} />
+                  </div>
+                </Section>
               </>
             )}
 
