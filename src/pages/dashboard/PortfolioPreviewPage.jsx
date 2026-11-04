@@ -806,19 +806,20 @@ export default function PortfolioPage() {
         if (currentProjectIdRef.current) return
         const clickLang = e.data.lang || 'fr'
         const origKey   = e.data.key
-        // Keys for site_content are lang-prefixed so each language has its own value
-        const langKey   = `${clickLang}.${origKey}`
+        // Les clés contact.* et hero.* sont langue-agnostiques — pas de préfixe
+        const isLangAgnostic = origKey.startsWith('contact.') || origKey.startsWith('hero.')
+        const storageKey = isLangAgnostic ? origKey : `${clickLang}.${origKey}`
         setEditPanel({
-          key:         langKey,
+          key:         storageKey,
           originalKey: origKey,
           lang:        clickLang,
           elementType: e.data.elementType,
           table:       e.data.table || 'site_content',
           entityId:    e.data.entityId || null,
         })
-        // Pre-fill with rendered value; then check Supabase for an existing lang-specific override
+        // Pre-fill avec la valeur affichée ; vérifie Supabase pour une valeur existante
         setDraft(e.data.value || '')
-        supabase.from('site_content').select('value').eq('key', langKey).maybeSingle()
+        supabase.from('site_content').select('value').eq('key', storageKey).maybeSingle()
           .then(({ data }) => { if (data?.value != null) setDraft(data.value) })
       }
     }
