@@ -844,11 +844,17 @@ export default function PortfolioPage() {
     if (!editPanel) return
     setSaving(true)
     try {
-      // Try upsert first (requires UNIQUE constraint on key)
+      // Refresh JWT si nécessaire avant la sauvegarde
+      const { error: refreshErr } = await supabase.auth.refreshSession()
+      if (refreshErr) {
+        await supabase.auth.signOut()
+        window.location.href = '/login'
+        return
+      }
+
       const { error: upsertErr } = await supabase.from('site_content')
         .upsert({ key: editPanel.key, value: draft }, { onConflict: 'key' })
       if (upsertErr) {
-        // Fallback: try update then insert
         const { data: existing } = await supabase.from('site_content').select('key').eq('key', editPanel.key).maybeSingle()
         if (existing) {
           const { error } = await supabase.from('site_content').update({ value: draft }).eq('key', editPanel.key)
@@ -861,7 +867,16 @@ export default function PortfolioPage() {
       iframeRef.current?.contentWindow?.postMessage({ type: 'cms-update', key: editPanel.key, value: draft }, '*')
       toast.success('Sauvegardé ✓')
       setEditPanel(null)
-    } catch (err) { toast.error('Erreur : ' + (err?.message || 'sauvegarde échouée')) }
+    } catch (err) {
+      const isJwt = err?.message?.toLowerCase().includes('jwt') || err?.message?.toLowerCase().includes('expired')
+      if (isJwt) {
+        toast.error('Session expirée — reconnexion...')
+        await supabase.auth.signOut()
+        setTimeout(() => { window.location.href = '/login' }, 1200)
+      } else {
+        toast.error('Erreur : ' + (err?.message || 'sauvegarde échouée'))
+      }
+    }
     finally { setSaving(false) }
   }
 
