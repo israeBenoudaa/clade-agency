@@ -401,6 +401,14 @@ export function DataProvider({ children }) {
           supabase.from('marketing_config').select('*').eq('id', 1).single(),
         ])
 
+        // JWT expired → déconnexion propre (redirige vers login via AuthContext)
+        const allErrors = [eClients, eProspects, eEmployes, eProjects, eTx, eFormations, eCollabs]
+        if (allErrors.some(e => e?.message?.includes('JWT expired') || e?.code === 'PGRST301')) {
+          console.warn('[DataContext] JWT expired — déconnexion automatique')
+          await supabase.auth.signOut()
+          return
+        }
+
         // Log Supabase errors so we can diagnose RLS / schema issues
         if (eClients)   console.error('[Supabase] clients:', eClients.message)
         if (eProspects) console.error('[Supabase] prospects:', eProspects.message)
