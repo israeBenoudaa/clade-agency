@@ -817,10 +817,14 @@ export default function PortfolioPage() {
           table:       e.data.table || 'site_content',
           entityId:    e.data.entityId || null,
         })
-        // Pre-fill avec la valeur affichée ; vérifie Supabase pour une valeur existante
+        // Pre-fill avec la valeur affichée
         setDraft(e.data.value || '')
-        supabase.from('site_content').select('value').eq('key', storageKey).maybeSingle()
-          .then(({ data }) => { if (data?.value != null) setDraft(data.value) })
+        // Pour les phrases hero en EN/ES, le texte vient de translations.js — ne pas écraser avec Supabase
+        const isHeroPhrases = origKey === 'hero.phrases' && clickLang !== 'fr'
+        if (!isHeroPhrases) {
+          supabase.from('site_content').select('value').eq('key', storageKey).maybeSingle()
+            .then(({ data }) => { if (data?.value != null) setDraft(data.value) })
+        }
       }
     }
 
